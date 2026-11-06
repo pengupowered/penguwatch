@@ -5,6 +5,12 @@
 <h1 align="center">PenguWatch</h1>
 
 <p align="center">
+  <a href="https://pypi.org/project/penguwatch/"><img src="https://img.shields.io/pypi/v/penguwatch" alt="PyPI version"></a>
+  <a href="https://github.com/pengupowered/penguwatch/actions/workflows/release.yml"><img src="https://github.com/pengupowered/penguwatch/actions/workflows/release.yml/badge.svg" alt="Release workflow status"></a>
+  <a href="https://github.com/pengupowered/penguwatch/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
+</p>
+
+<p align="center">
   <b>Know what to watch next, and pay only for the streaming services you actually use.</b><br>
   A self-hosted TV, anime and movie tracker with a streaming-subscription rotation planner, and two-way sync with your tracking account (SIMKL by default) or no account at all.
 </p>

@@ -108,7 +108,7 @@ async function loadTidyCounts() {
 }
 
 async function renderTidy() {
-  const months = document.getElementById("tidy-months").value;
+  const months = parseInt(document.getElementById("tidy-months").value, 10) || 6;  // a number, never markup
   const retList = document.getElementById("tidy-returning-list");
   const staleList = document.getElementById("tidy-stale-list");
   retList.innerHTML = staleList.innerHTML = '<div class="muted review-empty loading-state">Loading…</div>';

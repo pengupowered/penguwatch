@@ -61,6 +61,21 @@ def test_changelog_has_unreleased_and_a_section_for_the_current_version():
     assert "]: https://" not in notes.stdout  # the link references at the bottom are not release notes
 
 
+def test_release_notes_have_no_relative_links():
+    """The notes are shown on the release page, where a relative link (docs/x.md) leads nowhere."""
+    import re
+    for version in (__version__, "0.15.0"):
+        notes = subprocess.run([str(ROOT / "scripts" / "changelog-section.sh"), version],
+                               capture_output=True, text=True, check=True).stdout
+        targets = re.findall(r"\]\(([^)]+)\)", notes)
+        assert all(t.startswith(("https://", "http://", "#")) for t in targets), [t for t in targets if not t.startswith("http")]
+        assert not [t for t in targets if t.count("://") > 1], version  # an absolute link is left as it is
+    notes = subprocess.run([str(ROOT / "scripts" / "changelog-section.sh"), "0.15.0"],
+                           capture_output=True, text=True, check=True).stdout
+    assert "](https://github.com/pengupowered/penguwatch/blob/v0.15.0/docs/drivers.md)" in notes  # rewritten
+    assert "](https://www.tvmaze.com/api)" in notes  # an absolute link is kept
+
+
 def test_changelog_section_fails_for_an_unknown_version():
     res = subprocess.run([str(ROOT / "scripts" / "changelog-section.sh"), "0.0.0"],
                          capture_output=True, text=True, check=False)

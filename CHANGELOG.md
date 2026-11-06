@@ -5,7 +5,18 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-06
+
+### Fixed
+- Tidy up: the "untouched for" period is read as a number before it is shown (it was put into the page as it came).
+- Release notes on GitHub link to the documents of that version instead of relative paths that did not work there.
+
+### Changed
+- The README shows the PyPI version, the release workflow status and the licence.
+
 ## [0.15.0] - 2026-11-06
+
+The first public release.
 
 ### Changed
 - **Drivers.** Everything PenguWatch learns from or sends to a service goes through a driver that declares its
@@ -76,7 +87,7 @@ and versions follow [Semantic Versioning](https://semver.org/).
 ### Changed
 - `tzdata` is a dependency on Windows, which has no time zone database of its own (the household time zone needs one).
 
-## [0.14.0] - YYYY-MM-DD
+## [0.14.0] - 2026-11-04 (not published)
 The first public release.
 
 ### Added
@@ -114,5 +125,6 @@ The first public release.
 - The example `config.yaml` no longer sets `server.host` or `database.db_path`; leave them out to get the defaults
   above. The container and `docker compose` behave as before, and your existing `config.yaml` keeps working.
 
-[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.14.0...HEAD
-[0.14.0]: https://github.com/pengupowered/penguwatch/releases/tag/v0.14.0
+[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.15.1...HEAD
+[0.15.1]: https://github.com/pengupowered/penguwatch/compare/v0.15.0...v0.15.1
+[0.15.0]: https://github.com/pengupowered/penguwatch/releases/tag/v0.15.0
