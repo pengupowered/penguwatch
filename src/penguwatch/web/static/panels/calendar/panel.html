@@ -1,0 +1,17 @@
+<!-- Air Schedule: upcoming episodes of the tracked shows, and the calendar feed (panel.js) -->
+<section id="calendar-tab" class="tab-pane" data-panel="calendar" role="tabpanel" aria-labelledby="tab-calendar" data-needs="schedule-driver">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg>
+    <h1 class="page-t">Upcoming episodes and seasons</h1>
+    <span class="page-m">Never miss a premiere on your tracked shows.</span>
+  </div>
+  <div class="result ical-box">
+    <svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>
+    <span>Add these to your phone's calendar: subscribe to</span>
+    <code id="ical-url" class="mono">/api/calendar.ics</code>
+    <button class="btn sm outline" id="btn-copy-ical" type="button"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy link</button>
+  </div>
+  <div class="schedule-timeline" id="calendar-timeline">
+    <!-- Rendered via JS -->
+  </div>
+</section>

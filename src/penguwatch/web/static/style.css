@@ -1,0 +1,160 @@
+/* PenguWatch's app layer over the design system (tokens.css, components.css, page.css): the pieces several tabs and
+   dialogs share. Posters and title cards, ratings and tags, the progress bar, the dialog as a div toggled by .active
+   (js/modal.js), the loading pill and states, the toast. A tab's own styles are in its folder. Reads tokens only. */
+
+/* ---------- Dialog: a div opened with .active (js/modal.js); dialog look on desktop, bottom sheet on phones ---------- */
+.modal {
+  position: fixed; inset: 0; z-index: var(--z-modal); display: none; align-items: center; justify-content: center;
+  padding: 24px; background: var(--scrim); backdrop-filter: blur(2px);
+}
+.modal.active { display: flex; }
+.modal-content {
+  position: relative; display: flex; flex-direction: column; overflow: hidden; color: var(--ink-1);
+  background: var(--surface-1); border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+  width: min(var(--w, 760px), calc(100vw - 48px)); max-height: calc(100vh - 48px);
+  animation: pop var(--t-med) var(--ease);
+}
+.modal-content.sm { --w: 460px; }
+.modal-content.wide { --w: 1000px; }
+.modal-content > form { display: contents; }
+.modal + .modal.active { z-index: calc(var(--z-modal) + 1); }
+body.modal-open { overflow: hidden; }
+@media (max-width: 720px) {
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-content {
+    width: 100vw; max-width: 100vw; max-height: calc(100dvh - 28px); border-radius: 18px 18px 0 0;
+    box-shadow: var(--shadow-sheet); animation: sheet var(--t-med) var(--ease);
+  }
+  .modal-content::before { content: ""; display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 8px auto 0; flex: none; }
+}
+
+/* ---------- Status vocabulary for the classes the modules emit (badge, chip, empty: --st / --st-bg) ---------- */
+.ink-good { color: var(--good); } .ink-warn { color: var(--warn); } .ink-crit { color: var(--crit); } .ink-muted { color: var(--ink-3); }
+.seg button.active { background: var(--surface-3); color: var(--ink-1); box-shadow: 0 0 0 1px var(--line-strong); }
+.result { display: flex; gap: 8px var(--sp-3); align-items: center; flex-wrap: wrap; padding: var(--sp-3); border-radius: var(--r-md); background: var(--st-bg, var(--surface-2)); border: 1px solid color-mix(in srgb, var(--st, var(--line)) 35%, transparent); font-size: var(--fs-sm); color: var(--ink-1); }
+.result > svg.i { color: var(--st, var(--ink-3)); flex: none; }
+.result b { font-weight: var(--fw-semi); }
+.result[hidden] { display: none; }
+.empty > span b { display: block; }
+.empty.st { color: var(--ink-1); }
+
+/* ---------- Titles: posters, the media icon, the stored title under an English one, ratings, tags ---------- */
+.poster { display: block; width: 100%; aspect-ratio: var(--poster-ratio); object-fit: cover; background: var(--poster-bg); border-radius: var(--r-sm); }
+.poster-fallback { display: grid; place-items: center; width: 100%; aspect-ratio: var(--poster-ratio); background: var(--poster-bg); color: var(--ink-4); }
+.poster-fallback[hidden] { display: none; }
+.poster-fallback svg.i { width: 44px; height: 44px; stroke-width: 1.25; }
+.media-ic { display: inline-flex; color: var(--ink-3); vertical-align: -2px; }
+.media-ic svg.i { width: 16px; height: 16px; }
+.title-alt { font-size: var(--fs-xs); color: var(--ink-3); font-weight: 400; overflow-wrap: anywhere; }
+.show-year { color: var(--ink-3); font-weight: 400; font-size: .9em; }
+.title-link { color: inherit; }
+.title-link:hover { color: var(--accent); }
+.clickable { cursor: pointer; }
+.rating {
+  display: inline-flex; align-items: baseline; gap: 4px; padding: 2px 7px; border-radius: var(--r-pill); white-space: nowrap;
+  font-size: var(--fs-xs); font-weight: var(--fw-semi); font-variant-numeric: tabular-nums; color: var(--ink-1); background: var(--surface-3);
+}
+.rating svg.i { width: 11px; height: 11px; align-self: center; }
+.rating b { font-size: 10px; letter-spacing: .04em; color: var(--ink-3); font-weight: var(--fw-bold); }
+.service-tag { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; padding: 2px 8px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--ink-2); background: var(--surface-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.service-tag.svc-on { color: var(--good); background: var(--good-bg); }
+.service-tag.svc-on::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.ratings { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+
+/* Text and chips laid over a poster: the same in both themes (tokens --on-image*) */
+.on-image { color: var(--on-image); background: var(--on-image-bg); border: 1px solid var(--on-image-line); backdrop-filter: blur(6px); }
+.on-image .rating, .rating.on-image { color: var(--on-image); background: none; }
+.on-image b { color: inherit; opacity: .75; }
+
+/* ---------- Progress bar ---------- */
+.progress { height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.progress > i { display: block; height: 100%; width: 0; border-radius: 3px; background: var(--accent); transition: width var(--t-med) var(--ease); }
+.progress.done > i { background: var(--good); }
+
+/* Bar in a table cell or a list (cost per hour, latency, hours): track and fill */
+.bar { display: flex; align-items: center; gap: var(--sp-2); min-width: 7rem; }
+.bar-track { flex: 1; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--accent) 14%, var(--surface-3)); overflow: hidden; min-width: 3rem; }
+.bar-fill { height: 100%; width: 0; border-radius: 4px; background: var(--accent); }
+.bar > span { font-variant-numeric: tabular-nums; font-size: var(--fs-xs); color: var(--ink-2); white-space: nowrap; }
+
+/* ---------- Plain tables in panels ---------- */
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.tbl { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.tbl th { text-align: left; font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; padding: 0 10px 8px; white-space: nowrap; }
+.tbl tbody th { text-transform: none; letter-spacing: 0; font-size: var(--fs-sm); color: var(--ink-1); padding: 9px 10px; }
+.tbl td { padding: 9px 10px; border-top: 1px solid var(--line); vertical-align: middle; }
+.tbl tbody th { border-top: 1px solid var(--line); }
+.tbl .num, .tbl th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.tbl code { font-family: var(--mono); font-size: .92em; }
+
+/* ---------- Forms: the shared field layout and the old select class modules still emit ---------- */
+.input.sm, select.input.sm { height: 30px; font-size: var(--fs-sm); padding: 0 8px; width: auto; }
+select.input.sm { padding-right: 24px; }
+textarea.input { height: auto; padding: 8px 11px; line-height: 1.45; resize: vertical; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: var(--sp-3); }
+.field.wide { grid-column: 1 / -1; }
+.form-error { color: var(--crit); font-size: var(--fs-sm); }
+.form-error:empty { display: none; }
+.btn-link { border: 0; background: none; padding: 2px 0; color: var(--ink-3); font-size: var(--fs-xs); text-decoration: underline; cursor: pointer; }
+.btn-link:hover { color: var(--ink-1); }
+
+/* ---------- Loading feedback: the pill appears while any request has been pending 0.4 s, and turns amber after 2 s ---------- */
+.net-status {
+  position: fixed; top: 12px; left: 50%; transform: translate(-50%, -8px); z-index: var(--z-toast);
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: var(--r-pill);
+  background: var(--surface-1); color: var(--ink-2); font-size: var(--fs-sm); box-shadow: var(--shadow-pop);
+  opacity: 0; pointer-events: none; transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+.net-status.visible { opacity: 1; transform: translate(-50%, 0); }
+.net-status.slow { color: var(--warn); box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 50%, transparent), var(--shadow-pop); }
+.loading-state { grid-column: 1 / -1; align-items: center; color: var(--ink-3); }
+.spinner { width: 16px; height: 16px; flex: none; border-radius: 50%; border: 2px solid var(--line-strong); border-top-color: var(--accent); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { grid-column: 1 / -1; }
+
+/* ---------- Toast ---------- */
+.toast.bad svg.i { color: var(--crit); }
+.toast { max-width: min(560px, calc(100vw - 24px)); }
+
+@media (prefers-reduced-motion: reduce) { .net-status { transition: none; } }
+
+/* ---------- Dialog bodies: lead text, and the review lists of the sync review and the tidy-up ---------- */
+.lead-p { color: var(--ink-2); margin-bottom: var(--sp-4); font-size: var(--fs-sm); }
+.fine { font-size: var(--fs-xs); color: var(--ink-3); margin-top: var(--sp-2); }
+.review-section + .review-section { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--line); }
+.review-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-2); }
+.review-head .section-t { margin: 0; }
+.review-head .section-t .input { display: inline-block; vertical-align: middle; }
+.review-buttons { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+/* A section's "select all" checkbox (util.js wireSelectAll): ticks or clears every row, mixed when some are ticked */
+.check-all { display: inline-flex; align-items: center; gap: var(--sp-1); font-size: var(--fs-sm); color: var(--ink-2); cursor: pointer; padding: 0 var(--sp-1); }
+.check-all input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+.check-all:has(input:disabled) { opacity: .5; cursor: default; }
+.review-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.review-row {
+  display: grid; grid-template-columns: auto minmax(10rem, 1fr) minmax(0, 1.4fr) auto; gap: 4px var(--sp-3); align-items: center;
+  padding: 10px var(--sp-3); font-size: var(--fs-sm); cursor: pointer; min-width: 0;
+}
+.review-row + .review-row { border-top: 1px solid var(--line); }
+.review-row:hover { background: var(--surface-2); }
+.review-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+.review-title { font-weight: var(--fw-semi); min-width: 0; overflow-wrap: anywhere; }
+.review-title .title-alt { display: block; }
+.review-desc { color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.review-empty { padding: var(--sp-3); font-size: var(--fs-sm); }
+.review-list > .empty { border: 0; border-radius: 0; }
+@media (max-width: 720px) {
+  .review-row { grid-template-columns: auto minmax(0, 1fr); }
+  .review-row > :nth-child(n+3) { grid-column: 2; }
+}
+
+/* Status filters (Library, Discover): a segmented control that scrolls inside its own row when it does not fit */
+.status-filters { display: inline-flex; max-width: 100%; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; align-self: flex-start; }
+.status-filters::-webkit-scrollbar { display: none; }
+.status-filters .filter-tab { flex: 0 0 auto; font-size: var(--fs-sm); padding: 6px 12px; }
+
+/* Stat tiles (Insights, System): a row of small panels with a figure each */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); gap: var(--sp-3); }
+.tile { padding: var(--sp-3) var(--sp-4); }
+.tile .val { font-size: var(--fs-xl); }
+.tile .sub { display: inline-flex; align-items: center; gap: 3px; }

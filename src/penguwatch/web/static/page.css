@@ -1,0 +1,170 @@
+/* PenguWatch page shell. Copied from Pengumon (commit 14ab11d), owned by PenguWatch from here on.
+   The header (brand, sync status pill, spending, actions), the tab strip under it on wide screens and the bottom
+   tab bar on phones, the More sheet, the reconnect banner and the page area. Reads tokens only. */
+
+body { min-height: 100vh; }
+.skip { position: absolute; left: -999px; top: 8px; z-index: 100; background: var(--surface-1); padding: 8px 12px; border-radius: var(--r-sm); }
+.skip:focus { left: 8px; }
+.grow { flex: 1; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* ---------- Header ---------- */
+.topbar { position: sticky; top: 0; z-index: var(--z-sticky); padding-top: env(safe-area-inset-top, 0px); }
+.topbar::before {
+  content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(12px);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.tb-inner {
+  position: relative; max-width: var(--page-max); margin: 0 auto; display: flex; align-items: center; gap: var(--sp-3);
+  padding-block: 10px 6px; padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+.brand { display: inline-flex; align-items: center; gap: 9px; color: var(--ink-1); font-weight: var(--fw-bold); font-size: var(--fs-lg); letter-spacing: -.02em; text-decoration: none; flex: none; }
+.brand:hover { text-decoration: none; }
+.brand-mark { width: 30px; height: 30px; display: block; flex: none; }
+
+.header-line { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 7px; min-width: 0; height: 34px; padding: 0 13px 0 10px; border-radius: var(--r-pill);
+  background: var(--st-bg); border: 1px solid color-mix(in srgb, var(--st) 42%, transparent); font-size: var(--fs-sm); white-space: nowrap;
+  color: var(--ink-1); cursor: pointer; overflow: hidden;
+}
+.status-pill:hover { border-color: color-mix(in srgb, var(--st) 70%, transparent); }
+.status-pill .sp-ic { color: var(--st); width: 16px; height: 16px; }
+.status-pill .sp-src { color: var(--ink-3); font-weight: var(--fw-medium); }
+.status-pill b { font-weight: var(--fw-semi); }
+.status-pill .sp-metrics { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.status-pill .sp-metrics::before { content: "\00b7"; color: var(--ink-4); margin-right: 7px; }
+.header-line .chip { height: 26px; font-size: var(--fs-xs); }
+button.chip.st:hover { border-color: color-mix(in srgb, var(--st) 55%, transparent); }
+
+.spend { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); color: var(--ink-3); white-space: nowrap; }
+.spend-item { display: inline-flex; align-items: baseline; gap: 4px; }
+.spend b { color: var(--ink-1); font-weight: var(--fw-semi); }
+.spend-unit { font-size: var(--fs-xs); }
+.tb-actions { display: flex; align-items: center; gap: 2px; }
+.tb-menu { position: relative; }
+.tb-menu .menu { right: 0; top: calc(100% + 6px); }
+@media (max-width: 1100px) { .spend-lbl { display: none; } .spend { gap: var(--sp-2); } }
+
+/* ---------- Tabs: a strip under the header on wide screens ---------- */
+.tabs {
+  position: relative; max-width: var(--page-max); margin: 0 auto; display: flex; align-items: stretch;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tabs-inner { display: flex; gap: 2px; }
+.nav-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 7px; height: var(--tabs-h); padding: 0 12px;
+  border: 0; background: none; color: var(--ink-3); cursor: pointer; white-space: nowrap;
+  font-size: var(--fs-sm); font-weight: var(--fw-semi); border-radius: var(--r-sm) var(--r-sm) 0 0;
+  transition: color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.nav-btn svg.i { width: 17px; height: 17px; }
+.nav-btn:hover { color: var(--ink-1); background: color-mix(in srgb, var(--surface-3) 60%, transparent); }
+.nav-btn.active { color: var(--ink-1); }
+.nav-btn.active svg.i { color: var(--accent); }
+.nav-btn.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: var(--accent); }
+.nav-btn:focus-visible { outline-offset: -2px; }
+.nav-short, .nav-more { display: none; }
+
+/* ---------- Page area ---------- */
+.app-main {
+  position: relative; max-width: var(--page-max); margin: 0 auto; min-width: 0;
+  padding-block: var(--sp-5) var(--sp-10);
+  padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+.app-credits { margin-top: var(--sp-6); }
+.tab-pane { display: none; min-width: 0; }
+.tab-pane.active { display: flex; flex-direction: column; gap: var(--sp-4); }
+.tab-pane .panel { scroll-margin-top: 120px; }
+/* A tab whose feature has no driver (drivers.js): only the note stays */
+.tab-pane.feature-off > :not(.feature-off-note) { display: none !important; }
+
+/* A tab's title row: icon, title, one line of context, and the tab's tools on the right */
+.page-h { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; min-width: 0; }
+.page-h > svg.i { width: 22px; height: 22px; color: var(--accent); }
+.page-t { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: -.015em; line-height: 1.2; }
+.page-m { color: var(--ink-3); font-size: var(--fs-sm); min-width: 0; flex: 1 1 260px; }
+.page-tools { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin-left: auto; }
+
+/* ---------- The reconnect banner under the header ---------- */
+.auth-banner {
+  display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap;
+  width: min(calc(100% - 48px), calc(var(--page-max) - 48px)); margin: var(--sp-3) auto 0; padding: 10px 14px;
+  border-radius: var(--r-md); background: var(--st-bg); color: var(--ink-1); font-size: var(--fs-sm);
+  border: 1px solid color-mix(in srgb, var(--st) 45%, transparent);
+}
+.auth-banner[hidden] { display: none !important; }
+.auth-banner > svg.i { color: var(--st); }
+.auth-banner > span { flex: 1 1 240px; min-width: 0; }
+
+/* ---------- Mobile chrome: bottom bar, More sheet, one-line header ---------- */
+.more-sheet[hidden], .more-backdrop[hidden], .header-review[hidden] { display: none !important; }
+.more-sheet, .more-backdrop { display: none; }
+
+@media (max-width: 720px) {
+  /* Header: one line; the tools that do not fit live on their tabs */
+  .tb-inner { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); gap: var(--sp-2); padding-block: 8px; }
+  .brand-name, .spend, .tb-grafana, #library-pending-badge, .status-pill .sp-src, .tb-inner > .grow { display: none; }
+  .header-line { flex: 1; container-type: inline-size; }
+  .status-pill { flex: 1 1 auto; height: 36px; max-width: 100%; }
+  .status-pill b { white-space: nowrap; }
+  .tb-actions { margin-left: auto; }
+  .tb-actions .btn .lbl { display: none; }
+  .tb-actions .btn { width: 36px; height: 36px; padding: 0; }
+
+  /* Bottom bar: the tabs marked "bar" (panel.json) and More; icon above the label */
+  .tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky); max-width: none; margin: 0; overflow: visible;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0;
+    padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px));
+    background: color-mix(in srgb, var(--surface-1) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--line);
+  }
+  .tabs-inner { display: contents; }
+  .nav-btn:not([data-bar]) { display: none; }
+  .nav-btn, .nav-more {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 48px; height: auto;
+    padding: 4px 0; border: 0; background: none; border-radius: var(--r-sm); color: var(--ink-3); cursor: pointer;
+    font-size: var(--fs-xs); font-weight: var(--fw-semi);
+  }
+  .nav-btn svg.i, .nav-more svg.i { width: 22px; height: 22px; }
+  .nav-btn:hover { background: none; }
+  .nav-full { display: none; }
+  .nav-short { display: inline; }
+  .nav-btn.active, .nav-more.active, .nav-more[aria-expanded="true"] { color: var(--accent); }
+  .nav-btn.active::after { display: none; }
+  .nav-btn.active::before, .nav-more.active::before {
+    content: ""; position: absolute; top: -7px; left: calc(50% - 14px); width: 28px; height: 3px; border-radius: 0 0 3px 3px; background: var(--accent);
+  }
+  .nav-more { position: relative; }
+
+  .app-main { padding-block: var(--sp-3) calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom, 0px)); padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  .tab-pane.active { gap: var(--sp-3); }
+  .page-t { font-size: var(--fs-lg); }
+  .page-m { flex-basis: 100%; order: 5; }
+  .auth-banner { margin-inline: 12px; width: auto; }
+  .toast { bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom, 0px)); left: 12px; right: 12px; transform: translateY(10px); }
+  .toast.on { transform: none; }
+
+  /* More sheet: a bottom sheet above the bar, two columns of the other tabs */
+  .more-backdrop { display: block; position: fixed; inset: 0; z-index: var(--z-modal); background: var(--scrim); }
+  .more-sheet {
+    display: block; position: fixed; left: 0; right: 0; z-index: calc(var(--z-modal) + 1);
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px));
+    background: var(--surface-1); border-radius: 18px 18px 0 0; box-shadow: var(--shadow-sheet);
+    padding: var(--sp-3); animation: sheet var(--t-med) var(--ease);
+  }
+  .more-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+  .more-item {
+    display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 var(--sp-3); text-align: left;
+    font-size: var(--fs-md); font-weight: var(--fw-semi); background: var(--surface-2); color: var(--ink-1);
+    border: 1px solid var(--line); border-radius: var(--r-md); cursor: pointer;
+  }
+  .more-item svg.i { color: var(--ink-3); }
+  .more-item.active { border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent); }
+  .more-item.active svg.i { color: var(--accent); }
+}
+/* the age gives way first when the header line is short (a "to review" chip beside the pill) */
+@container (max-width: 250px) { .status-pill .sp-metrics { display: none; } }
+@media (prefers-reduced-motion: reduce) { .more-sheet { animation: none; } }

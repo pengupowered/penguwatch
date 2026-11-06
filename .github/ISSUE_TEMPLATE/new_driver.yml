@@ -1,0 +1,70 @@
+name: Support for a new driver
+description: A tracker, catalogue or schedule service PenguWatch cannot use yet.
+labels: ["driver"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. Before you start, see [the drivers that ship](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md#the-drivers-that-ship)
+        and [how to write a driver](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md#writing-a-driver),
+        which starts with checking the service's terms.
+
+        Anything you paste here is public: never include an API key, token or password.
+  - type: input
+    id: service
+    attributes:
+      label: The service
+      description: Its name and a link to its website.
+      placeholder: "Example Tracker, https://tracker.example.com"
+    validations:
+      required: true
+  - type: input
+    id: api
+    attributes:
+      label: Link to its API documentation
+    validations:
+      required: true
+  - type: textarea
+    id: terms
+    attributes:
+      label: API terms and data licence
+      description: >-
+        What the terms say about use by a self-hosted, non-commercial app, about caching data, and about attribution. The
+        licence of the data (for example CC BY-SA) and whether it asks for a credit.
+    validations:
+      required: true
+  - type: checkboxes
+    id: offers
+    attributes:
+      label: What does it offer? (tick everything you know works)
+      options:
+        - label: "catalog: search for titles and read their details"
+        - label: "library_sync: a personal library or watch history to read and write"
+        - label: "schedule: upcoming episodes"
+        - label: "discovery: trending or recommended titles"
+        - label: "ratings: scores for a title"
+        - label: I do not know
+  - type: dropdown
+    id: account
+    attributes:
+      label: Does it need an account or a key?
+      options:
+        - Nothing (open API)
+        - A free API key
+        - An account login (OAuth or a PIN)
+        - A paid account
+        - I do not know
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Limits and quirks
+      description: Rate limits, titles it does not cover (movies, anime), anything that upsets it.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I will write the driver myself, following docs/drivers.md.
+        - label: I can test a driver someone else writes, with my own account.

@@ -1,0 +1,62 @@
+# PenguWatch with Docker Compose or podman-compose.
+#
+# First: cp config.example.yaml config.yaml (git-ignored; your services and household go there), and optionally
+# cp .env.example .env (git-ignored; access token, notifications, telemetry). Empty values in .env count as unset.
+# Then: docker compose up -d --build   (or podman-compose up -d --build)
+#
+# Port 8080 is published on all interfaces, so devices on the LAN use http://<host-ip>:8080. Set an access token
+# (PENGUWATCH_ACCESS_TOKEN in .env) before the port is reachable by anyone you don't trust.
+# Data (SQLite database, SIMKL login, pending sync queue) lives in the named volume penguwatch_data.
+#
+# Machine-specific additions (for example joining the network of an OpenTelemetry collector) go in a git-ignored
+# docker-compose.override.yml; see docker-compose.override.example.yml.
+services:
+  penguwatch:
+    build: .
+    image: localhost/penguwatch:latest
+    container_name: penguwatch
+    # restart: always, because podman-restart.service (systemctl --user enable podman-restart.service)
+    # only restarts containers with that policy after a reboot
+    restart: always
+    # SIGTERM lets the app flush pending SIMKL changes; give it time before SIGKILL
+    stop_grace_period: 20s
+    # The app writes only to /app/data (the volume) and /tmp (backup exports); it needs no Linux capabilities
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "0.0.0.0:8080:8080"
+    volumes:
+      - penguwatch_data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - PENGUWATCH_HOST=0.0.0.0
+      - PENGUWATCH_PORT=8080
+      # these are parsed without an empty-value fallback, so they keep their defaults here
+      - PENGUWATCH_LOG_LEVEL=${PENGUWATCH_LOG_LEVEL:-info}
+      - PENGUWATCH_LOG_FORMAT=${PENGUWATCH_LOG_FORMAT:-text}
+      - PENGUWATCH_NOTIFY_KIND=${PENGUWATCH_NOTIFY_KIND:-ntfy}
+      - PENGUWATCH_NOTIFY_HOUR=${PENGUWATCH_NOTIFY_HOUR:-9}
+      - PENGUWATCH_TZ=${PENGUWATCH_TZ:-}
+      - PENGUWATCH_ACCESS_TOKEN=${PENGUWATCH_ACCESS_TOKEN:-}
+      - PENGUWATCH_ALLOWED_HOSTS=${PENGUWATCH_ALLOWED_HOSTS:-}
+      - PENGUWATCH_ALLOWED_ORIGINS=${PENGUWATCH_ALLOWED_ORIGINS:-}
+      - PENGUWATCH_COOKIE_SECURE=${PENGUWATCH_COOKIE_SECURE:-}
+      - PENGUWATCH_SESSION_MAX_AGE_DAYS=${PENGUWATCH_SESSION_MAX_AGE_DAYS:-}
+      - PENGUWATCH_NOTIFY_URL=${PENGUWATCH_NOTIFY_URL:-}
+      - SIMKL_CLIENT_ID=${SIMKL_CLIENT_ID:-}
+      - SIMKL_ACCESS_TOKEN=${SIMKL_ACCESS_TOKEN:-}
+      # OpenTelemetry export over OTLP/HTTP (empty: none); see .env.example
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-penguwatch}
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES:-}
+      - PENGUWATCH_GRAFANA_URL=${PENGUWATCH_GRAFANA_URL:-}
+    # No container healthcheck: point an uptime monitor at /api/health instead (rootless Podman runs healthchecks
+    # as systemd timers, and nothing reads their status).
+
+volumes:
+  penguwatch_data:
+    name: penguwatch_data

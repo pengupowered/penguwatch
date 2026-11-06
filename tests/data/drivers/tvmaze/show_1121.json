@@ -1,0 +1,81 @@
+{
+ "id": 1121,
+ "url": "https://www.tvmaze.com/shows/1121/cowboy-bebop",
+ "name": "Cowboy Bebop",
+ "type": "Animation",
+ "language": "Japanese",
+ "genres": [
+  "Action",
+  "Adventure",
+  "Anime",
+  "Science-Fiction"
+ ],
+ "status": "Ended",
+ "runtime": 30,
+ "averageRuntime": 30,
+ "premiered": "1998-10-24",
+ "ended": "2001-09-01",
+ "officialSite": null,
+ "schedule": {
+  "time": "17:00",
+  "days": [
+   "Saturday"
+  ]
+ },
+ "rating": {
+  "average": 8.3
+ },
+ "weight": 91,
+ "network": {
+  "id": 158,
+  "name": "WOWOW",
+  "country": {
+   "name": "Japan",
+   "code": "JP",
+   "timezone": "Asia/Tokyo"
+  },
+  "officialSite": null
+ },
+ "webChannel": null,
+ "dvdCountry": null,
+ "externals": {
+  "tvrage": 3157,
+  "thetvdb": 76885,
+  "imdb": "tt0213338"
+ },
+ "image": {
+  "medium": "https://static.tvmaze.com/uploads/images/medium_portrait/178/446548.jpg",
+  "original": "https://static.tvmaze.com/uploads/images/original_untouched/178/446548.jpg"
+ },
+ "summary": "<p>In the year 2071, the crew of the spaceship Bebop travel the solar system trying to apprehend bounties. In the slang of the era, \"Cowboys\" are bounty hunters. Most episodes revolve around a specific bounty, but the show often shares its focus with the pasts of one of each of the four main characters and of more general past events, which are revealed and brought together as the series progresses. (The show originally aired on TV Tokyo, but due to what the network considered \"excessive violence\", only a few episodes, out of order, were ever shown. The channel WOWOW later picked up the series and aired the entire 26 episode run, in order.)</p>",
+ "updated": 1704794924,
+ "_links": {
+  "self": {
+   "href": "https://api.tvmaze.com/shows/1121"
+  },
+  "previousepisode": {
+   "href": "https://api.tvmaze.com/episodes/400180",
+   "name": "Knockin' on Heaven's Door"
+  }
+ },
+ "_embedded": {
+  "akas": [
+   {
+    "name": "Ковбой Бибоп",
+    "country": {
+     "name": "Russian Federation",
+     "code": "RU",
+     "timezone": "Asia/Kamchatka"
+    }
+   },
+   {
+    "name": "カウボーイビバップ",
+    "country": {
+     "name": "Japan",
+     "code": "JP",
+     "timezone": "Asia/Tokyo"
+    }
+   }
+  ]
+ }
+}

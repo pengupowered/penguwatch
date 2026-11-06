@@ -1,0 +1,63 @@
+# Install without building: runs the published image. With Docker or Podman:
+#   curl -fsSL https://raw.githubusercontent.com/pengupowered/penguwatch/main/compose.release.yaml -o compose.yaml
+#   curl -fsSL https://raw.githubusercontent.com/pengupowered/penguwatch/main/config.example.yaml -o config.yaml
+#   docker compose up -d          # or: podman compose up -d
+# Edit config.yaml first (your streaming services, prices and household names). Settings such as an access token
+# and notifications come from a .env file next to this one, if there is one (see .env.example in the repository).
+# Empty values count as unset. Open http://<host>:8080 afterwards.
+#
+# This file is for installing a release; save it as compose.yaml in a directory of its own. In the repository it is
+# named compose.release.yaml so that it does not shadow docker-compose.yml, which builds from source and is what
+# scripts/deploy.sh uses (Docker and Podman prefer a file called compose.yaml over docker-compose.yml).
+#
+# Port 8080 is published on all interfaces, so devices on the LAN use http://<host-ip>:8080. Set an access token
+# (PENGUWATCH_ACCESS_TOKEN in .env) before the port is reachable by anyone you don't trust.
+# Data (SQLite database, SIMKL login, pending sync queue) lives in the named volume penguwatch_data.
+#
+# To upgrade, change the tag below to the new version and run `docker compose up -d` again.
+services:
+  penguwatch:
+    image: ghcr.io/pengupowered/penguwatch:0.15.0
+    container_name: penguwatch
+    restart: always
+    # SIGTERM lets the app flush pending SIMKL changes; give it time before SIGKILL
+    stop_grace_period: 20s
+    # The app writes only to /app/data (the volume) and /tmp (backup exports); it needs no Linux capabilities
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "0.0.0.0:8080:8080"
+    volumes:
+      - penguwatch_data:/app/data
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - PENGUWATCH_HOST=0.0.0.0
+      - PENGUWATCH_PORT=8080
+      # these are parsed without an empty-value fallback, so they keep their defaults here
+      - PENGUWATCH_LOG_LEVEL=${PENGUWATCH_LOG_LEVEL:-info}
+      - PENGUWATCH_LOG_FORMAT=${PENGUWATCH_LOG_FORMAT:-text}
+      - PENGUWATCH_NOTIFY_KIND=${PENGUWATCH_NOTIFY_KIND:-ntfy}
+      - PENGUWATCH_NOTIFY_HOUR=${PENGUWATCH_NOTIFY_HOUR:-9}
+      - PENGUWATCH_TZ=${PENGUWATCH_TZ:-}
+      - PENGUWATCH_ACCESS_TOKEN=${PENGUWATCH_ACCESS_TOKEN:-}
+      - PENGUWATCH_ALLOWED_HOSTS=${PENGUWATCH_ALLOWED_HOSTS:-}
+      - PENGUWATCH_ALLOWED_ORIGINS=${PENGUWATCH_ALLOWED_ORIGINS:-}
+      - PENGUWATCH_COOKIE_SECURE=${PENGUWATCH_COOKIE_SECURE:-}
+      - PENGUWATCH_SESSION_MAX_AGE_DAYS=${PENGUWATCH_SESSION_MAX_AGE_DAYS:-}
+      - PENGUWATCH_NOTIFY_URL=${PENGUWATCH_NOTIFY_URL:-}
+      - SIMKL_CLIENT_ID=${SIMKL_CLIENT_ID:-}
+      - SIMKL_ACCESS_TOKEN=${SIMKL_ACCESS_TOKEN:-}
+      # OpenTelemetry export over OTLP/HTTP (empty: none); see .env.example
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-penguwatch}
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES:-}
+      - PENGUWATCH_GRAFANA_URL=${PENGUWATCH_GRAFANA_URL:-}
+    # No container healthcheck: point an uptime monitor at /api/health instead.
+
+volumes:
+  penguwatch_data:
+    name: penguwatch_data

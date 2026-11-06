@@ -1,0 +1,81 @@
+<!-- Library: every title, filtered and sorted, as poster cards or a compact list (panel.js, cards.js); the tidy-up
+     dialog is tidy.html -->
+<section id="watchlist-tab" class="tab-pane" data-panel="watchlist" role="tabpanel" aria-labelledby="tab-watchlist">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-library"/></svg>
+    <h1 class="page-t">Library</h1>
+    <span class="page-m" id="library-count" aria-live="polite"></span>
+    <div class="page-tools">
+      <button class="btn outline" id="btn-view-toggle" type="button" aria-pressed="false" title="Switch between poster cards and a compact list"><svg class="i" aria-hidden="true"><use href="#i-list"/></svg><span>Compact</span></button>
+      <button class="btn outline" id="btn-open-tidy" type="button" title="Find stale 'watching' shows and finished shows with new seasons"><svg class="i" aria-hidden="true"><use href="#i-broom"/></svg><span>Tidy up</span></button>
+      <button class="btn primary" id="btn-add-show-modal" type="button" data-call="openAddModal"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Add title</button>
+    </div>
+  </div>
+
+  <div class="panel watchlist-controls">
+    <div class="panel-b">
+      <!-- Status Tabs -->
+      <div class="seg status-filters" role="group" aria-label="Status">
+        <button type="button" class="filter-tab" data-status="" aria-pressed="false">All</button>
+        <button type="button" class="filter-tab active" data-status="watching" aria-pressed="true">Watching</button>
+        <button type="button" class="filter-tab" data-status="plantowatch" aria-pressed="false">Plan to Watch</button>
+        <button type="button" class="filter-tab" data-status="hold" aria-pressed="false">On Hold</button>
+        <button type="button" class="filter-tab" data-status="completed" aria-pressed="false">Completed</button>
+        <button type="button" class="filter-tab" data-status="dropped" aria-pressed="false">Dropped</button>
+      </div>
+
+      <!-- Quick Toggles & Dropdowns -->
+      <div class="filter-toggles">
+        <label class="search-input-wrapper">
+          <svg class="i" aria-hidden="true"><use href="#i-search"/></svg>
+          <span class="sr-only">Filter your library</span>
+          <input type="search" id="watchlist-search" class="input" data-search-shortcut placeholder="Filter your library (titles, genres, networks)…">
+        </label>
+        <select id="filter-media-select" class="input sm" aria-label="Type">
+          <option value="">Shows, Anime &amp; Movies</option>
+          <option value="show">TV Shows</option>
+          <option value="anime">Anime</option>
+          <option value="movie">Movies</option>
+        </select>
+        {%- if household.shared %}
+        <select id="filter-household-select" class="input sm" aria-label="Audience">
+          <option value="">All Audiences</option>
+          <option value="both">Both Want</option>
+          <option value="person1">{{ household.members[0] }} Only</option>
+          <option value="person2">{{ household.members[1] }} Only</option>
+        </select>
+        {%- endif %}
+        <select id="filter-service-select" class="input sm" aria-label="Service">
+          <option value="">All Services / Networks</option>
+        </select>
+        <select id="sort-by-select" class="input sm" aria-label="Sort by">
+          <option value="priority">Priority &amp; Rating</option>
+          <option value="title">Title (A-Z)</option>
+          <option value="next_air">Next Air Date</option>
+          <option value="recent">Recently Watched</option>
+          <option value="my_rating">Your Rating</option>
+          <option value="interest">Likely interest</option>
+        </select>
+        <span class="minrating" role="group" aria-label="Minimum rating">
+          <select id="filter-minrating-source" class="input sm" aria-label="Minimum rating from">
+            <option value="">Any rating</option>
+          </select>
+          <input type="number" id="filter-minrating-value" class="input sm num" step="any" placeholder="at least" aria-label="Lowest value" disabled>
+        </span>
+        <label class="check toggle-chip">
+          <input type="checkbox" id="filter-active-services">
+          <span>Active services only</span>
+        </label>
+        <label class="check toggle-chip">
+          <input type="checkbox" id="filter-ready-binge">
+          <span>Ready to binge</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shows Grid -->
+  <div class="shows-grid" id="shows-container">
+    <!-- Shows cards rendered via JS -->
+  </div>
+</section>

@@ -1,0 +1,23 @@
+/* Tonight's Pick tab: the filters and the one pick. Tokens only. */
+#decide-tab { max-width: 880px; width: 100%; margin-inline: auto; }
+.decide-controls-card .panel-b { display: flex; flex-direction: column; gap: var(--sp-4); }
+.decide-action-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.btn-hero-roulette { height: 42px; padding: 0 var(--sp-5); font-size: var(--fs-md); border-radius: var(--r-pill); }
+.btn-hero-roulette svg.i { width: 18px; height: 18px; }
+.decide-result-card { border-color: color-mix(in srgb, var(--accent) 45%, transparent); animation: pop var(--t-med) var(--ease); }
+.decide-result-card .panel-h > svg.i { color: var(--warn); }
+.result-show-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--sp-5); }
+.result-poster { width: 180px; border-radius: var(--r-md); }
+.result-details { display: flex; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+.result-title-row { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+.result-title-row h3 { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: -.01em; overflow-wrap: anywhere; }
+.result-year { color: var(--ink-3); }
+.result-badges-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.result-overview { color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.55; }
+.result-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: auto; padding-top: var(--sp-2); }
+@media (max-width: 720px) {
+  .result-show-layout { grid-template-columns: 96px minmax(0, 1fr); gap: var(--sp-3); }
+  .result-poster { width: 96px; }
+  .result-title-row h3 { font-size: var(--fs-lg); }
+  .decide-action-row .btn-hero-roulette { width: 100%; }
+}

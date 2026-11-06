@@ -1,0 +1,86 @@
+<!-- Dialog: add a show or movie, found in a catalogue or typed in (dialog.js). Opened from the header and the Library
+     (data-call="openAddModal"). -->
+<div class="modal" id="add-show-modal" role="dialog" aria-modal="true" aria-labelledby="add-show-title">
+  <div class="modal-content">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>
+      <h2 class="modal-t" id="add-show-title">Add a show or movie</h2>
+      <button type="button" class="btn icon m-close" id="btn-close-add-modal" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <div class="search-catalog-bar">
+        <select id="catalog-search-type" class="input" aria-label="Type">
+          <option value="all">All</option>
+          <option value="tv">TV</option>
+          <option value="anime">Anime</option>
+          <option value="movie">Movies</option>
+        </select>
+        <input type="search" id="catalog-search-input" class="input" data-first-focus aria-label="Search" placeholder="Search (e.g. Severance, Slow Horses, Dune)..." data-tpl-aria="Search {catalog}" data-tpl-placeholder="Search {catalog} (e.g. Severance, Slow Horses, Dune)...">
+        <button class="btn primary" id="btn-catalog-search" type="button"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Search</button>
+      </div>
+      <div class="catalog-search-results" id="catalog-search-results">
+        <!-- Search results loaded here -->
+      </div>
+
+      <div class="or-divider"><span>or add it by hand</span></div>
+
+      <form id="manual-add-form" class="form modal-form">
+        <div class="form-grid">
+          <div class="field wide">
+            <label for="m-title">Title (required)</label>
+            <input type="text" id="m-title" class="input" required placeholder="Title">
+          </div>
+          <div class="field">
+            <label for="m-year">Year</label>
+            <input type="number" id="m-year" class="input" placeholder="2024">
+          </div>
+          <div class="field">
+            <label for="m-network">Network / streaming service</label>
+            <input type="text" id="m-network" class="input" placeholder="e.g. Apple TV+, HBO, Netflix">
+          </div>
+          <div class="field">
+            <label for="m-media">Type</label>
+            <select id="m-media" class="input">
+              <option value="show">TV Show</option>
+              <option value="anime">Anime</option>
+              <option value="movie">Movie</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="m-rating">IMDb rating</label>
+            <input type="number" step="0.1" id="m-rating" class="input" placeholder="e.g. 8.5">
+          </div>
+          <div class="field">
+            <label for="m-status">Initial status</label>
+            <select id="m-status" class="input">
+              <option value="plantowatch">Plan to Watch</option>
+              <option value="watching">Currently Watching</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="field"{% if not household.shared %} hidden{% endif %}>
+            <label for="m-household">Who wants to watch</label>
+            <select id="m-household" class="input">
+              <option value="person1" selected>{{ household.members[0] }}</option>
+              {%- if household.shared %}
+              <option value="both">Both want to watch</option>
+              <option value="person2">{{ household.members[1] }}</option>
+              {%- endif %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="m-priority">Priority</label>
+            <select id="m-priority" class="input">
+              <option value="high">High</option>
+              <option value="medium" selected>Normal</option>
+              <option value="low">Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn outline"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

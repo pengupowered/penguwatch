@@ -1,0 +1,20 @@
+/* System tab: status row, tiles, tables of sync runs, routes and upstream calls. Tokens only. */
+.sys-grid { grid-template-columns: minmax(0, 1fr); }
+.sys-grid { display: grid; gap: var(--sp-4); }
+.sys-grid > * { min-width: 0; }
+.sys-status-row { display: flex; flex-direction: row; flex-wrap: wrap; gap: var(--sp-3) var(--sp-6); padding: var(--sp-3) var(--sp-4); min-width: 0; }
+.sys-status { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-size: var(--fs-sm); }
+.sys-status-lbl { color: var(--ink-3); font-size: var(--fs-sm); }
+.sys-err { color: var(--crit); max-width: 28ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sys-links { list-style: none; display: grid; gap: 6px; margin-bottom: var(--sp-3); font-size: var(--fs-sm); }
+.sys-links a { margin-right: var(--sp-2); }
+.sys-links code, .sys-card code { font-family: var(--mono); font-size: .92em; }
+.telemetry-links { display: flex; align-items: center; flex-wrap: wrap; gap: var(--sp-2); font-size: var(--fs-sm); }
+.sys-card .panel-b.flush { padding: 0 0 var(--sp-2); }
+.sys-card .tbl th:first-child, .sys-card .tbl td:first-child { padding-left: var(--sp-4); }
+.sys-card .tbl th:last-child, .sys-card .tbl td:last-child { padding-right: var(--sp-4); }
+.sys-card .tbl thead th { padding-top: var(--sp-3); }
+@media (max-width: 720px) {
+  .sys-status-row { min-width: 0; }
+  .sys-grid > * { min-width: 0; }
+}

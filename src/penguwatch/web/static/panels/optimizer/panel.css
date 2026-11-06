@@ -1,0 +1,118 @@
+/* Optimizer tab: summary strip, one subscriptions table, collapsed detail sections (the ranking cards, the rotation
+   planner, the raw numbers). Tokens only. */
+.opt-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-3); }
+.opt-sum-card { padding: var(--sp-3) var(--sp-4); }
+.opt-sum-card .val { font-size: var(--fs-2xl); }
+.opt-sum-save .val { color: var(--warn); }
+.opt-sum-text { font-size: var(--fs-md); font-weight: var(--fw-semi); overflow-wrap: anywhere; }
+.opt-subscriptions .panel-b.flush { padding: 0 0 var(--sp-2); }
+.opt-subscriptions .tbl th:first-child, .opt-subscriptions .tbl td:first-child { padding-left: var(--sp-4); }
+.opt-subscriptions .tbl thead th { padding-top: var(--sp-3); }
+.opt-table .opt-why { color: var(--ink-3); font-size: var(--fs-sm); min-width: 14rem; }
+.opt-table .opt-actions { white-space: nowrap; text-align: right; padding-right: var(--sp-4); }
+.opt-empty { margin: var(--sp-4); }
+
+/* A collapsed section: the panel header is the summary */
+.opt-details > summary { cursor: pointer; list-style: none; border-bottom: 0; }
+.opt-details > summary::-webkit-details-marker { display: none; }
+.opt-details[open] > summary { border-bottom: 1px solid var(--line); }
+.opt-details > summary:hover .panel-t { color: var(--accent); }
+.opt-details .chev { margin-left: auto; color: var(--ink-3); transition: transform var(--t-fast) var(--ease); }
+.opt-details[open] .chev { transform: rotate(180deg); }
+.opt-note { font-size: var(--fs-sm); margin-bottom: var(--sp-3); }
+
+/* What to subscribe to next: one card per service not subscribed */
+.services-ranking-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: var(--sp-3); }
+.service-card { padding: var(--sp-4); gap: var(--sp-3); background: var(--surface-2); }
+.service-card.recommend-activate { border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-2); }
+.service-head { display: flex; flex-direction: column; gap: 2px; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: inherit; min-width: 0; }
+.service-name { font-weight: var(--fw-semi); font-size: var(--fs-md); }
+.service-head:hover .service-name { color: var(--accent); }
+.service-price { font-size: var(--fs-sm); color: var(--ink-3); }
+.service-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: var(--sp-2); }
+.service-metrics .val { font-size: var(--fs-md); }
+.service-reason { font-size: var(--fs-sm); color: var(--ink-2); }
+.service-value { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-size: var(--fs-xs); color: var(--ink-3); }
+.queued-shows-preview { display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--line); background: var(--surface-1); border-radius: var(--r-md); padding: var(--sp-2); cursor: pointer; color: inherit; text-align: left; }
+.queued-shows-preview:hover { border-color: var(--line-strong); }
+.preview-title { display: flex; justify-content: space-between; font-size: var(--fs-xs); color: var(--ink-3); }
+.preview-all { display: inline-flex; align-items: center; gap: 2px; color: var(--accent); font-weight: var(--fw-semi); }
+.preview-shows-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.preview-item { border-radius: var(--r-xs); }
+.card-actions-row { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: auto; }
+.bundle-card { margin-bottom: var(--sp-4); }
+.bundle-list { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.bundle-item { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; padding: var(--sp-3); border-radius: var(--r-md); background: var(--st-bg); border: 1px solid color-mix(in srgb, var(--st) 35%, transparent); font-size: var(--fs-sm); }
+.bundle-meta { display: flex; align-items: center; gap: var(--sp-3); }
+.bundle-saving { font-weight: var(--fw-bold); color: var(--st); }
+
+/* Details and raw numbers */
+.hero-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.hero-stats .stat { padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-2); }
+.advice-card { margin-bottom: var(--sp-4); align-items: flex-start; }
+.advice-text ul { margin-left: 1.1rem; display: flex; flex-direction: column; gap: 4px; }
+.value-head { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.value-kpi { padding: var(--sp-3); border-radius: var(--r-md); background: var(--st-bg, var(--surface-2)); }
+.value-kpi .lbl svg.i { color: var(--st); }
+.value-table td:last-child { white-space: nowrap; }
+
+/* ---------- Rotation planner ---------- */
+.planner-head-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); margin-bottom: var(--sp-2); }
+.planner-head-row .section-t { margin: 0; }
+.planner-controls { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--ink-3); }
+.planner-status { color: var(--ink-3); font-size: var(--fs-sm); min-height: 1.1rem; }
+.planner-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.planner-card { padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
+.planner-list { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: var(--fs-sm); }
+.planner-list li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.planner-price { color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.planner-grid { --planner-months: 6; display: flex; flex-direction: column; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-2); margin-bottom: var(--sp-3); }
+.planner-row { display: grid; grid-template-columns: minmax(130px, 11rem) 1fr; gap: var(--sp-2); align-items: stretch; }
+.planner-track { display: grid; grid-template-columns: repeat(var(--planner-months), minmax(0, 1fr)); gap: 3px; }
+.planner-months span { font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--ink-3); text-align: center; }
+.planner-head .planner-name { font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
+.planner-name { font-size: var(--fs-sm); min-width: 0; overflow-wrap: anywhere; align-self: center; }
+.planner-rel { font-size: var(--fs-xs); color: var(--ink-3); }
+.planner-seg {
+  display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: var(--r-sm); min-width: 0;
+  font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--ink-1);
+  background: var(--k-bg, var(--surface-3)); border: 1px solid color-mix(in srgb, var(--k, var(--line-strong)) 40%, transparent);
+}
+.planner-seg span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; overflow-wrap: normal; }
+.planner-seg .planner-seg-icon { flex: none; display: inline-flex; color: var(--k, var(--ink-3)); }
+.planner-keep { --k: var(--good); --k-bg: var(--good-bg); }
+.planner-subscribe { --k: var(--accent); --k-bg: var(--accent-bg); }
+.planner-cancel { --k: var(--crit); --k-bg: var(--crit-bg); }
+.planner-pause { --k: var(--warn); --k-bg: var(--warn-bg); }
+.planner-wait { --k: var(--busy); --k-bg: var(--busy-bg); }
+.planner-none, .planner-empty { color: var(--ink-3); font-style: italic; border-style: dashed; background: none; }
+.planner-details { margin-bottom: var(--sp-3); }
+.planner-details summary { cursor: pointer; font-weight: var(--fw-semi); font-size: var(--fs-sm); padding: 6px 0; color: var(--ink-2); }
+.planner-table-wrap { overflow-x: auto; max-width: 100%; }
+.planner-table td, .planner-table th { white-space: nowrap; }
+.planner-table td[class^="planner-"] svg.i { color: var(--k); }
+.planner-table td.planner-keep, .planner-table td.planner-subscribe, .planner-table td.planner-cancel, .planner-table td.planner-pause, .planner-table td.planner-wait { box-shadow: inset 3px 0 0 var(--k); }
+.planner-why { margin-top: var(--sp-3); }
+.planner-notes { list-style: disc; margin: var(--sp-3) 0 0 1.2rem; padding: 0; font-size: var(--fs-sm); color: var(--ink-3); display: flex; flex-direction: column; gap: 4px; }
+.planner-notes #planner-tidy-link { margin-left: var(--sp-2); }
+
+@media (max-width: 720px) {
+  .planner-grid { display: none; }
+  .planner-head-row { flex-direction: column; align-items: flex-start; }
+  .opt-sum-card .val { font-size: var(--fs-xl); }
+  /* One card per subscription: name and cost, then status and actions, then the reason (never off-screen). */
+  .opt-table, .opt-table tbody { display: block; width: 100%; }
+  .opt-table thead { display: none; }
+  .opt-table tr.opt-row {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--sp-3); row-gap: 6px;
+    align-items: center; padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line);
+  }
+  .opt-subscriptions .opt-table tr.opt-row > th, .opt-subscriptions .opt-table tr.opt-row > td { padding: 0; border: 0; }
+  .opt-table tr.opt-row > th { grid-area: 1 / 1; text-align: left; }
+  .opt-table tr.opt-row > td.num { grid-area: 1 / 2; text-align: right; }
+  .opt-table tr.opt-row > td:nth-child(3) { grid-area: 2 / 1 / 3 / 3; }
+  .opt-table tr.opt-row > td.opt-why { grid-area: 3 / 1 / 4 / 3; min-width: 0; }
+  .opt-table tr.opt-row > td.opt-actions { grid-area: 4 / 1 / 5 / 3; justify-self: end; white-space: normal; }
+  .opt-details .panel-m { display: none; }
+}

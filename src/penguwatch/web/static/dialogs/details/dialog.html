@@ -1,0 +1,43 @@
+<!-- Dialog: a title's details and episode checklist (dialog.js). Opened from every tab (data-call="openShow"). -->
+<div class="modal" id="episodes-modal" role="dialog" aria-modal="true" aria-labelledby="episodes-modal-title">
+  <div class="modal-content wide">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true" id="episodes-modal-icon"><use href="#i-tv"/></svg>
+      <h2 class="modal-t" id="episodes-modal-title">Details</h2>
+      <button type="button" class="btn icon m-close" id="btn-close-episodes-modal" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <div id="show-detail"></div>
+      <div class="episodes-summary" id="episodes-summary"></div>
+      <div class="episodes-body" id="episodes-body">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- Dialog: set the watched count (dialog.js), from the details dialog's "Set count" -->
+<div class="modal" id="progress-modal" role="dialog" aria-modal="true" aria-labelledby="progress-modal-title">
+  <div class="modal-content sm">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-edit"/></svg>
+      <h2 class="modal-t" id="progress-modal-title">Update watched episodes</h2>
+      <button type="button" class="btn icon m-close" id="btn-close-progress-modal" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b form">
+      <input type="hidden" id="pm-show-id">
+      <p class="muted pm-info" id="pm-show-info"></p>
+      <div class="field">
+        <label for="pm-watched-input">Watched episodes</label>
+        <input type="number" id="pm-watched-input" class="input pm-count num" min="0" step="1" data-first-focus>
+      </div>
+      <div class="quick-step-presets">
+        <button type="button" class="btn sm outline" id="pm-btn-prev-ep"><svg class="i" aria-hidden="true"><use href="#i-minus"/></svg>1 episode</button>
+        <button type="button" class="btn sm outline" id="pm-btn-next-ep"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>1 episode</button>
+        <button type="button" class="btn sm" id="pm-btn-episodes"><svg class="i" aria-hidden="true"><use href="#i-checklist"/></svg>Pick exact episodes…</button>
+      </div>
+    </div>
+    <div class="modal-f">
+      <div class="left"><button type="button" class="btn sm danger" id="pm-btn-reset-zero">Reset to 0</button></div>
+      <button type="button" class="btn primary" id="pm-btn-save">Save progress</button>
+    </div>
+  </div>
+</div>

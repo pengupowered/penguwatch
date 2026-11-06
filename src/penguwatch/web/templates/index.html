@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>PenguWatch | TV & Movie Tracker and Subscription Optimizer</title>
+  <script src="/static/v/{{ version }}/theme.js"></script>
+  <link rel="stylesheet" href="/static/v/{{ version }}/tokens.css">
+  <link rel="stylesheet" href="/static/v/{{ version }}/components.css">
+  <link rel="stylesheet" href="/static/v/{{ version }}/page.css">
+  <link rel="stylesheet" href="/static/v/{{ version }}/style.css">
+  {%- for css in ui.css %}
+  <link rel="stylesheet" href="/static/v/{{ version }}/{{ css }}">
+  {%- endfor %}
+  {%- for module in modules %}
+  <link rel="modulepreload" href="/static/v/{{ version }}/{{ module }}">
+  {%- endfor %}
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#0a0e13">
+  <meta name="penguwatch-household" content="{{ household_json }}">
+  <link rel="icon" href="/static/icons/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/static/icons/app-180.png">
+</head>
+<body data-modules='{{ ui.modules|tojson }}'>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- Header: brand, the library driver's sync state (js/header.js), spending, actions; then the tabs the server found -->
+  <header class="topbar" id="topbar">
+    <div class="tb-inner">
+      <a class="brand" href="#/" aria-label="PenguWatch home"><img class="brand-mark logo-icon" src="/static/icons/favicon.svg" width="30" height="30" alt=""><span class="brand-name">PenguWatch</span></a>
+      <div class="header-line" id="header-line" aria-live="polite">
+        <button type="button" class="status-pill st-unknown" id="btn-open-library" data-call="openLibrary" title="Sync status: open Services &amp; Sync">
+          <svg class="i sp-ic" aria-hidden="true"><use href="#i-unknown"/></svg><span class="sp-src">Sync</span><b id="library-badge-text">Checking</b><span class="sp-metrics" id="header-sync" hidden></span>
+        </button>
+        <button type="button" class="chip st st-warn header-review" id="header-review" data-call="openReview" hidden><svg class="i" aria-hidden="true"><use href="#i-checklist"/></svg><span></span></button>
+        <span class="chip st st-busy" id="library-pending-badge" hidden><svg class="i" aria-hidden="true"><use href="#i-sync"/></svg><span></span></span>
+      </div>
+      <span class="grow"></span>
+      <div class="spend" title="Monthly cost of your active subscriptions, and what cancelling the unused ones would save">
+        <span class="spend-item"><span class="spend-lbl">Spend</span> <b class="num" id="head-spend">$0.00</b><span class="spend-unit">/mo</span></span>
+        <span class="spend-item"><span class="spend-lbl">Unused</span> <b class="num" id="head-unused">$0.00</b><span class="spend-unit">/mo</span></span>
+      </div>
+      <nav class="tb-actions" aria-label="Actions">
+        <button type="button" class="btn outline" id="btn-header-add" data-call="openAddModal" title="Find a show or movie and add it" data-tpl-title="Find a show or movie on {catalog} and add it"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg><span class="lbl">Add title</span></button>
+        {%- if grafana_links %}
+        <!-- Telemetry in Grafana (PENGUWATCH_GRAFANA_URL, grafana.py); on phones the links are on the System tab -->
+        <div class="tb-menu tb-grafana">
+          <button type="button" class="btn icon" data-action="toggle-menu" data-arg="grafana-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="grafana-menu" title="Telemetry in Grafana" aria-label="Telemetry in Grafana"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg></button>
+          <div class="menu" id="grafana-menu" role="menu" aria-label="Telemetry in Grafana" hidden>
+            {% for link in grafana_links %}<a role="menuitem" href="{{ link.url }}" title="{{ link.title }}" target="_blank" rel="noopener noreferrer"><svg class="i" aria-hidden="true"><use href="#i-external"/></svg>{{ link.label }}</a>{% endfor %}
+          </div>
+        </div>
+        {%- endif %}
+        <button type="button" class="btn icon" id="btn-theme" data-action="toggle-theme" title="Switch theme" aria-label="Switch theme"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      </nav>
+    </div>
+    <!-- One tab per panel folder (static/panels/<id>/, found by penguwatch.ui). On phones the tabs marked "bar" make
+         the bottom bar and the others are in the More sheet (js/mobile.js). -->
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <div class="tabs-inner" role="tablist" aria-label="Sections">
+        {%- for panel in ui.panels %}
+        <button type="button" class="nav-btn" role="tab" id="tab-{{ panel.id }}" data-tab="{{ panel.tab }}" data-route="{{ panel.route }}"{% if panel.key %} data-key="{{ panel.key }}"{% endif %}{% if panel.bar %} data-bar{% endif %} aria-controls="{{ panel.tab }}" aria-selected="false" aria-label="{{ panel.title }}"><svg class="i" aria-hidden="true"><use href="#i-{{ panel.icon }}"/></svg><span class="nav-full">{{ panel.title }}</span><span class="nav-short" aria-hidden="true">{{ panel.short }}</span></button>
+        {%- endfor %}
+      </div>
+      <button type="button" class="nav-more" id="nav-more" aria-haspopup="dialog" aria-expanded="false" aria-controls="more-sheet"><svg class="i" aria-hidden="true"><use href="#i-menu"/></svg><span>More</span></button>
+    </nav>
+  </header>
+
+  <div class="auth-banner st-crit" id="auth-banner" role="alert" hidden>
+    <svg class="i" aria-hidden="true"><use href="#i-warn"/></svg>
+    <span id="auth-banner-text"></span>
+    <button class="btn outline" id="btn-auth-banner-reconnect" type="button" data-call="startReconnect"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><span data-tpl="Reconnect {library}">Reconnect</span></button>
+  </div>
+
+  <!-- One section per panel folder -->
+  <main class="app-main" id="main">
+    {%- for panel in ui.panels %}
+    {% include panel.template %}
+    {%- endfor %}
+    <!-- The credits running drivers' terms ask for, filled by js/drivers.js from /api/drivers; empty by default -->
+    <p class="credits fine app-credits" id="app-credits" hidden></p>
+  </main>
+
+  <!-- Dialogs: those the tabs own and the shared ones of static/dialogs/<id>/ (penguwatch.ui) -->
+  {%- for dialog in ui.dialog_templates %}
+  {% include dialog %}
+  {%- endfor %}
+
+  <!-- "More" sheet: filled by mobile.js from the tabs that are not on the bottom bar -->
+  <div class="more-backdrop" id="more-backdrop" hidden></div>
+  <div class="more-sheet" id="more-sheet" role="dialog" aria-modal="true" aria-label="More destinations" hidden>
+    <div class="more-list" id="more-list"></div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  {% include "icons.svg" %}
+  <script type="module" src="/static/v/{{ version }}/js/main.js"></script>
+</body>
+</html>

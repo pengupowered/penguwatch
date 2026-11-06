@@ -1,0 +1,17 @@
+/* Insights tab: stat tiles, column charts (SVG drawn by panel.js, coloured here from the tokens) and bar lists.
+   Tokens only. */
+.ins-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+.ins-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); }
+.ch-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.ch-grid { stroke: var(--line); stroke-width: 1; }
+.ch-axis { fill: var(--ink-3); font-family: var(--font); font-size: 11px; font-variant-numeric: tabular-nums; }
+.ch-bar { fill: var(--s1); }
+.ch-bar:hover { fill: color-mix(in srgb, var(--s1) 80%, var(--ink-1)); }
+.hb { display: grid; gap: var(--sp-2); }
+.hb-row { display: grid; grid-template-columns: minmax(90px, 30%) minmax(0, 1fr) 72px; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); }
+.hb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-val { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hb .bar-fill { background: var(--s1); }
+.ch-table { margin-top: var(--sp-3); }
+.ch-table summary { cursor: pointer; color: var(--ink-3); font-size: var(--fs-xs); }
+.ch-table .tbl { margin-top: var(--sp-2); }

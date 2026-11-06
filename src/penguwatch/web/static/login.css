@@ -1,0 +1,26 @@
+/* The sign-in page (homeguard's LOGIN_PAGE; security.PROFILE.login_head_extra links this file, tokens.css and
+   theme.js) in the dashboard's look, both themes. The page's own <style> block comes after this file, so every
+   selector here is one step more specific than its rule. Tokens only. */
+html body { box-sizing: border-box; background: var(--bg); color: var(--ink-1); font: 400 var(--fs-md)/1.45 var(--font); -webkit-font-smoothing: antialiased; padding: var(--sp-4); }
+html body form {
+  background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: var(--shadow-pop);
+  box-sizing: border-box; padding: var(--sp-8) var(--sp-6) var(--sp-6); width: min(100%, 380px);
+}
+html form h1 { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: -.015em; margin: 0 0 4px; }
+html form h1::before {
+  content: ""; display: block; width: 44px; height: 44px; margin-bottom: var(--sp-3);
+  background: url("/static/icons/favicon.svg") center / contain no-repeat;
+}
+html form p { color: var(--ink-3); font-size: var(--fs-sm); margin: 0 0 var(--sp-5); }
+html form input {
+  height: 40px; padding: 0 12px; border-radius: var(--r-sm); border: 1px solid var(--line-strong);
+  background: var(--surface-2); color: var(--ink-1); font-size: var(--fs-md);
+}
+html form input:focus { outline: 2px solid var(--focus); outline-offset: 0; border-color: transparent; }
+html form button {
+  margin-top: var(--sp-4); height: 40px; padding: 0; border-radius: var(--r-sm); background: var(--accent); color: var(--on-accent);
+  font-size: var(--fs-md); font-weight: var(--fw-semi);
+}
+html form button:hover { background: color-mix(in srgb, var(--accent) 88%, var(--ink-1)); }
+html form button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+html form .err { color: var(--crit); font-size: var(--fs-sm); margin-top: var(--sp-3); }

@@ -1,0 +1,75 @@
+/* Services & Sync tab: the subscriptions, the library driver's card, review and sign-in cards; the connect dialog. Tokens only. */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: var(--sp-4); align-items: start; }
+.settings-card .panel-b { display: flex; flex-direction: column; gap: var(--sp-3); }
+.settings-card .lead-p { margin-bottom: 0; }
+
+/* Services: one row per service, the price row, the price history disclosure */
+.services-list { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-md); }
+.svc-item { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3); }
+.svc-item + .svc-item { border-top: 1px solid var(--line); }
+.svc-item-left { min-width: 0; flex: 1; }
+.svc-item > div:last-child { flex: none; }
+.svc-item-title { font-weight: var(--fw-semi); display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.svc-includes { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 2px; }
+.svc-item-cost { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-3); margin-top: 6px; }
+.svc-item-cost .cost-input { width: 84px; }
+.svc-item-cost .renew-input { width: 58px; }
+.svc-item-cost .billing-select { width: auto; }
+.svc-item-cost .renew-input.renew-date { width: auto; }
+.svc-renew { display: inline-flex; align-items: center; gap: 6px; }
+.svc-item-note { margin-top: 6px; }
+.svc-item-note .note-input { width: 100%; max-width: 22rem; }
+.svc-prices-toggle { margin-top: 4px; }
+.svc-prices { font-size: var(--fs-xs); color: var(--ink-3); }
+.svc-prices[hidden] { display: none; }
+.svc-prices ul { list-style: none; margin: 4px 0 0; padding: 0; font-variant-numeric: tabular-nums; }
+.svc-toggle { color: var(--st); border-color: color-mix(in srgb, var(--st) 40%, transparent); background: var(--st-bg); min-width: 96px; }
+.svc-toggle:hover { color: var(--st); border-color: var(--st); background: var(--st-bg); }
+.add-service-details > summary { list-style: none; cursor: pointer; width: max-content; }
+.add-service-details > summary::-webkit-details-marker { display: none; }
+.add-service-details[open] > summary { margin-bottom: var(--sp-3); }
+.add-service-card { padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); gap: var(--sp-3); }
+.member-list { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+
+/* The library driver's card */
+.library-status-box { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--line); }
+.status-indicator { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+.account-details { display: flex; flex-direction: column; gap: 6px; padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.detail-row { display: flex; justify-content: space-between; gap: var(--sp-3); font-size: var(--fs-sm); }
+.detail-lbl { color: var(--ink-3); flex: none; }
+.detail-val { font-weight: var(--fw-semi); text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.vip-badge { color: var(--warn); }
+.sync-help { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.55; }
+.library-auth-actions, .sync-actions-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.manual-token-form { padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); gap: var(--sp-3); }
+
+/* Review and sign-in */
+.review-card .panel-b { align-items: flex-start; }
+.signout-row { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); padding: var(--sp-3) 0; border-top: 1px solid var(--line); }
+.signout-row:first-of-type { border-top: 0; padding-top: 0; }
+.signout-row > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.signout-row > div span { font-size: var(--fs-xs); color: var(--ink-3); }
+.signout-row form, .signout-row > .btn { flex: none; }
+.signout-confirm { flex-direction: column; align-items: stretch; }
+.signout-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--sp-2); }
+.signout-row .btn:disabled { opacity: .55; cursor: default; }
+.credits { text-align: center; }
+.credit-list { margin: 0; padding-left: var(--sp-5); }
+
+/* PIN dialog */
+.pin-body { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); text-align: center; }
+.pin-url-link { font-size: var(--fs-lg); font-weight: var(--fw-semi); overflow-wrap: anywhere; }
+.pin-code-display { font-family: var(--mono); font-size: var(--fs-2xl); font-weight: var(--fw-bold); letter-spacing: .25em; padding: var(--sp-3) var(--sp-5); border-radius: var(--r-md); background: var(--surface-2); border: 1px dashed var(--line-strong); }
+.pin-spinner-row { text-align: left; }
+
+/* Review dialog */
+.review-topbar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-4); font-size: var(--fs-sm); }
+.kind-new { color: var(--good); background: var(--good-bg); }
+.kind-update { color: var(--accent); background: var(--accent-bg); }
+.kind-removed { color: var(--crit); background: var(--crit-bg); }
+
+@media (max-width: 720px) {
+  .signout-row { flex-direction: column; align-items: stretch; }
+  .signout-row .btn { width: 100%; }
+  .svc-toggle { min-width: 0; }
+}

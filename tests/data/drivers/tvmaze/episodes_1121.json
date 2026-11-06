@@ -1,0 +1,89 @@
+[
+ {
+  "id": 103699,
+  "url": "https://www.tvmaze.com/episodes/103699/cowboy-bebop-1x01-asteroid-blues",
+  "name": "Asteroid Blues",
+  "season": 1,
+  "number": 1,
+  "type": "regular",
+  "airdate": "1998-10-24",
+  "airtime": "17:00",
+  "airstamp": "1998-10-24T08:00:00+00:00",
+  "runtime": 30,
+  "rating": {
+   "average": 7.5
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/43/109702.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/43/109702.jpg"
+  },
+  "summary": "<p>Spike and Jet head to Tijuana to track down an outlaw smuggling a dangerous drug known as blood-eye. Jet wants the bounty, but Spike has eyes for a far prettier prize.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/103699"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/1121",
+    "name": "Cowboy Bebop"
+   }
+  }
+ },
+ {
+  "id": 103700,
+  "url": "https://www.tvmaze.com/episodes/103700/cowboy-bebop-1x02-stray-dog-strut",
+  "name": "Stray Dog Strut",
+  "season": 1,
+  "number": 2,
+  "type": "regular",
+  "airdate": "1998-10-31",
+  "airtime": "17:00",
+  "airstamp": "1998-10-31T08:00:00+00:00",
+  "runtime": 30,
+  "rating": {
+   "average": 7.4
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/43/109703.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/43/109703.jpg"
+  },
+  "summary": "<p>Spike and Jet's next case takes them to Mars, where they try to catch a professional pet thief and a priceless data dog.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/103700"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/1121",
+    "name": "Cowboy Bebop"
+   }
+  }
+ },
+ {
+  "id": 103701,
+  "url": "https://www.tvmaze.com/episodes/103701/cowboy-bebop-1x03-honky-tonk-women",
+  "name": "Honky Tonk Women",
+  "season": 1,
+  "number": 3,
+  "type": "regular",
+  "airdate": "1998-11-07",
+  "airtime": "17:00",
+  "airstamp": "1998-11-07T08:00:00+00:00",
+  "runtime": 30,
+  "rating": {
+   "average": 7.4
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/233/584722.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/233/584722.jpg"
+  },
+  "summary": "<p>A night at the casino lands Spike and Jet in hot water when they cross paths with Faye Valentine, a stunning con artist wanted by the law – and the bad guys.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/103701"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/1121",
+    "name": "Cowboy Bebop"
+   }
+  }
+ }
+]

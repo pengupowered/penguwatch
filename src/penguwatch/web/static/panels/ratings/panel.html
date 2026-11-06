@@ -1,0 +1,42 @@
+<!-- Ratings: your own rating sources (list, create, edit, delete) and the CSV import (panel.js, csv.js); the
+     create/edit dialog is source.html -->
+<section id="ratings-tab" class="tab-pane" data-panel="ratings" role="tabpanel" aria-labelledby="tab-ratings">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-star"/></svg>
+    <h1 class="page-t">Ratings</h1>
+    <span class="page-m">Bring ratings from anywhere (Letterboxd, a spreadsheet, a friend) and sort, filter and badge your library by them.</span>
+    <div class="page-tools">
+      <button class="btn primary" type="button" data-call="openRatingSource" data-args="[null]"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>New source</button>
+    </div>
+  </div>
+
+  <div class="ratings-grid">
+    <div class="panel">
+      <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg><h2 class="panel-t">Rating sources</h2><span class="panel-m" data-tpl="{builtin} are built in">The built-in sources are built in</span></div>
+      <div class="panel-b flush">
+        <div class="table-wrap" id="rating-sources-list" aria-live="polite"><div class="empty loading-state"><span class="spinner" aria-hidden="true"></span><span>Loading…</span></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-arrow-up"/></svg><h2 class="panel-t">Import from a CSV file</h2><span class="panel-m">the file is read in your browser and sent in batches of 500</span></div>
+      <div class="panel-b form">
+        <p class="fine top">The first row names the columns. A rating column (<code>rating</code>, <code>score</code> or <code>value</code>) and one way to find the title: <code>imdb_id</code>, <code>tmdb_id</code>, <code>tvdb_id</code>,<span id="csv-driver-ids"></span> or <code>title</code> (with <code>year</code> when you have it). Optional: <code>media_type</code> (show, anime, movie), <code>votes</code>, <code>url</code>.</p>
+        <div class="form-grid">
+          <div class="field">
+            <label for="import-source">Into this source</label>
+            <select id="import-source" class="input"></select>
+          </div>
+          <div class="field">
+            <label for="import-file">CSV file</label>
+            <input type="file" id="import-file" class="input" accept=".csv,text/csv,text/plain" data-change="import-file-chosen">
+          </div>
+        </div>
+        <div class="form-error" id="import-error" role="alert" hidden></div>
+        <div id="import-preview" class="fine" aria-live="polite"></div>
+        <div><button type="button" class="btn primary" id="btn-run-import" data-call="runRatingImport" disabled><svg class="i" aria-hidden="true"><use href="#i-arrow-up"/></svg>Import</button></div>
+        <div id="import-result" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+</section>

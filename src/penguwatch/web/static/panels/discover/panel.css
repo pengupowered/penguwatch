@@ -1,0 +1,21 @@
+/* Discover tab: the list controls and a grid of title cards (poster beside the text). Tokens only. */
+.discover-controls .panel-b { display: flex; align-items: center; gap: var(--sp-2) var(--sp-4); flex-wrap: wrap; padding: var(--sp-3) var(--sp-4); }
+.discover-controls .filter-toggles { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+.discover-controls .filter-tab { display: inline-flex; align-items: center; gap: 5px; }
+.discover-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: var(--sp-3); }
+.discover-card {
+  display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-3); min-width: 0;
+  background: var(--surface-1); border: 1px solid var(--card-line); box-shadow: var(--shadow-card); border-radius: var(--r-lg);
+}
+.discover-poster { width: 112px; }
+.discover-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.discover-title { font-weight: var(--fw-semi); font-size: var(--fs-md); line-height: 1.3; overflow-wrap: anywhere; }
+.discover-badges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.discover-because { font-size: var(--fs-xs); color: var(--busy); }
+.discover-overview { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+.discover-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+@media (max-width: 720px) {
+  .discover-card { grid-template-columns: 84px minmax(0, 1fr); }
+  .discover-poster { width: 84px; }
+  .discover-controls .panel-b { padding: var(--sp-3); }
+}

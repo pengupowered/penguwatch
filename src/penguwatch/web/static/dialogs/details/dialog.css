@@ -1,0 +1,69 @@
+/* The details dialog: the hero (banner, poster, facts), the controls, the season list; the progress dialog. Tokens
+   only; the banner image is set from dialog.js as a style property. */
+.detail-hero {
+  position: relative; display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--sp-5); padding: var(--sp-4);
+  border-radius: var(--r-md); overflow: hidden; background-color: var(--surface-2); background-size: cover; background-position: center;
+}
+.detail-hero.has-banner::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--surface-1) 96%, transparent) 38%, color-mix(in srgb, var(--surface-1) 70%, transparent));
+}
+.detail-hero > * { position: relative; }
+.detail-poster { width: 150px; border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
+.detail-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.detail-title { font-size: var(--fs-xl); font-weight: var(--fw-bold); letter-spacing: -.01em; line-height: 1.25; overflow-wrap: anywhere; }
+.detail-facts { font-size: var(--fs-sm); color: var(--ink-2); }
+.detail-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.detail-links { display: inline-flex; gap: var(--sp-3); font-size: var(--fs-sm); }
+.detail-links a { display: inline-flex; align-items: center; gap: 3px; }
+.detail-overview { color: var(--ink-2); font-size: var(--fs-sm); line-height: 1.55; margin-top: 4px; }
+.detail-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--sp-3); margin: var(--sp-4) 0; }
+.detail-controls label { display: flex; flex-direction: column; gap: 5px; font-size: var(--fs-sm); color: var(--ink-2); font-weight: var(--fw-medium); }
+.detail-controls .detail-notes { grid-column: 1 / -1; }
+.detail-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+.episodes-summary { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; padding: var(--sp-3) 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+.episodes-summary:empty { display: none; }
+.episodes-summary .next-pill { display: inline-flex; align-items: center; gap: 4px; }
+.episodes-summary .next-pill strong { color: var(--accent); font-family: var(--mono); }
+.episodes-body { display: flex; flex-direction: column; gap: var(--sp-2); }
+.season-block { border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; }
+.season-block > summary { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); cursor: pointer; list-style: none; background: var(--surface-2); }
+.season-block > summary::-webkit-details-marker { display: none; }
+.season-block > summary::before { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--ink-3); border-bottom: 2px solid var(--ink-3); transform: rotate(-45deg); transition: transform var(--t-fast); flex: none; }
+.season-block[open] > summary::before { transform: rotate(45deg); }
+.season-name { font-weight: var(--fw-semi); }
+.season-progress { color: var(--ink-3); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
+.season-progress.done { color: var(--good); }
+.season-block > summary .btn { margin-left: auto; }
+.ep-list { display: flex; flex-direction: column; }
+.ep-row { display: grid; grid-template-columns: auto 44px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: center; padding: 7px var(--sp-3); border-top: 1px solid var(--line); font-size: var(--fs-sm); cursor: pointer; }
+.ep-row:hover { background: var(--surface-2); }
+.ep-row input { width: 16px; height: 16px; accent-color: var(--accent); }
+.ep-num { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); }
+.ep-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ep-date { color: var(--ink-3); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+.ep-watched .ep-title { color: var(--ink-3); }
+.ep-future { opacity: .55; cursor: default; }
+
+.pm-info { font-size: var(--fs-sm); }
+.pm-count { height: 48px; font-size: var(--fs-xl); font-weight: var(--fw-bold); text-align: center; }
+.quick-step-presets { display: flex; gap: var(--sp-2); justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 720px) {
+  .detail-hero { grid-template-columns: 92px minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-3); }
+  .detail-poster { width: 92px; }
+  .detail-title { font-size: var(--fs-lg); }
+  .ep-row { grid-template-columns: auto 36px minmax(0, 1fr); }
+  .ep-date { display: none; }
+  .season-block > summary { flex-wrap: wrap; }
+}
+
+/* Ratings in the details: one row per source */
+.detail-ratings { margin-top: var(--sp-4); }
+.detail-sub { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); font-weight: var(--fw-semi); color: var(--ink-2); margin-bottom: var(--sp-2); }
+.rating-rows { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.rating-row { display: grid; grid-template-columns: minmax(8rem, 1fr) minmax(6rem, auto) auto; gap: var(--sp-2) var(--sp-3); align-items: center; padding: var(--sp-2) var(--sp-3); background: var(--surface-1); font-size: var(--fs-sm); }
+.rr-name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; overflow-wrap: anywhere; }
+.rr-edit { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; justify-content: flex-end; }
+.rr-input { width: 6em; }
+@media (max-width: 720px) { .rating-row { grid-template-columns: 1fr auto; } .rr-edit { grid-column: 1 / -1; justify-content: flex-start; } }

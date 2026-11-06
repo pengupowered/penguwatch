@@ -1,0 +1,252 @@
+# Publishing: a pushed tag vX.Y.Z publishes a commit that was already tested. The release commit is pushed to a ci/<name>
+# branch first, where ci.yml tests it and builds the wheel and sdist once; when that is green the same commit is
+# fast-forwarded onto main and tagged. The first job here finds that CI run (scripts/find-tested-run.sh) and fails if
+# there is none; nothing is tested again, and every file below is a download from that run's artifacts, not a rebuild.
+# The image is built from that wheel on a native runner for each architecture (amd64, arm64 for a Raspberry Pi; no
+# QEMU), the two are joined into one multi-architecture image ghcr.io/pengupowered/penguwatch:X.Y.Z (and latest), and a
+# GitHub release is created from CHANGELOG.md with the wheel and the sdist, the dependency lock, the two install scripts and
+# SHA256SUMS attached. Build provenance attestations are made for those files and for the image. Last, after a manual
+# approval (the GitHub environment "pypi"), the same wheel and sdist go to PyPI by trusted publishing. Downloading
+# artifacts of another run needs actions: read. See docs/releasing.md.
+name: Release
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+jobs:
+  tested:
+    name: Tested commit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      run-id: ${{ steps.ci.outputs.run-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Find the successful CI run of this commit
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "run-id=$(scripts/find-tested-run.sh "$GITHUB_REPOSITORY" "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+
+  image:
+    name: Image (${{ matrix.arch }})
+    needs: tested
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      matrix:
+        include:
+          - {os: ubuntu-24.04, arch: amd64}
+          - {os: ubuntu-24.04-arm, arch: arm64}
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    env:
+      IMAGE: ghcr.io/pengupowered/penguwatch
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the tag against the package version
+        id: version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          declared="$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/penguwatch/__init__.py | head -n1)"
+          if [ "$version" != "$declared" ]; then
+            echo "tag $GITHUB_REF_NAME does not match __version__ $declared in src/penguwatch/__init__.py" >&2
+            exit 1
+          fi
+          scripts/changelog-section.sh "$version" > /dev/null
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      # The wheel the tests ran against (artifact "dist" of the CI run found by the first job), not a rebuild.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+          run-id: ${{ needs.tested.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check the wheel is this version
+        run: ls dist/penguwatch-${{ steps.version.outputs.version }}-*.whl dist/penguwatch-${{ steps.version.outputs.version }}.tar.gz
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          build-args: WHEEL_STAGE=wheel-prebuilt
+          platforms: linux/${{ matrix.arch }}
+          provenance: false
+          push: true
+          tags: ${{ env.IMAGE }}:${{ steps.version.outputs.version }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.title=PenguWatch
+            org.opencontainers.image.description=TV and movie tracker with a streaming-subscription rotation planner and two-way SIMKL sync.
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.licenses=MIT
+
+  manifest:
+    name: Multi-architecture image
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.join.outputs.digest }}
+    env:
+      IMAGE: ghcr.io/pengupowered/penguwatch
+    steps:
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Join the two images under X.Y.Z and latest
+        id: join
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          docker buildx imagetools create -t "$IMAGE:$version" -t "$IMAGE:latest" "$IMAGE:$version-amd64" "$IMAGE:$version-arm64"
+          docker buildx imagetools inspect "$IMAGE:$version"
+          echo "digest=$(docker buildx imagetools inspect "$IMAGE:$version" --format '{{.Manifest.Digest}}')" >> "$GITHUB_OUTPUT"
+
+  # Signed statements (Sigstore, through GitHub) of where the files and the image were built; anyone can check one with
+  # `gh attestation verify <file> --repo pengupowered/penguwatch`. These two jobs are the ones besides PyPI that
+  # need id-token: it is how the signing identity is proven.
+  attest-image:
+    name: Image provenance
+    needs: manifest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    steps:
+      # push-to-registry writes the attestation next to the image, so this job needs its own registry login.
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # Sigstore's public log can fail for a moment ("error fetching tlog entry"): one retry after a pause. A second
+      # failure still stops the release (never publish without provenance).
+      - id: attest
+        continue-on-error: true
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/pengupowered/penguwatch
+          subject-digest: ${{ needs.manifest.outputs.digest }}
+          push-to-registry: true
+      - if: steps.attest.outcome == 'failure'
+        run: sleep 60
+      - if: steps.attest.outcome == 'failure'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/pengupowered/penguwatch
+          subject-digest: ${{ needs.manifest.outputs.digest }}
+          push-to-registry: true
+
+  attest-files:
+    name: File provenance
+    needs: tested
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release-assets
+          run-id: ${{ needs.tested.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # Sigstore's public log can fail for a moment ("error fetching tlog entry"): one retry after a pause. A second
+      # failure still stops the release (never publish without provenance).
+      - id: attest
+        continue-on-error: true
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release-assets/*
+      - if: steps.attest.outcome == 'failure'
+        run: sleep 60
+      - if: steps.attest.outcome == 'failure'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release-assets/*
+
+  release:
+    name: GitHub release
+    needs: [tested, manifest, attest-image, attest-files]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # The files CI assembled: wheel, sdist, lock, install.sh, install.ps1, SHA256SUMS.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release-assets
+          run-id: ${{ needs.tested.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Take this version's notes from CHANGELOG.md
+        run: scripts/changelog-section.sh "${GITHUB_REF_NAME#v}" > "$RUNNER_TEMP/notes.md"
+      - name: Create the release, with the release files attached
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          (cd release-assets && sha256sum --check SHA256SUMS)
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "PenguWatch ${GITHUB_REF_NAME#v}" --notes-file "$RUNNER_TEMP/notes.md" release-assets/*
+
+  # Last, because a version on PyPI cannot be taken back. The job waits for approval in the GitHub environment "pypi"
+  # (Settings, Environments), and PyPI trusts this workflow and this environment (a trusted publisher; no token is
+  # stored anywhere). It publishes the wheel and sdist of the tested run, with PyPI's own attestations.
+  pypi:
+    name: PyPI
+    needs: [tested, release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/penguwatch/
+    permissions:
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+          run-id: ${{ needs.tested.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist

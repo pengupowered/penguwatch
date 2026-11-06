@@ -1,0 +1,14 @@
+# Copy to docker-compose.override.yml (git-ignored) for settings that only exist on this machine. podman-compose and
+# docker compose merge it into docker-compose.yml automatically, so scripts/deploy.sh picks it up.
+#
+# Example: send telemetry to an OpenTelemetry collector that runs in another compose project on the same host. Join
+# that project's network (create it first, or let the collector's project create it), then set
+# OTEL_EXPORTER_OTLP_ENDPOINT in .env to the collector's name on that network, e.g. http://otel-collector:4318.
+services:
+  penguwatch:
+    networks: [default, observability]
+
+networks:
+  default: {}            # podman-compose 1.0.6 needs default declared once a service lists networks
+  observability:
+    external: true       # the collector's network, created outside this project

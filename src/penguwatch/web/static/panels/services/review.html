@@ -1,0 +1,41 @@
+<!-- Dialog: review the pending changes in both directions before they sync (review.js). Opened from the header's
+     "to review" chip, the Review card and after a sync that found changes. -->
+<div class="modal" id="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title">
+  <div class="modal-content wide">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-sync"/></svg>
+      <h2 class="modal-t" id="review-modal-title">Review sync changes</h2>
+      <button type="button" class="btn icon m-close" id="btn-close-review-modal" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <p class="muted lead-p" id="review-intro">Nothing is changed on either side until you approve it. Declining a change undoes it so both sides match again.</p>
+      <div class="review-topbar">
+        <button class="btn primary" id="btn-approve-everything" type="button"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Approve everything</button>
+        <span class="muted">or tick individual items below</span>
+      </div>
+      <div class="review-section">
+        <div class="review-head">
+          <h3 class="section-t"><svg class="i" aria-hidden="true"><use href="#i-arrow-up"/></svg><span data-tpl="From PenguWatch to {library}">From PenguWatch to the account</span> <span class="muted" id="outgoing-count"></span></h3>
+          <div class="review-buttons">
+            <button class="btn sm outline" id="btn-outgoing-send-sel" type="button"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Approve selected</button>
+            <button class="btn sm" id="btn-outgoing-discard-sel" type="button" title="Don't send; undo it here so it matches the account again" data-tpl-title="Don't send; undo it here so it matches {library} again"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg>Decline selected</button>
+            <button class="btn sm" id="btn-outgoing-drop-sel" type="button" hidden title="Delete these changes without sending them and without fetching the account's version: this device keeps its current state"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg>Drop without restoring</button>
+          </div>
+        </div>
+        <p class="muted" id="outgoing-blocked-note" role="status"></p>
+        <div class="review-list" id="outgoing-list"></div>
+      </div>
+
+      <div class="review-section">
+        <div class="review-head">
+          <h3 class="section-t"><svg class="i" aria-hidden="true"><use href="#i-arrow-down"/></svg><span data-tpl="From {library} to PenguWatch">From the account to PenguWatch</span> <span class="muted" id="incoming-count"></span></h3>
+          <div class="review-buttons">
+            <button class="btn sm outline" id="btn-incoming-accept-sel" type="button"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Approve selected</button>
+            <button class="btn sm" id="btn-incoming-keep-sel" type="button" title="Don't apply; keep PenguWatch's version and send it to the account" data-tpl-title="Don't apply; keep PenguWatch's version and send it to {library}"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg>Decline selected</button>
+          </div>
+        </div>
+        <div class="review-list" id="incoming-list"></div>
+      </div>
+    </div>
+  </div>
+</div>

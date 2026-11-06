@@ -1,0 +1,66 @@
+{
+ "pushed": 15,
+ "left": 0,
+ "requests": [
+  {
+   "method": "POST",
+   "path": "/sync/history",
+   "query": "client_id=cid",
+   "body": "{\"shows\":[{\"ids\":{\"simkl\":1001,\"imdb\":\"tt0001001\",\"tmdb\":501},\"seasons\":[{\"number\":1,\"episodes\":[{\"number\":2,\"watched_at\":\"2026-10-10T12:00:00+00:00\"},{\"number\":3,\"watched_at\":\"2026-10-10T12:00:00+00:00\"}]}]},{\"ids\":{\"simkl\":2001,\"tmdb\":601},\"seasons\":[{\"number\":1,\"episodes\":[{\"number\":1,\"watched_at\":\"2026-10-10T12:00:00+00:00\"},{\"number\":2,\"watched_at\":\"2026-10-10T12:00:00+00:00\"}]}]}],\"movies\":[{\"ids\":{\"simkl\":3001,\"imdb\":\"tt0003001\",\"tmdb\":801},\"watched_at\":\"2026-10-10T12:00:00+00:00\"}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/add-to-list",
+   "query": "client_id=cid",
+   "body": "{\"to\":\"hold\",\"shows\":[{\"ids\":{\"simkl\":1002,\"imdb\":\"tt0001002\"},\"to\":\"hold\"}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/ratings",
+   "query": "client_id=cid",
+   "body": "{\"shows\":[{\"ids\":{\"simkl\":1001,\"imdb\":\"tt0001001\",\"tmdb\":501},\"rating\":8}],\"movies\":[{\"ids\":{\"simkl\":3001,\"imdb\":\"tt0003001\",\"tmdb\":801},\"rating\":8}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/ratings/remove",
+   "query": "client_id=cid",
+   "body": "{\"shows\":[{\"ids\":{\"simkl\":1002,\"imdb\":\"tt0001002\"}}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/history/remove",
+   "query": "client_id=cid",
+   "body": "{\"shows\":[{\"ids\":{\"simkl\":1001,\"imdb\":\"tt0001001\",\"tmdb\":501},\"seasons\":[{\"number\":1,\"episodes\":[{\"number\":3}]}]}],\"movies\":[{\"ids\":{\"simkl\":3002}}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/add-to-list",
+   "query": "client_id=cid",
+   "body": "{\"to\":\"completed\",\"shows\":[{\"ids\":{\"simkl\":2001,\"tmdb\":601},\"to\":\"completed\"}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/add-to-list",
+   "query": "client_id=cid",
+   "body": "{\"to\":\"plantowatch\",\"movies\":[{\"ids\":{\"simkl\":3001,\"imdb\":\"tt0003001\",\"tmdb\":801},\"to\":\"plantowatch\"}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/history/remove",
+   "query": "client_id=cid",
+   "body": "{\"movies\":[{\"ids\":{\"simkl\":3002}}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/history",
+   "query": "client_id=cid",
+   "body": "{\"shows\":[{\"ids\":{\"simkl\":1001,\"imdb\":\"tt0001001\",\"tmdb\":501},\"seasons\":[{\"number\":1,\"episodes\":[{\"number\":3,\"watched_at\":\"2026-10-10T12:00:00+00:00\"}]}]},{\"ids\":{\"simkl\":1002,\"imdb\":\"tt0001002\"},\"seasons\":[{\"number\":2,\"episodes\":[{\"number\":3,\"watched_at\":\"2026-10-10T12:00:00+00:00\"}]}]}]}"
+  },
+  {
+   "method": "POST",
+   "path": "/sync/ratings",
+   "query": "client_id=cid",
+   "body": "{\"shows\":[{\"ids\":{\"simkl\":2001,\"tmdb\":601},\"rating\":9}]}"
+  }
+ ]
+}

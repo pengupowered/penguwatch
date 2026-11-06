@@ -1,0 +1,121 @@
+/* Library tab: the filter panel, the grid of poster cards (or the compact list) and the card's controls; the tidy-up
+   dialog's rows. Tokens only. */
+.watchlist-controls .panel-b { display: flex; flex-direction: column; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); }
+.filter-toggles { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; }
+.search-input-wrapper { position: relative; display: flex; align-items: center; flex: 1 1 260px; min-width: 0; }
+.search-input-wrapper > svg.i { position: absolute; left: 10px; color: var(--ink-3); pointer-events: none; }
+.search-input-wrapper .input { padding-left: 34px; height: 34px; }
+.toggle-chip { white-space: nowrap; }
+
+/* ---------- Poster cards ---------- */
+.shows-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: var(--sp-4); }
+.show-card {
+  position: relative; display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  background: var(--surface-1); border: 1px solid var(--card-line); box-shadow: var(--shadow-card); border-radius: var(--r-lg);
+  transition: border-color var(--t-fast) var(--ease);
+}
+.show-card:hover { border-color: var(--card-line-hover); }
+.show-poster-wrap { position: relative; aspect-ratio: 4 / 5; background: var(--poster-bg); overflow: hidden; }
+.show-poster { position: absolute; inset: 0; height: 100%; aspect-ratio: auto; border-radius: 0; object-position: center top; transition: transform var(--t-med) var(--ease); }
+.show-card:hover .show-poster { transform: scale(1.02); }
+.show-poster-fallback { position: absolute; inset: 0; height: 100%; aspect-ratio: auto; }
+.poster-top-badges { position: absolute; top: var(--sp-2); left: var(--sp-2); right: var(--sp-2); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); }
+.poster-top-badges .service-tag { min-width: 0; }
+.on-image-ratings { justify-content: flex-end; flex: none; }
+.on-image-ratings .rating { color: var(--on-image); background: var(--on-image-bg); border: 1px solid var(--on-image-line); }
+.on-image-ratings .rating b { color: var(--on-image); opacity: .7; }
+.binge-floating-tag { position: absolute; left: var(--sp-2); bottom: var(--sp-2); color: var(--on-image); }
+.binge-floating-tag svg.i { color: var(--warn-fill); }
+
+.show-info { display: flex; flex-direction: column; gap: var(--sp-2); padding: var(--sp-3); flex: 1; min-width: 0; }
+.show-title { font-size: var(--fs-md); font-weight: var(--fw-semi); line-height: 1.3; overflow-wrap: anywhere; }
+.show-title:hover { color: var(--accent); }
+.show-tags-row { display: flex; flex-wrap: wrap; gap: 4px; }
+.show-tags-row .chip svg.i { color: var(--ink-3); }
+.prio-high { color: var(--serious); background: var(--serious-bg); }
+.prio-high svg.i { color: var(--serious) !important; }
+.prio-low { color: var(--ink-3); }
+.interest-badge svg.i { color: var(--busy) !important; }
+.next-watch-row { display: flex; flex-wrap: wrap; gap: 4px var(--sp-3); font-size: var(--fs-xs); color: var(--ink-3); }
+.next-pill, .last-pill { display: inline-flex; align-items: center; gap: 4px; }
+.next-pill { color: var(--ink-2); }
+.next-pill strong { color: var(--accent); font-family: var(--mono); font-weight: var(--fw-semi); }
+.next-pill svg.i { color: var(--accent); }
+.card-service-row { display: flex; align-items: center; gap: var(--sp-2); }
+.service-select-label { font-size: var(--fs-xs); color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; font-weight: var(--fw-semi); }
+.card-service-row .chip-editor { flex: 1 1 auto; min-width: 0; }
+
+.progress-container { display: flex; flex-direction: column; gap: 5px; }
+.progress-labels { display: flex; justify-content: space-between; gap: var(--sp-2); font-size: var(--fs-xs); color: var(--ink-3); }
+.progress-labels span { display: inline-flex; align-items: center; gap: 4px; }
+.progress-stepper-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.stepper-cluster { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
+.stepper-cluster-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); font-weight: var(--fw-semi); padding: 0 4px; }
+.btn-step {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 26px; height: 24px; padding: 0 6px;
+  border: 0; border-radius: 4px; background: none; color: var(--ink-2); font-size: var(--fs-xs); font-weight: var(--fw-semi); cursor: pointer;
+}
+.btn-step:hover { background: var(--surface-3); color: var(--ink-1); }
+.btn-step-inc { color: var(--accent); }
+.btn-step-edit { height: 30px; margin-left: auto; border: 1px solid var(--line); border-radius: var(--r-sm); }
+
+/* The card's fields as small buttons; the select replaces one on demand (cards.js) */
+.show-card-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.show-card-actions .chip-editor { min-width: 0; max-width: 100%; }
+.chip-btn {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; height: 28px;
+  background: var(--surface-2); color: var(--ink-1); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 0 8px; font-size: var(--fs-xs); font-weight: var(--fw-medium); cursor: pointer;
+}
+.chip-btn:hover { border-color: var(--line-strong); background: var(--surface-3); }
+.chip-btn svg.i { color: var(--ink-3); }
+.chip-btn .chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-btn .chip-caret { width: 12px; height: 12px; color: var(--ink-4); margin-left: auto; }
+.chip-grow { flex: 1 1 auto; }
+.card-remove { color: var(--ink-3); }
+.card-remove:hover { color: var(--crit); background: var(--crit-bg); }
+.shows-sentinel { grid-column: 1 / -1; text-align: center; padding: var(--sp-4) 0; }
+
+/* ---------- Compact view: poster thumbnail, title, tags, progress; the controls live in the details dialog ---------- */
+.shows-grid.compact { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: var(--sp-2); }
+.shows-grid.compact .show-card { flex-direction: row; align-items: stretch; }
+.shows-grid.compact .show-poster-wrap { width: 64px; min-width: 64px; aspect-ratio: auto; min-height: 96px; }
+.shows-grid.compact .poster-top-badges,
+.shows-grid.compact .binge-floating-tag,
+.shows-grid.compact .card-service-row,
+.shows-grid.compact .show-card-actions { display: none; }
+.shows-grid.compact .show-info { padding: var(--sp-2) var(--sp-3); gap: 4px; }
+.shows-grid.compact .show-title { font-size: var(--fs-sm); }
+.shows-grid.compact .poster-fallback svg.i { width: 24px; height: 24px; }
+
+/* ---------- Tidy-up dialog: "Assign a service" gives the title the room and caps the select ---------- */
+.review-row.tidy-assign-row {
+  display: grid; grid-template-columns: minmax(10rem, 1fr) minmax(0, 14rem) auto; grid-template-rows: auto auto;
+  column-gap: var(--sp-3); row-gap: 2px; align-items: center; cursor: default;
+}
+.tidy-assign-row .review-title { grid-column: 1; grid-row: 1; }
+.tidy-assign-row .review-desc { grid-column: 1; grid-row: 2; }
+.tidy-assign-row select { grid-column: 2; grid-row: 1 / span 2; min-width: 0; max-width: 14rem; width: 100%; }
+.tidy-assign-row .btn { grid-column: 3; grid-row: 1 / span 2; flex: none; }
+
+@media (max-width: 720px) {
+  .shows-grid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); }
+  .show-poster-wrap { aspect-ratio: 16 / 10; }
+  .watchlist-controls .panel-b { padding: var(--sp-3); }
+  .filter-toggles select.input { flex: 1 1 140px; width: auto; min-width: 0; }
+  .search-input-wrapper { flex-basis: 100%; }
+  .watchlist-controls { min-width: 0; }
+  #watchlist-tab .page-tools { width: 100%; }
+  #watchlist-tab .page-tools .btn { flex: 1 1 auto; }
+  .review-row.tidy-assign-row { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto auto; }
+  .tidy-assign-row .review-title, .tidy-assign-row .review-desc { grid-column: 1 / -1; }
+  .tidy-assign-row .review-title { grid-row: 1; }
+  .tidy-assign-row .review-desc { grid-row: 2; }
+  .tidy-assign-row select { grid-column: 1; grid-row: 3; max-width: none; }
+  .tidy-assign-row .btn { grid-column: 2; grid-row: 3; }
+}
+
+/* "at least" rating filter: a source picker and a number */
+.minrating { display: inline-flex; gap: var(--sp-2); align-items: center; }
+.minrating input.input { width: 7.5em; }
+@media (max-width: 720px) { .minrating { flex: 1 1 100%; } .minrating select.input { flex: 1 1 auto; } }

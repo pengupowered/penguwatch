@@ -1,0 +1,16 @@
+<!-- Insights: what you watched, from your watch history (panel.js) -->
+<section id="insights-tab" class="tab-pane" data-panel="insights" role="tabpanel" aria-labelledby="tab-insights">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-insights"/></svg>
+    <h1 class="page-t">Insights</h1>
+    <span class="page-m">What you actually watched, from your watch history.</span>
+    <div class="page-tools">
+      <select id="insights-months" class="input sm" aria-label="Period">
+        <option value="6">Last 6 months</option>
+        <option value="12" selected>Last 12 months</option>
+        <option value="24">Last 24 months</option>
+      </select>
+    </div>
+  </div>
+  <div id="insights-container" class="ins-grid" aria-live="polite"><div class="empty loading-state"><span class="spinner" aria-hidden="true"></span><span>Loading…</span></div></div>
+</section>

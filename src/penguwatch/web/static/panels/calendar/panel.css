@@ -1,0 +1,22 @@
+/* Air Schedule tab: the calendar feed and one row per upcoming episode. Tokens only. */
+.ical-box code { overflow-wrap: anywhere; color: var(--ink-1); background: var(--surface-1); padding: 2px 6px; border-radius: var(--r-xs); }
+.schedule-timeline { display: flex; flex-direction: column; gap: var(--sp-2); }
+.timeline-card {
+  display: grid; grid-template-columns: 56px 48px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: center;
+  padding: var(--sp-2) var(--sp-3); background: var(--surface-1); border: 1px solid var(--card-line); box-shadow: var(--shadow-card); border-radius: var(--r-md);
+  text-align: left; color: inherit; width: 100%;
+}
+.timeline-card:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.timeline-date-col { display: flex; flex-direction: column; align-items: center; line-height: 1.1; padding: 4px 0; border-radius: var(--r-sm); background: var(--surface-2); }
+.tl-month { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--accent); font-weight: var(--fw-semi); }
+.tl-day { font-size: var(--fs-xl); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.timeline-thumb { width: 48px; }
+.timeline-info { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tl-title { font-weight: var(--fw-semi); overflow-wrap: anywhere; }
+.tl-ep-info { font-size: var(--fs-sm); color: var(--ink-2); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tl-countdown { white-space: nowrap; }
+@media (max-width: 720px) {
+  .timeline-card { grid-template-columns: 48px 40px minmax(0, 1fr); }
+  .timeline-thumb { width: 40px; }
+  .tl-countdown { grid-column: 3; justify-self: start; }
+}

@@ -1,0 +1,20 @@
+<!-- Dialog: a library driver's connect flow, shown for its "code" step: a link to open and a code to enter (library.js) -->
+<div class="modal" id="pin-modal" role="dialog" aria-modal="true" aria-labelledby="pin-modal-title">
+  <div class="modal-content sm">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-key"/></svg>
+      <h2 class="modal-t" id="pin-modal-title" data-tpl="Connect {library} with a device PIN">Connect with a device PIN</h2>
+      <button type="button" class="btn icon m-close" id="btn-close-pin-modal" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b pin-body">
+      <p>1. Open this authorization link on your phone, tablet, or PC:</p>
+      <a href="about:blank" target="_blank" rel="noopener" class="pin-url-link" id="pin-verification-link">Open the authorization page</a>
+      <p>2. Device code (auto-filled if using the link above):</p>
+      <div class="pin-code-display num" id="pin-display-code">-----</div>
+      <div class="result st-busy pin-spinner-row">
+        <span class="spinner" aria-hidden="true"></span>
+        <span data-tpl="Waiting for approval on {library}. This window updates by itself once you confirm.">Waiting for approval. This window updates by itself once you confirm.</span>
+      </div>
+    </div>
+  </div>
+</div>

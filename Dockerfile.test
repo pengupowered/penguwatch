@@ -1,0 +1,20 @@
+# python:3.12-slim, pinned by digest (refresh the digest when updating the base image)
+FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+WORKDIR /app
+
+# Security updates of OS packages (test image matches production).
+RUN apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+COPY requirements.txt requirements.in requirements-dev.txt requirements-build.txt ./
+RUN pip install --no-cache-dir --require-hashes --no-deps --only-binary :all: -r requirements-dev.txt \
+    && pip install --no-cache-dir --require-hashes --no-deps --only-binary :all: -r requirements-build.txt
+COPY pyproject.toml README.md LICENSE CHANGELOG.md config.example.yaml compose.release.yaml docker-compose.yml Dockerfile ./
+# the release workflows and the scripts they call (tests/test_distribution.py)
+COPY .github/ .github/
+COPY scripts/ scripts/
+COPY src/ src/
+COPY tests/ tests/
+# the published images (tests/test_pwa.py checks them for metadata) and the docs and examples (tests/test_openapi.py, test_examples.py)
+COPY docs/ docs/
+CMD ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]

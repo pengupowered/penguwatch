@@ -1,0 +1,167 @@
+<!-- Services & Sync: the subscriptions (panel.js, addservice.js), the library driver's link and sync (library.js, review.js), the
+     sign-in (session.js); the connect and review dialogs are pin.html and review.html -->
+<section id="services-tab" class="tab-pane" data-panel="services" role="tabpanel" aria-labelledby="tab-services">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-card"/></svg>
+    <h1 class="page-t">Services &amp; Sync</h1>
+    <span class="page-m" data-tpl="Your subscriptions, and the link to your {library} account." data-show-when="remote" hidden>Your subscriptions, and the link to your account.</span>
+    <span class="page-m" data-show-when="local" hidden>Your subscriptions. The library is kept only in PenguWatch.</span>
+  </div>
+  <div class="settings-grid">
+    <!-- Left: Subscription Services Management -->
+    <div class="panel settings-card">
+      <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-card"/></svg><h2 class="panel-t">Streaming services</h2><span class="panel-m">which you have this month</span></div>
+      <div class="panel-b">
+        <p class="lead-p">Toggle your active subscriptions for this month to calibrate the PenguWatch recommendations.</p>
+        <div class="services-list" id="services-manager-list">
+          <!-- Rendered via JS -->
+        </div>
+        <details class="add-service-details">
+          <summary class="btn outline"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Add a service or bundle</summary>
+          <form id="add-service-form" class="form add-service-card" novalidate>
+            <p class="fine top">Bundles (e.g. Disney+, Hulu &amp; Max) cover the services they include while active, so you are not charged twice.</p>
+            <div class="form-grid">
+              <div class="field">
+                <label for="add-service-name">Name</label>
+                <input type="text" id="add-service-name" class="input" maxlength="80" placeholder="e.g. Disney+ Bundle" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="add-service-price">Price per month ($)</label>
+                <input type="number" id="add-service-price" class="input" step="0.01" min="0" placeholder="0.00">
+              </div>
+              <div class="field wide">
+                <label for="add-service-aliases">Aliases (comma separated, used to match provider names)</label>
+                <input type="text" id="add-service-aliases" class="input" placeholder="e.g. disney plus, disneyplus" autocomplete="off">
+              </div>
+            </div>
+            <label class="check">
+              <input type="checkbox" id="add-service-is-bundle">
+              <span>This is a bundle that includes:</span>
+            </label>
+            <div class="member-list" id="add-service-members" hidden></div>
+            <div class="form-error" id="add-service-error" role="alert" hidden></div>
+            <div><button type="submit" class="btn outline" id="btn-add-service"><svg class="i" aria-hidden="true"><use href="#i-plus"/></svg>Add service</button></div>
+          </form>
+        </details>
+      </div>
+    </div>
+
+    <!-- Right: the library driver's account and sync -->
+    <div class="panel settings-card">
+      <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-sync"/></svg><h2 class="panel-t" data-tpl="{library} sync">Library sync</h2><span class="panel-m" data-show-when="remote" hidden>watchlists, air dates, ratings, watched episodes</span><span class="panel-m" data-show-when="local" hidden>no account, nothing to sync</span></div>
+      <div class="panel-b library-settings-body">
+        <div class="library-status-box" id="library-status-box">
+          <div class="status-indicator">
+            <span class="badge st-unknown" id="library-box-badge"><svg class="i" aria-hidden="true"><use href="#i-unknown"/></svg><span id="library-box-word">Checking</span></span>
+            <span id="library-box-text">Checking the connection...</span>
+          </div>
+          <div id="library-account-details" class="account-details" hidden>
+            <div class="detail-row">
+              <span class="detail-lbl">User</span>
+              <span class="detail-val" id="library-username">-</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Plan</span>
+              <span class="detail-val vip-badge" id="library-vip-status">Connected</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Last sync</span>
+              <span class="detail-val" id="library-last-sync-time">Never</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Login</span>
+              <span class="detail-val" id="library-token-renewal">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-lbl">Waiting to send</span>
+              <span class="detail-val" id="library-pending-count">0 changes</span>
+            </div>
+          </div>
+          <div class="result st-busy sync-note" id="library-renewal-note" role="status" hidden></div>
+          <div class="result st-crit sync-error" id="library-error" hidden></div>
+        </div>
+        <p class="sync-help" data-show-when="remote" hidden>
+          <strong>How sync works:</strong> changes you make here (episodes, status, ratings, adds/removes) and
+          changes made in the <span data-tpl="{library}">account's</span> app are collected under <em>Review Changes</em>. Nothing is sent or applied until
+          you approve it (turn that off to sync automatically). <span data-tpl="{library}">The account</span> is checked
+          every <span data-tpl="{interval}">30</span> minutes, or right away with "Sync Now".
+        </p>
+        <p class="sync-help" data-show-when="local" hidden>
+          <strong>Local only:</strong> your library, watch history and ratings are kept in PenguWatch and nothing is
+          sent anywhere. Titles still come from the catalogue. To keep them in an account, set <code>drivers: library</code>
+          in config.yaml (see docs/drivers.md).
+        </p>
+        <div class="result st-busy sync-note" id="library-waiting-note" role="status" hidden></div>
+
+        <!-- Connect action: what the driver's connect flow asks for is drawn by library.js -->
+        <div class="library-auth-actions" id="library-auth-actions" data-show-when="connect" hidden>
+          <button class="btn outline" id="btn-start-connect" type="button"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><span data-tpl="Connect {library}{connect-with}">Connect</span></button>
+          <button class="btn" id="btn-toggle-manual-token" type="button" data-show-when="credentials" hidden aria-expanded="false" aria-controls="library-manual-section">Enter client ID / token manually</button>
+        </div>
+
+        <!-- Manual Token Entry Section -->
+        <div id="library-manual-section" class="form manual-token-form" hidden>
+          <div class="field">
+            <label for="input-client-id">Client ID</label>
+            <input type="text" id="input-client-id" class="input" placeholder="Enter the app client ID">
+          </div>
+          <div class="field">
+            <label for="input-access-token">Access token</label>
+            <input type="password" id="input-access-token" class="input" placeholder="Enter Access Token (Optional)" autocomplete="off">
+          </div>
+          <div><button class="btn outline" id="btn-save-credentials" type="button">Save credentials</button></div>
+        </div>
+        <div class="sync-actions-row" data-show-when="remote" hidden>
+          <button class="btn primary" id="btn-trigger-sync" type="button"><svg class="i" aria-hidden="true"><use href="#i-sync"/></svg>Sync now</button>
+          <button class="btn outline" id="btn-full-sync" type="button" data-tpl-title="Re-read the entire {library} library" title="Re-read the entire library">Full re-sync</button>
+          <button class="btn outline" id="btn-retry-pushes" type="button" hidden>Retry pending</button>
+          <button class="btn danger" id="btn-library-disconnect" type="button" hidden>Disconnect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Review changes before they sync -->
+    <div class="panel settings-card review-card" id="review-card" data-show-when="remote" hidden>
+      <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-checklist"/></svg><h2 class="panel-t">Review changes</h2><span class="panel-m">before they sync</span></div>
+      <div class="panel-b">
+        <p class="lead-p">See exactly what will change on each side before it happens.</p>
+        <label class="check review-toggle">
+          <input type="checkbox" id="review-mode-toggle" checked>
+          <span>Ask me before syncing changes (both directions)</span>
+        </label>
+        <button class="btn outline" id="btn-open-review" type="button"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg><span>Review pending changes</span></button>
+      </div>
+    </div>
+
+    <!-- Sign out: only for a browser signed in with the access token (session.js asks /api/session). Both
+         choices are plain same-origin form posts to /logout (homeguard); "everywhere" asks first. -->
+    <div class="panel settings-card signout-card" id="signout-card" hidden>
+      <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-lock"/></svg><h2 class="panel-t">Sign-in</h2><span class="panel-m">this browser is signed in with the access token</span></div>
+      <div class="panel-b">
+        <div class="signout-row">
+          <div><strong>This browser</strong><span>Ends the sign-in here. Other browsers stay signed in.</span></div>
+          <form method="post" action="/logout"><button type="submit" class="btn outline" id="btn-sign-out"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Sign out</button></form>
+        </div>
+        <div class="signout-row" id="signout-everywhere-row" hidden>
+          <div><strong>Every browser and device</strong><span>Ends every sign-in at once, this one too, without changing the token. For a lost device or a sign-in that was shared.</span></div>
+          <button type="button" class="btn danger" id="btn-sign-out-everywhere" data-call="askSignOutEverywhere" aria-controls="signout-everywhere-confirm" aria-expanded="false">Sign out everywhere</button>
+        </div>
+        <form class="result st-crit signout-confirm" id="signout-everywhere-confirm" method="post" action="/logout?everywhere=1" hidden>
+          <p><strong>Sign out every browser and device?</strong> Each one, this one included, needs the access token to sign in again.</p>
+          <div class="signout-buttons">
+            <button type="button" class="btn outline" data-call="cancelSignOutEverywhere">Cancel</button>
+            <button type="submit" class="btn danger" id="btn-sign-out-everywhere-confirm">Yes, sign out everywhere</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- Data credits of the running drivers that ask for one (js/drivers.js); hidden when none does -->
+  <div class="panel" id="attribution-card" hidden>
+    <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-info"/></svg><h2 class="panel-t">Data credits</h2><span class="panel-m">required by the data's licence</span></div>
+    <div class="panel-b"><ul class="credit-list" id="attribution-list"></ul></div>
+  </div>
+  <p class="credits fine" id="credits">
+    <span id="credits-text"></span>
+  </p>
+</section>

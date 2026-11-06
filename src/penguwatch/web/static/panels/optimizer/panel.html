@@ -1,0 +1,76 @@
+<!-- Optimizer: what you pay, what is cancellable, what to do about each subscription; the plan and the raw numbers
+     folded away (panel.js, planner.js) -->
+<section id="optimizer-tab" class="tab-pane" data-panel="optimizer" role="tabpanel" aria-labelledby="tab-optimizer">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-rocket"/></svg>
+    <h1 class="page-t">Optimizer</h1>
+    <span class="page-m">What you pay, what you could cancel, and what to subscribe to next.</span>
+  </div>
+
+  <!-- One voice: what you pay, what is cancellable, what to do about each subscription -->
+  <div id="opt-summary" class="opt-summary" aria-live="polite"></div>
+
+  <section id="opt-subscriptions" class="panel opt-subscriptions" aria-labelledby="opt-subs-title">
+    <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-card"/></svg><h2 class="panel-t" id="opt-subs-title">Your subscriptions</h2><span class="panel-m">most urgent first</span></div>
+    <div class="panel-b flush" id="opt-subs-table"></div>
+  </section>
+
+  <details id="opt-next-details" class="panel opt-details">
+    <summary class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-compass"/></svg><span class="panel-t">What to subscribe to next</span><span class="panel-m">services not subscribed, ranked by binge value</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+    <div class="panel-b">
+      <!-- Bundle suggestions (Rendered via JS when the plan has any) -->
+      <div class="bundle-suggestions" id="bundle-suggestions"></div>
+      <p class="muted opt-note">Based on your household queue, ratings, and ready-to-binge seasons.</p>
+      <div class="services-ranking-grid" id="optimizer-rankings-container">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+  </details>
+
+  <details id="opt-plan-details" class="panel opt-details">
+    <summary class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-calendar"/></svg><span class="panel-t">Rotation plan</span><span class="panel-m">when to subscribe, pause and cancel</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+    <section id="planner-section" class="panel-b planner-section" aria-labelledby="planner-title">
+      <div class="planner-head-row">
+        <h3 id="planner-title" class="section-t">Rotation plan</h3>
+        <label class="planner-controls" for="planner-months">Plan ahead
+          <select id="planner-months" class="input sm" data-change="planner-months">
+            <option value="3">3 months</option>
+            <option value="6" selected>6 months</option>
+            <option value="12">12 months</option>
+          </select>
+        </label>
+      </div>
+      <div id="planner-status" class="planner-status" role="status"></div>
+      <div id="planner-summary" class="planner-summary"></div>
+      <div id="planner-grid" class="planner-grid"></div>
+      <details id="planner-table-view" class="planner-details">
+        <summary>Table view</summary>
+        <div id="planner-table-wrap" class="planner-table-wrap"></div>
+      </details>
+      <div id="planner-why" class="planner-why"></div>
+      <ul id="planner-notes" class="planner-notes"></ul>
+    </section>
+  </details>
+
+  <details id="opt-raw-details" class="panel opt-details">
+    <summary class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-report"/></svg><span class="panel-t">Details and raw numbers</span><span class="panel-m">value of each subscription</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+    <div class="panel-b">
+      <div class="optimizer-hero">
+        <div class="hero-stats">
+          <div class="stat"><span class="lbl">Active subscriptions</span><span class="val" id="opt-active-count">0</span></div>
+          <div class="stat"><span class="lbl">Current monthly cost</span><span class="val" id="opt-monthly-spend">$0.00</span></div>
+          <div class="stat"><span class="lbl">Unused</span><span class="val"><span id="opt-unused">$0.00</span><small>/mo</small></span></div>
+        </div>
+      </div>
+
+      <!-- Actionable Advice & Rotation Banner -->
+      <div class="result advice-card" id="rotation-advice-box">
+        <svg class="i" aria-hidden="true"><use href="#i-bulb"/></svg>
+        <div class="advice-text" id="rotation-advice-text">Calculating the optimal rotation plan for your household...</div>
+      </div>
+
+      <!-- What each active subscription actually delivered -->
+      <div class="value-report" id="value-report"></div>
+    </div>
+  </details>
+</section>

@@ -1,0 +1,33 @@
+name: Feature request
+description: An idea for something PenguWatch could do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. Please check that [the docs](https://github.com/pengupowered/penguwatch#documentation) do not already cover it.
+        A new streaming or tracker service is a driver: use the "Support for a new driver" form for that.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The situation first, before the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like PenguWatch to do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do today instead?
+      description: A workaround, another tool, a webhook or the API.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to try writing it myself (see CONTRIBUTING.md).

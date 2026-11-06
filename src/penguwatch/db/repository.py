@@ -1,0 +1,163 @@
+"""Database repository for PenguWatch."""
+
+import json
+import logging
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, AsyncIterator, Awaitable, Callable, Dict, List, Optional, Tuple, TypeVar
+import aiosqlite
+
+from homeguard.db import Database, ReadSession
+from penguwatch.interest import build_profile
+from penguwatch.models import ServiceConfig, ShowStatus
+from penguwatch.db.migrations import run_migrations
+from penguwatch.db._common import _utcnow
+from penguwatch.db.services import ServicesMixin
+from penguwatch.db.prices import PricesMixin, record_price
+from penguwatch.db.shows import ShowsMixin, UPDATABLE_SHOW_COLUMNS
+from penguwatch.db.titles import TitlesMixin
+from penguwatch.db.episodes import EpisodesMixin, format_episode_code
+from penguwatch.db.views import ViewsMixin
+from penguwatch.db.outbox import OutboxMixin
+from penguwatch.db.state import StateMixin
+from penguwatch.db.reports import ReportsMixin
+from penguwatch.db.ratings import RatingsMixin
+from penguwatch.db.events import EventsMixin
+from penguwatch.drivers import DEFAULT_LIBRARY
+
+logger = logging.getLogger("penguwatch.db")
+
+T = TypeVar("T")
+
+
+class DatabaseRepository(
+    ServicesMixin, PricesMixin, ShowsMixin, TitlesMixin, EpisodesMixin, ViewsMixin, OutboxMixin, StateMixin, ReportsMixin,
+    RatingsMixin, EventsMixin,
+):
+    def __init__(self, db_path: str, key_providers: Tuple[str, ...] = (DEFAULT_LIBRARY,)):
+        self.db_path = db_path
+        self.key_providers = tuple(key_providers)
+        # One writer connection (write() takes turns, so one coroutine's commit never commits another's
+        # half-done work) and one read-only connection, which never sees uncommitted rows. WAL, so reads
+        # and the writer do not block each other.
+        self._database = Database(
+            db_path, pragmas=("synchronous=NORMAL",), wal=True, row_factory=aiosqlite.Row, foreign_keys=True
+        )
+        # Derived data (e.g. the taste profile) is cached against this counter, which every write transaction bumps.
+        self._data_version = 0
+        self._derived: Dict[str, Tuple[int, Any]] = {}
+        self._event_listeners = []
+        self._pending_events = []
+
+    @asynccontextmanager
+    async def write(self) -> AsyncIterator[aiosqlite.Connection]:
+        """One logical write transaction: exclusive, committed on success, rolled back on error.
+
+        Every statement that changes data goes through here. Reads use read_connection() and never wait for it
+        (nor see its uncommitted rows: do not read back what the block wrote through a repository read method,
+        use `db`). Not re-entrant: do not call another write method (or write()) from inside the block.
+        """
+        committed = False
+        try:
+            async with self._database.write() as db:
+                yield db
+            committed = True
+        finally:
+            self._data_version += 1  # after the commit; also after an error, as an explicit commit may have run
+            self._publish_pending(committed)  # events queued by the block go out only if it committed
+
+    async def derived(self, key: str, build: Callable[[], Awaitable[T]]) -> T:
+        """A value computed from the database, reused until the next write transaction (single writer process)."""
+        hit = self._derived.get(key)
+        if hit is not None and hit[0] == self._data_version:
+            return hit[1]
+        version = self._data_version
+        value = await build()
+        self._derived[key] = (version, value)
+        return value
+
+    async def taste_profile(self):
+        """The interest profile of the whole library, rebuilt only after a write."""
+        return await self.derived("taste_profile", lambda: self._build_taste_profile())
+
+    async def _build_taste_profile(self):
+        # Only what the profile reads, without parsing whole rows into validated models (same order as the
+        # default library listing, so the float sums come out identical).
+        db = await self.read_connection()
+        cursor = await db.execute(
+            "SELECT status, watched_episodes, user_rating, genres_json FROM shows "
+            "ORDER BY CASE priority WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 ELSE 4 END, "
+            "imdb_rating DESC NULLS LAST, title ASC"
+        )
+        return build_profile(
+            SimpleNamespace(  # duck-typed Show: just the fields the profile reads
+                status=ShowStatus(r["status"]) if r["status"] else ShowStatus.PLANTOWATCH,
+                watched_episodes=r["watched_episodes"] or 0,
+                user_rating=r["user_rating"],
+                genres=json.loads(r["genres_json"]) if r["genres_json"] else [],
+            )
+            for r in await cursor.fetchall()
+        )
+
+    async def initialize(self, default_services: Optional[List[ServiceConfig]] = None):
+        """Initializes database schema, runs column migrations, and seeds default services."""
+        if self.db_path != ":memory:":
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
+        async with self.write() as db:
+            await run_migrations(db)
+
+            for svc in default_services or []:
+                before = await (await db.execute("SELECT monthly_cost FROM services WHERE id = ?", (svc.id,))).fetchone()
+                await db.execute(
+                    """
+                    INSERT INTO services (id, name, monthly_cost, is_active, renewal_day, renewal_date, aliases_json, includes_json, notes, titles_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        name = excluded.name,
+                        aliases_json = excluded.aliases_json,
+                        includes_json = excluded.includes_json,
+                        titles_json = excluded.titles_json
+                    """,  # monthly_cost, is_active, renewal and notes are the user's: a price of 0 means "included", never "unset"
+                    (
+                        svc.id,
+                        svc.name,
+                        svc.monthly_cost,
+                        1 if svc.is_active else 0,
+                        svc.renewal_day,
+                        svc.renewal_date,
+                        json.dumps(svc.aliases),
+                        json.dumps(svc.includes),
+                        svc.notes,
+                        json.dumps(svc.titles),
+                    ),
+                )
+                if before is None:  # a brand-new service starts its price history; existing prices are the user's
+                    await record_price(db, svc.id, svc.monthly_cost, None)
+            await db.execute("PRAGMA optimize")  # refreshes the planner's statistics where they have gone stale
+        if default_services:
+            logger.info(f"Initialized database with {len(default_services)} streaming services and updated aliases.")
+        self._harden_file_modes()
+
+    def _harden_file_modes(self) -> None:
+        """The database holds credentials: the file and its WAL/SHM siblings are for the app's user only."""
+        if self.db_path == ":memory:":
+            return
+        for suffix in ("", "-wal", "-shm"):
+            try:
+                os.chmod(self.db_path + suffix, 0o600)
+            except OSError:
+                pass  # absent (no WAL yet) or a filesystem without modes
+
+    async def get_connection(self) -> aiosqlite.Connection:
+        """The raw writer connection, without the write lock or the commit: for the in-memory export and tests.
+        Application writes use write(); reads use read_connection()."""
+        return await self._database.writer()
+
+    async def read_connection(self) -> ReadSession:
+        """The read-only connection every read goes through (fetches whole results, sees committed rows only)."""
+        return await self._database.reader()
+
+    async def close(self):
+        await self._database.close()

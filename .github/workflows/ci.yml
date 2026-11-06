@@ -1,0 +1,248 @@
+# Unit tests, then the package: the wheel and sdist are built once ("package"), and that same wheel is what the
+# container image (amd64 and arm64), the native installs (Linux arm64, macOS, Windows) and the install scripts (Linux,
+# macOS, Windows, from the release files) are tested with. It runs on a
+# ci/<name> branch (the release candidate is pushed there first) and on pull requests, not on main: the release commit
+# is fast-forwarded onto main afterwards and is not tested again. release.yml finds this run
+# (scripts/find-tested-run.sh) and publishes its artifacts "dist" and "release-assets", so they are kept for 30 days.
+# See docs/releasing.md.
+#
+# Actions are pinned by commit, each a release at least 14 days old whose action.yml runs on node24.
+name: CI
+
+on:
+  push:
+    branches: ["ci/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # scripts/test.sh builds the test image (locked dependencies, the tests) and runs the suite in a container without
+  # network access; Podman is preinstalled on GitHub's ubuntu runners. This includes tests/test_wheel.py, which builds
+  # the wheel and checks what is in it.
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run the unit tests
+        run: scripts/test.sh -p no:warnings
+
+  # The wheel and the sdist, built once, in the Dockerfile's build stage: the hash-locked build backend, no build
+  # isolation, no download. The same command as a local `podman build`; everything below installs this wheel.
+  package:
+    name: Wheel and sdist
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build the wheel and the sdist
+        run: podman build --target wheel-built -o type=local,dest=dist .
+      - name: List what is in them
+        run: |
+          ls -l dist
+          {
+            echo "### Package contents"
+            for f in dist/*.whl dist/*.tar.gz; do
+              echo; echo "**$(basename "$f")** ($(stat -c %s "$f") bytes)"; echo '```'
+              case "$f" in *.whl) unzip -l "$f" ;; *) tar tzvf "$f" ;; esac
+              echo '```'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: The wheel has the dashboard, the example config and nothing it should not
+        run: |
+          set -eu
+          whl="$(ls dist/penguwatch-*.whl)"
+          unzip -Z1 "$whl" > "$RUNNER_TEMP/wheel.txt"
+          grep -q '^penguwatch/web/static/' "$RUNNER_TEMP/wheel.txt"
+          grep -q '^penguwatch/web/templates/' "$RUNNER_TEMP/wheel.txt"
+          grep -q '^penguwatch/config.example.yaml$' "$RUNNER_TEMP/wheel.txt"
+          if grep -E '(^|/)(tests?|config\.yaml)(/|$)' "$RUNNER_TEMP/wheel.txt"; then echo "test or config files in the wheel" >&2; exit 1; fi
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  # The image built from that wheel and tested as it is run (read-only root, uid 10001, data volume, mounted config, no
+  # network), on a native runner for each architecture (no QEMU). scripts/test-container.sh starts it and gets 200 from
+  # /api/health.
+  container:
+    name: Image (${{ matrix.arch }})
+    needs: package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, arch: amd64}
+          - {os: ubuntu-24.04-arm, arch: arm64}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Build the image from the wheel and test it
+        run: scripts/test-container.sh --prebuilt
+
+  # The wheel on each OS without a container, as a user installs it: in a fresh venv with the locked runtime
+  # dependencies, `penguwatch --version`, `penguwatch init-config`, and `penguwatch serve` until /api/health answers.
+  native:
+    name: Native (${{ matrix.os }})
+    needs: package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04-arm, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install the wheel with the locked runtime dependencies
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          bin="$RUNNER_TEMP/venv/$([ "$RUNNER_OS" = Windows ] && echo Scripts || echo bin)"
+          echo "$bin" >> "$GITHUB_PATH"
+          "$bin/python" -m pip install --disable-pip-version-check --require-hashes --no-deps --only-binary :all: -r requirements.txt
+          "$bin/python" -m pip install --disable-pip-version-check --no-deps dist/penguwatch-*.whl
+      - name: Run penguwatch and check it
+        # not the checkout: the installed package must work without the source tree
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -eu
+          export PENGUWATCH_DATA="$RUNNER_TEMP/penguwatch-data" PENGUWATCH_CONFIG="$RUNNER_TEMP/config.yaml"
+          penguwatch --version
+          penguwatch init-config
+          penguwatch paths
+          penguwatch serve --port 8765 > penguwatch.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true; tail -n 20 penguwatch.log' EXIT
+          for _ in $(seq 1 60); do
+            curl -sf -m 2 http://127.0.0.1:8765/api/health > health.json && break
+            sleep 1
+          done
+          cat health.json; echo
+          grep -q '"status":"ok"' health.json
+          # to a file, then grep: `curl | grep -q` fails under pipefail when grep stops reading first (curl exit 23)
+          curl -sf -m 5 http://127.0.0.1:8765/ > index.html
+          grep -q '/static/' index.html
+
+  # What a release attaches, assembled once from the wheel and sdist above (scripts/release-assets.sh): the wheel, the
+  # sdist, the dependency lock, the two install scripts and SHA256SUMS. The release workflow attaches these files.
+  release-assets:
+    name: Release files
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Assemble them
+        run: scripts/release-assets.sh dist release-assets
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 30
+
+  # The install scripts as a user runs them, from the release files above: install (the system service: a systemd unit
+  # on Linux, a LaunchDaemon on macOS; a logon task on Windows), check that /api/health answers and who it runs as,
+  # put an access token in the settings file and see the API refuse requests without it, run the installer again (the
+  # upgrade: backup, stop, reinstall, listen address kept), uninstall (the data stays). scripts/ci-install-check.sh.
+  install:
+    name: Install (${{ matrix.os }})
+    needs: release-assets
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: release-assets
+      - name: Lint the scripts (Linux)
+        if: runner.os == 'Linux'
+        run: shellcheck --severity=warning scripts/install.sh scripts/release-assets.sh scripts/ci-install-check.sh
+      - name: Parse install.ps1 with Windows PowerShell (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $errors = $null; $tokens = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD\release-assets\install.ps1", [ref]$tokens, [ref]$errors)
+          if ($errors.Count -gt 0) { $errors | ForEach-Object { Write-Error $_.Message }; exit 1 }
+      - name: Install (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: sh release-assets/install.sh --from release-assets --yes --no-browser
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\release-assets\install.ps1 -From release-assets -NoBrowser
+      - name: Check the service
+        run: scripts/ci-install-check.sh installed release-assets
+      - name: Check that the settings file reaches the service
+        run: scripts/ci-install-check.sh token
+      - name: Upgrade (the installer again)
+        if: runner.os != 'Windows'
+        run: sh release-assets/install.sh --from release-assets --yes --no-browser
+      - name: Upgrade (the installer again, Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\release-assets\install.ps1 -From release-assets -NoBrowser
+      - name: Check the upgrade
+        run: scripts/ci-install-check.sh upgraded release-assets
+      - name: Uninstall
+        if: runner.os != 'Windows'
+        run: sh release-assets/install.sh --uninstall --yes
+      - name: Uninstall (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\release-assets\install.ps1 -Uninstall
+      - name: Check it is gone
+        run: scripts/ci-install-check.sh removed
+      - name: Service state and log as an annotation
+        if: failure()
+        run: scripts/ci-install-check.sh diagnose

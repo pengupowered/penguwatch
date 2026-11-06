@@ -1,0 +1,14 @@
+* text=auto
+# Files that run inside Linux containers must keep LF line endings on Windows checkouts
+*.sh text eol=lf
+Dockerfile* text eol=lf
+# Patches and screenshots must stay byte-for-byte
+*.patch -text
+*.png binary
+# Hash-locked requirements: keep LF so the committed blobs are stable
+requirements*.txt text eol=lf
+*.in text eol=lf
+*.cdx.json text eol=lf
+
+# Vendored homeguard source must keep LF line endings (hash-verified by tests)
+src/homeguard/** text eol=lf

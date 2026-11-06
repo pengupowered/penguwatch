@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local database and persistent secrets
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/secrets.json
+
+# Environment files
+.env
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Stray local DB created when running outside the container
+/penguwatch.db
+.backup-*/
+
+# Secrets and runtime state: never commit
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.seed/
+
+# Your own configuration (copy of config.example.yaml), its secrets file, and machine-specific compose additions
+/config.yaml
+penguwatch.env
+/data/
+docker-compose.override.yml

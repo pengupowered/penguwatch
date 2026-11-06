@@ -1,0 +1,15 @@
+<!-- System: sync health, API latency, upstream calls, database and security posture (panel.js) -->
+<section id="system-tab" class="tab-pane" data-panel="system" role="tabpanel" aria-labelledby="tab-system">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-activity"/></svg>
+    <h1 class="page-t">System</h1>
+    <span class="page-m">Sync health, API latency and upstream calls. Updates every 10 seconds.</span>
+    {%- if grafana_links %}
+    <nav class="page-tools telemetry-links sys-telemetry-links" aria-label="Telemetry in Grafana (history)">
+      <span class="muted">History in Grafana</span>
+      {% for link in grafana_links %}<a class="btn sm outline" href="{{ link.url }}" title="{{ link.title }}" target="_blank" rel="noopener noreferrer"><svg class="i" aria-hidden="true"><use href="#i-external"/></svg>{{ link.label }}</a>{% endfor %}
+    </nav>
+    {%- endif %}
+  </div>
+  <div id="system-container" class="sys-grid" aria-live="polite"><div class="empty loading-state"><span class="spinner" aria-hidden="true"></span><span>Loading…</span></div></div>
+</section>

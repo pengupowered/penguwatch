@@ -1,0 +1,41 @@
+/* Up Next tab: filter chips and stats, the tidy-up note, one card per show in progress. Tokens only. */
+.upnext-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
+.upnext-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+.upnext-chip { flex: 0 0 auto; min-height: 32px; padding: 0 12px; font-size: var(--fs-sm); border: 1px solid var(--line); background: var(--surface-1); }
+.upnext-chip .chip-count { color: var(--ink-3); font-weight: var(--fw-bold); }
+.upnext-chip[aria-pressed="true"] .chip-count { color: var(--accent); }
+.stats-strip { display: flex; gap: var(--sp-2) var(--sp-4); flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-3); }
+.stat-chip { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.stat-chip b { color: var(--ink-1); font-weight: var(--fw-semi); }
+.stat-chip svg.i { width: 16px; height: 16px; color: var(--ink-4); }
+
+.upnext-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--sp-3); }
+.upnext-card {
+  display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: var(--sp-3) var(--sp-4); align-items: center;
+  padding: var(--sp-3); background: var(--surface-1); border: 1px solid var(--card-line); box-shadow: var(--shadow-card); border-radius: var(--r-lg);
+}
+.upnext-card.caught-up { opacity: .78; }
+.upnext-poster { width: 76px; border-radius: var(--r-sm); }
+.upnext-info { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.upnext-title { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; font-weight: var(--fw-semi); font-size: var(--fs-md); line-height: 1.3; }
+.upnext-title .title-link { min-width: 0; overflow-wrap: anywhere; }
+.upnext-ep { font-size: var(--fs-sm); color: var(--ink-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upnext-code { font-family: var(--mono); font-size: var(--fs-xs); font-weight: var(--fw-semi); color: var(--accent); background: var(--accent-bg); padding: 1px 6px; border-radius: var(--r-xs); }
+.upnext-meta { font-size: var(--fs-xs); color: var(--ink-3); }
+.upnext-actions { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 120px; }
+.watched-btn { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+.watched-btn:hover { background: var(--good-bg); color: var(--good); }
+.details-btn { justify-content: flex-start; }
+.tidy-banner .btn { margin-left: auto; }
+
+@media (max-width: 720px) {
+  .upnext-list { gap: var(--sp-2); }
+  .upnext-card { grid-template-columns: 52px minmax(0, 1fr) auto; gap: var(--sp-2) var(--sp-3); padding: var(--sp-2); }
+  .upnext-poster { width: 52px; }
+  .upnext-actions { min-width: 0; }
+  .upnext-actions select, .upnext-actions .details-btn { display: none; }
+  .upnext-actions .watched-btn { width: 46px; height: 46px; padding: 0; border-radius: 50%; background: var(--good-bg); }
+  .upnext-actions .watched-btn svg.i { width: 22px; height: 22px; }
+  .watched-lbl { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .upnext-chip { min-height: 36px; }
+}

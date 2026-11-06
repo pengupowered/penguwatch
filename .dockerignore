@@ -1,0 +1,14 @@
+.git/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+.seed/
+.backup-*/
+*.rejected
+.depguard-*
+**/__pycache__/
+**/*.py[cod]
+dist/*
+!dist/penguwatch-*.whl

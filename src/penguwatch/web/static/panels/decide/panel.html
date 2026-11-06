@@ -1,0 +1,87 @@
+<!-- Tonight's Pick: filters and one random pick from the backlog (panel.js) -->
+<section id="decide-tab" class="tab-pane" data-panel="decide" role="tabpanel" aria-labelledby="tab-decide">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-dice"/></svg>
+    <h1 class="page-t">What to watch tonight?</h1>
+    <span class="page-m">End the indecision loop. Set your mood filters and let PenguWatch pick something for tonight.</span>
+  </div>
+
+  <div class="panel decide-controls-card">
+    <div class="panel-b">
+      <div class="form-grid control-row">
+        <div class="field">
+          <label for="decide-service">Service availability</label>
+          <select id="decide-service" class="input">
+            <option value="active">Active subscriptions only (available tonight)</option>
+            <option value="all">Any service / backlog</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="decide-media">Show or movie?</label>
+          <select id="decide-media" class="input">
+            <option value="">Either</option>
+            <option value="show">A show</option>
+            <option value="anime">Anime</option>
+            <option value="movie">Movie night</option>
+          </select>
+        </div>
+        <div class="field"{% if not household.shared %} hidden{% endif %}>
+          <label for="decide-audience">Audience</label>
+          <select id="decide-audience" class="input">
+            {%- if household.shared %}
+            <option value="both">Both want to watch</option>
+            <option value="person1">{{ household.members[0] }}'s pick</option>
+            <option value="person2">{{ household.members[1] }}'s pick</option>
+            {%- endif %}
+            <option value="all"{% if not household.shared %} selected{% endif %}>Anyone's pick</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="decide-rating">Minimum IMDb rating</label>
+          <select id="decide-rating" class="input">
+            <option value="0">Any rating</option>
+            <option value="7.5">7.5+ Great</option>
+            <option value="8.0" selected>8.0+ Highly rated</option>
+            <option value="8.5">8.5+ Masterpiece</option>
+          </select>
+        </div>
+      </div>
+      <div class="decide-action-row">
+        <label class="check">
+          <input type="checkbox" id="decide-ready-binge">
+          <span>Only complete seasons (ready to binge)</span>
+        </label>
+        <button class="btn primary btn-hero-roulette" id="btn-spin-roulette" type="button"><svg class="i" aria-hidden="true"><use href="#i-dice"/></svg>Pick for us tonight</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Roulette Result Display -->
+  <div class="panel decide-result-card" id="decide-result" hidden>
+    <div class="panel-h"><svg class="i" aria-hidden="true"><use href="#i-trophy"/></svg><h2 class="panel-t result-badge">Tonight's winner</h2></div>
+    <div class="panel-b result-show-layout">
+      <img id="result-poster" class="poster result-poster" src="data:," alt="" data-fallback="poster">
+      <div class="result-details">
+        <div class="result-title-row">
+          <h3 id="result-title">Show Title</h3>
+          <span id="result-year" class="result-year">(2024)</span>
+          <span id="result-ratings-wrap" class="ratings"></span>
+        </div>
+        <div id="result-subtitle" class="title-alt"></div>
+        <div class="result-badges-row">
+          <span id="result-network" class="service-tag">Apple TV+</span>
+          <span id="result-household" class="chip household-tag"{% if not household.shared %} hidden{% endif %}></span>
+          <span id="result-binge" class="badge st-warn binge-tag"><svg class="i" aria-hidden="true"><use href="#i-zap"/></svg>Ready to binge</span>
+        </div>
+        <p id="result-overview" class="result-overview">Overview text...</p>
+        <div class="result-progress muted">
+          <span id="result-progress-text">Watched 0 of 10 episodes</span>
+        </div>
+        <div class="result-actions">
+          <button class="btn outline" id="btn-result-start-watching" type="button"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg><span>Start watching tonight</span></button>
+          <button class="btn" id="btn-spin-again" type="button"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg>Pick another</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

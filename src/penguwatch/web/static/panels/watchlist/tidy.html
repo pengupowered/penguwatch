@@ -1,0 +1,61 @@
+<!-- Dialog: tidy up the library (tidy.js, tidyassign.js). Opened from the Library, the Up Next note and the plan. -->
+<div class="modal" id="tidy-modal" role="dialog" aria-modal="true" aria-labelledby="tidy-modal-title">
+  <div class="modal-content wide">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-broom"/></svg>
+      <h2 class="modal-t" id="tidy-modal-title">Tidy up your library</h2>
+      <button type="button" class="btn icon m-close" id="btn-close-tidy-modal" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <p class="muted lead-p">Moves here are normal status changes: with review on, they're also listed in Sync Now for approval before they are sent on.</p>
+
+      <div class="review-section">
+        <div class="review-head">
+          <h3 class="section-t"><svg class="i" aria-hidden="true"><use href="#i-sparkle"/></svg>Finished shows with new episodes <span class="muted" id="tidy-returning-count"></span></h3>
+          <div class="review-buttons">
+            <label class="check-all"><input type="checkbox" id="tidy-returning-all" aria-label="Select every finished show with new episodes">All</label>
+            <select class="input sm" id="tidy-returning-target" aria-label="Move the selected shows to">
+              <option value="plantowatch">Move to Plan to Watch</option>
+              <option value="watching">Move to Watching</option>
+            </select>
+            <button class="btn sm outline" id="btn-tidy-returning-move" type="button">Move selected</button>
+            <button class="btn sm" id="btn-tidy-returning-dismiss" type="button" title="Hide until the next new season">Not now</button>
+          </div>
+        </div>
+        <div class="review-list" id="tidy-returning-list"></div>
+      </div>
+
+      <div class="review-section">
+        <div class="review-head">
+          <h3 class="section-t"><svg class="i" aria-hidden="true"><use href="#i-stale"/></svg>"Watching" but untouched for
+            <select class="input sm" id="tidy-months" aria-label="Untouched for">
+              <option value="3">3 months</option>
+              <option value="6" selected>6 months</option>
+              <option value="12">1 year</option>
+              <option value="24">2 years</option>
+            </select>
+            <span class="muted" id="tidy-stale-count"></span></h3>
+          <div class="review-buttons">
+            <label class="check-all"><input type="checkbox" id="tidy-stale-all" aria-label="Select every untouched Watching show">All</label>
+            <select class="input sm" id="tidy-stale-target" title="Set every selected row to this status" aria-label="Set every selected row to">
+              <option value="">Set all selected to…</option>
+              <option value="completed">Completed</option>
+              <option value="hold">On Hold</option>
+              <option value="dropped">Dropped</option>
+              <option value="plantowatch">Plan to Watch</option>
+            </select>
+            <button class="btn sm outline" id="btn-tidy-stale-move" type="button">Move selected</button>
+            <button class="btn sm" id="btn-tidy-stale-dismiss" type="button" title="Keep these as Watching and stop suggesting them for a while">Keep watching</button>
+          </div>
+        </div>
+        <div class="review-list" id="tidy-stale-list"></div>
+      </div>
+      <div class="review-section">
+        <div class="review-head">
+          <h3 class="section-t"><svg class="i" aria-hidden="true"><use href="#i-tv"/></svg>Assign a service <span class="muted" id="tidy-assign-count"></span></h3>
+        </div>
+        <div class="review-list" id="tidy-assign-list"></div>
+      </div>
+    </div>
+  </div>
+</div>

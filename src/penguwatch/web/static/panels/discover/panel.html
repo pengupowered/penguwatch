@@ -1,0 +1,34 @@
+<!-- Discover: what is trending and picks based on what you loved (panel.js) -->
+<section id="discover-tab" class="tab-pane" data-panel="discover" role="tabpanel" aria-labelledby="tab-discover" data-needs="discovery-driver">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-compass"/></svg>
+    <h1 class="page-t">Discover</h1>
+    <span class="page-m">What's popular right now, and picks based on what you loved.</span>
+  </div>
+  <div class="panel discover-controls">
+    <div class="panel-b">
+      <div class="seg status-filters" id="discover-mode" role="group" aria-label="List">
+        <button type="button" class="filter-tab active" data-mode="trending" aria-pressed="true"><svg class="i sm" aria-hidden="true"><use href="#i-fire"/></svg>Trending</button>
+        <button type="button" class="filter-tab" data-mode="foryou" aria-pressed="false"><svg class="i sm" aria-hidden="true"><use href="#i-sparkle"/></svg>For you</button>
+      </div>
+      <div class="filter-toggles" id="discover-trending-controls">
+        <select id="discover-media" class="input sm" aria-label="Type">
+          <option value="tv">TV Shows</option>
+          <option value="movies">Movies</option>
+          <option value="anime">Anime</option>
+        </select>
+        <select id="discover-interval" class="input sm" aria-label="Period">
+          <option value="today">Today</option>
+          <option value="week" selected>This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+      <label class="check toggle-chip">
+        <input type="checkbox" id="discover-hide-library" checked>
+        <span>Hide titles already in your library</span>
+      </label>
+    </div>
+  </div>
+  <div class="result discover-note" id="discover-note" hidden></div>
+  <div class="discover-grid" id="discover-container"></div>
+</section>

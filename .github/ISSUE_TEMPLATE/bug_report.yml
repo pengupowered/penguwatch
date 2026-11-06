@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in PenguWatch does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. First look at the [FAQ and troubleshooting](https://github.com/pengupowered/penguwatch/blob/main/docs/faq.md).
+
+        **Leave out personal data and tokens.** Anything you paste here is public. Never paste your access token, SIMKL
+        client ID, tokens or webhook secrets, and replace addresses and names with made-up ones. A security problem goes
+        to the private report in SECURITY.md instead.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The System tab, or `penguwatch --version`.
+      placeholder: "0.15.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How is PenguWatch installed?
+      options:
+        - Container (compose.release.yaml or docker-compose.yml)
+        - install.sh (Linux or macOS)
+        - install.ps1 (Windows)
+        - uv or pipx
+        - From source
+    validations:
+      required: true
+  - type: input
+    id: drivers
+    attributes:
+      label: Drivers in use
+      description: The `drivers:` block of your config.yaml, or "default" if you have none (Services & Sync shows them too).
+      placeholder: "library: simkl, catalog: [tvmaze, simkl], schedule: [tvmaze]"
+  - type: input
+    id: system
+    attributes:
+      label: Operating system and browser
+      placeholder: "Ubuntu 24.04, Firefox 140"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: The steps to get there, if you know them.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log lines
+      description: PenguWatch's log around the time (`docker logs penguwatch` for a container, or the terminal or service log it runs in), with tokens, names and addresses removed.
+      render: text

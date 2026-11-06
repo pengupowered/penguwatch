@@ -1,0 +1,17 @@
+/* The add-a-title dialog: the catalogue search, its results, the form for a title typed in. Tokens only. */
+.search-catalog-bar { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: var(--sp-2); }
+.catalog-search-results { display: flex; flex-direction: column; margin-top: var(--sp-3); max-height: 46vh; overflow-y: auto; }
+.catalog-search-results:empty { display: none; }
+.search-item { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: center; padding: var(--sp-2); border-radius: var(--r-md); }
+.search-item + .search-item { border-top: 1px solid var(--line); }
+.search-item:hover { background: var(--surface-2); }
+.search-item-thumb { width: 44px; }
+.search-item-title { font-weight: var(--fw-semi); overflow-wrap: anywhere; }
+.search-item-sub { font-size: var(--fs-xs); color: var(--ink-3); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.or-divider { display: flex; align-items: center; gap: var(--sp-3); margin: var(--sp-5) 0 var(--sp-4); color: var(--ink-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; font-weight: var(--fw-semi); }
+.or-divider::before, .or-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.modal-footer { display: flex; justify-content: flex-end; }
+@media (max-width: 720px) {
+  .search-catalog-bar { grid-template-columns: 90px minmax(0, 1fr); }
+  .search-catalog-bar .btn { grid-column: 1 / -1; }
+}
