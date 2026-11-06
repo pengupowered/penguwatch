@@ -17,7 +17,7 @@
 # To upgrade, change the tag below to the new version and run `docker compose up -d` again.
 services:
   penguwatch:
-    image: ghcr.io/pengupowered/penguwatch:0.15.1
+    image: ghcr.io/pengupowered/penguwatch:0.15.2
     container_name: penguwatch
     restart: always
     # SIGTERM lets the app flush pending SIMKL changes; give it time before SIGKILL

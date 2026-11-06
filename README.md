@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/logo.png" width="112" height="112" alt="">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/logo.png" width="112" height="112" alt="">
 </p>
 
 <h1 align="center">PenguWatch</h1>
@@ -16,23 +16,23 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/up-next-dark.png" width="860" alt="Up Next: the next episode of every show in progress, with posters, services and progress">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/up-next-dark.png" width="860" alt="Up Next: the next episode of every show in progress, with posters, services and progress">
 </p>
 
 <p align="center">
-  <img src="docs/images/library-light.png" width="420" alt="The library in the light theme, with a custom rating badge">
-  <img src="docs/images/optimizer-dark.png" width="420" alt="The subscription optimizer advising which service to cancel">
-  <img src="docs/images/phone-up-next.png" width="150" alt="Up Next on a phone">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/library-light.png" width="420" alt="The library in the light theme, with a custom rating badge">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/optimizer-dark.png" width="420" alt="The subscription optimizer advising which service to cancel">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/phone-up-next.png" width="150" alt="Up Next on a phone">
 </p>
 
-<p align="center"><sub>Screenshots of the made-up demo library (<code>scripts/demo_library.py</code>). More in <a href="docs/screenshots.md">the gallery</a>.</sub></p>
+<p align="center"><sub>Screenshots of the made-up demo library (<code>scripts/demo_library.py</code>). More in <a href="https://github.com/pengupowered/penguwatch/blob/main/docs/screenshots.md">the gallery</a>.</sub></p>
 
 PenguWatch is for households that follow shows, anime and movies across several streaming services and want one place
 that says what to watch next and which subscriptions are worth keeping. You run it yourself, on a home server, a NAS or
 just your own computer: one small program with one SQLite database, used from any browser on your network (and as an
 installable phone app). It keeps your library in step with a tracking account, the **library service**
 ([SIMKL](https://simkl.com) out of the box), or keeps it only in PenguWatch with no account at all. Each service is a
-[driver](docs/drivers.md); this README says "the library service" for whichever one holds your library.
+[driver](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md); this README says "the library service" for whichever one holds your library.
 
 ## Why
 
@@ -52,7 +52,7 @@ any browser on your network, including as an installable phone app.
   the episodes that changed are sent to the library service.
 - **Two-way sync** with the library service, fetching only what changed since the last sync, with an outbox that survives restarts and a
   **review mode** (on by default) where nothing is sent or applied until you approve it.
-- **Drivers:** each service is a driver ([docs/drivers.md](docs/drivers.md)): SIMKL (the default), a `local` driver that
+- **Drivers:** each service is a driver ([docs/drivers.md](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md)): SIMKL (the default), a `local` driver that
   keeps your library only in PenguWatch, and a TVmaze driver that finds TV shows without any account. The guide shows how
   to write another one.
 - **Subscription optimizer and rotation planner:** ranks services by backlog hours, ready-to-binge seasons and
@@ -70,9 +70,9 @@ any browser on your network, including as an installable phone app.
 - **Your own ratings:** add rating sources (a site you follow, a friend, a spreadsheet), import them from CSV or the
   API, then show them as badges, sort and filter by them. The ratings the catalogue drivers provide are built in (SIMKL's and IMDb's, or MyAnimeList's for anime, from SIMKL;
   TVmaze's from TVmaze).
-- **Extensible from outside:** a documented REST API ([docs/api.md](docs/api.md)) and signed event webhooks
+- **Extensible from outside:** a documented REST API ([docs/api.md](https://github.com/pengupowered/penguwatch/blob/main/docs/api.md)) and signed event webhooks
   (title added, status or rating changed, episode watched or airing today, sync failed); examples in
-  [docs/extending.md](docs/extending.md).
+  [docs/extending.md](https://github.com/pengupowered/penguwatch/blob/main/docs/extending.md).
 - **Light and dark themes**, following your system until you pick one.
 - **Built for a home network:** optional access token, DNS-rebinding and cross-site protection, a strict CSP, a
   non-root read-only container, Prometheus metrics and optional OpenTelemetry export.
@@ -96,7 +96,7 @@ curl -fsSL https://github.com/pengupowered/penguwatch/releases/latest/download/i
 
 The scripts check every download (pinned uv, hash-locked dependencies), install a private Python 3.12, and start
 PenguWatch on `http://127.0.0.1:8080`, this computer only. Per-system details, upgrading and uninstalling:
-[Install](docs/install.md).
+[Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md).
 
 **With uv or pipx** (Python 3.11 or newer):
 
@@ -117,8 +117,8 @@ docker compose up -d              # or: podman compose up -d
 ```
 
 Or build it yourself from a clone: `cp config.example.yaml config.yaml`, then `docker compose up -d --build`. Open
-`http://<server-ip>:8080`. [Install](docs/install.md) has the details: where config and data live, upgrading, backups.
-Then connect the default library service, SIMKL (the first run, with local and TVmaze instead, is in [Getting started](docs/getting-started.md)):
+`http://<server-ip>:8080`. [Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md) has the details: where config and data live, upgrading, backups.
+Then connect the default library service, SIMKL (the first run, with local and TVmaze instead, is in [Getting started](https://github.com/pengupowered/penguwatch/blob/main/docs/getting-started.md)):
 
 1. Create a SIMKL app once at [simkl.com/settings/developer](https://simkl.com/settings/developer/app/new) and copy
    its client ID.
@@ -126,13 +126,12 @@ Then connect the default library service, SIMKL (the first run, with local and T
    **Connect SIMKL with Device PIN** and approve the code at simkl.com/pin. The first sync imports your library.
 3. Mark the services you subscribe to this month and check their prices.
 
-> [!IMPORTANT]
-> Without an access token, anyone who can reach port 8080 can read and change your library, **connect PenguWatch to
+> **Important:** without an access token, anyone who can reach port 8080 can read and change your library, **connect PenguWatch to
 > their own library-service account** (your later changes are then sent to them), approve queued changes, download a backup and
 > trigger the webhook and notification tests. Both compose files publish `0.0.0.0:8080`, so a container is reachable on
 > your whole network from its first start: set `PENGUWATCH_ACCESS_TOKEN` first (in `.env` for the container, in
-> `penguwatch.env` next to `config.yaml` for a native install; see [Install](docs/install.md#settings-and-secrets) and
-> [Security](docs/security.md)). Over plain HTTP the token can be read by others on the network: use HTTPS through a
+> `penguwatch.env` next to `config.yaml` for a native install; see [Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md#settings-and-secrets) and
+> [Security](https://github.com/pengupowered/penguwatch/blob/main/docs/security.md)). Over plain HTTP the token can be read by others on the network: use HTTPS through a
 > reverse proxy if that matters. The `penguwatch` command listens on this computer only unless you pass `--host 0.0.0.0`.
 
 Your data survives upgrades: it lives in the `penguwatch_data` volume (container) or your data folder
@@ -156,7 +155,7 @@ You can still add shows, track episodes, rate them, get the air schedule and cal
 optimizer and planner. What you lose compared with a library service:
 
 - **Sync:** nothing is sent to or read from an account, so an existing account library is not imported and no other device
-  or app sees your changes. Back up the database ([Operations](docs/operations.md)).
+  or app sees your changes. Back up the database ([Operations](https://github.com/pengupowered/penguwatch/blob/main/docs/operations.md)).
 - **Discovery:** TVmaze has no trending lists or recommendations, so Discover is off.
 - **Movies:** TVmaze has no movies, so a movie cannot be searched for and added (the catalogue list can name more than
   one driver: `[tvmaze, simkl]` adds SIMKL's catalogue, which then needs a SIMKL app id).
@@ -165,7 +164,7 @@ optimizer and planner. What you lose compared with a library service:
 - **Ratings:** TVmaze's average only, with none of the scores a library service's catalogue brings (SIMKL's and IMDb's, with the default).
 
 TVmaze's data is CC BY-SA 4.0, so PenguWatch credits TVmaze (in the page footer, on Services & Sync and in a title's
-details) as its licence asks. [Drivers](docs/drivers.md) has the details, and `library: simkl` with
+details) as its licence asks. [Drivers](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md) has the details, and `library: simkl` with
 `catalog: [tvmaze, simkl]` mixes both.
 
 ## Configuration in brief
@@ -182,40 +181,40 @@ optimizer:
 ```
 
 `.env` holds secrets and deployment settings (`PENGUWATCH_*`). Everything is described in
-[Configuration](docs/configuration.md).
+[Configuration](https://github.com/pengupowered/penguwatch/blob/main/docs/configuration.md).
 
 ## Documentation
 
-New here? [Getting started](docs/getting-started.md) walks through the first run. [docs/README.md](docs/README.md) is the
+New here? [Getting started](https://github.com/pengupowered/penguwatch/blob/main/docs/getting-started.md) walks through the first run. [docs/README.md](https://github.com/pengupowered/penguwatch/blob/main/docs/README.md) is the
 index of everything.
 
 | Topic | What it covers |
 |---|---|
-| [Getting started](docs/getting-started.md) | The first run end to end: install, services, the library service or local, the first sync |
-| [FAQ and troubleshooting](docs/faq.md) | Port in use, expired login, nothing syncs, wrong service, time zone, reverse proxy, backup, upgrade, rollback |
-| [Install](docs/install.md) | Windows, macOS, Linux, Raspberry Pi, uv or pipx, container, the background service, upgrading, backups |
-| [Configuration](docs/configuration.md) | `config.yaml`, environment variables, household, services and bundles, time zone |
-| [Using PenguWatch](docs/usage.md) | The tabs, the optimizer and planner, the calendar feed, shortcuts, the phone app |
-| [Sync](docs/sync.md) | How the sync engine works (outbox, review mode, removals), then the SIMKL driver's rules: API usage, login renewal |
-| [Drivers](docs/drivers.md) | The drivers that ship (SIMKL, local, TVmaze), switching, and a guide to writing one |
-| [API](docs/api.md) | Authentication, the stable endpoints and their shapes, errors, limits |
-| [Extending](docs/extending.md) | Your own rating sources, event webhooks, drivers, adding a component |
-| [Security](docs/security.md) | Access token, request guards, the container, what is exposed |
-| [Operations](docs/operations.md) | Monitoring, Prometheus, OpenTelemetry, notifications, backups and exports |
-| [Architecture](docs/architecture.md) | The ordered list of backend components, start-up failures, shutdown |
-| [Development](docs/development.md) | Project layout, running locally, tests |
-| [The web UI](docs/ui.md) | How the page is built, theming, adding a tab, the rules the tests enforce |
-| [Releasing](docs/releasing.md) | CI, the release workflow, PyPI and the container registry |
-| [Supply chain](docs/supply-chain.md) | Dependency policy, hash-locked requirements, vendored code |
+| [Getting started](https://github.com/pengupowered/penguwatch/blob/main/docs/getting-started.md) | The first run end to end: install, services, the library service or local, the first sync |
+| [FAQ and troubleshooting](https://github.com/pengupowered/penguwatch/blob/main/docs/faq.md) | Port in use, expired login, nothing syncs, wrong service, time zone, reverse proxy, backup, upgrade, rollback |
+| [Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md) | Windows, macOS, Linux, Raspberry Pi, uv or pipx, container, the background service, upgrading, backups |
+| [Configuration](https://github.com/pengupowered/penguwatch/blob/main/docs/configuration.md) | `config.yaml`, environment variables, household, services and bundles, time zone |
+| [Using PenguWatch](https://github.com/pengupowered/penguwatch/blob/main/docs/usage.md) | The tabs, the optimizer and planner, the calendar feed, shortcuts, the phone app |
+| [Sync](https://github.com/pengupowered/penguwatch/blob/main/docs/sync.md) | How the sync engine works (outbox, review mode, removals), then the SIMKL driver's rules: API usage, login renewal |
+| [Drivers](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md) | The drivers that ship (SIMKL, local, TVmaze), switching, and a guide to writing one |
+| [API](https://github.com/pengupowered/penguwatch/blob/main/docs/api.md) | Authentication, the stable endpoints and their shapes, errors, limits |
+| [Extending](https://github.com/pengupowered/penguwatch/blob/main/docs/extending.md) | Your own rating sources, event webhooks, drivers, adding a component |
+| [Security](https://github.com/pengupowered/penguwatch/blob/main/docs/security.md) | Access token, request guards, the container, what is exposed |
+| [Operations](https://github.com/pengupowered/penguwatch/blob/main/docs/operations.md) | Monitoring, Prometheus, OpenTelemetry, notifications, backups and exports |
+| [Architecture](https://github.com/pengupowered/penguwatch/blob/main/docs/architecture.md) | The ordered list of backend components, start-up failures, shutdown |
+| [Development](https://github.com/pengupowered/penguwatch/blob/main/docs/development.md) | Project layout, running locally, tests |
+| [The web UI](https://github.com/pengupowered/penguwatch/blob/main/docs/ui.md) | How the page is built, theming, adding a tab, the rules the tests enforce |
+| [Releasing](https://github.com/pengupowered/penguwatch/blob/main/docs/releasing.md) | CI, the release workflow, PyPI and the container registry |
+| [Supply chain](https://github.com/pengupowered/penguwatch/blob/main/docs/supply-chain.md) | Dependency policy, hash-locked requirements, vendored code |
 
 **Security in one line:** one shared access token protects the app, which is meant for a home network and not the open
-internet; set it, and read [docs/security.md](docs/security.md). Found a vulnerability? Report it privately
-([SECURITY.md](SECURITY.md)).
+internet; set it, and read [docs/security.md](https://github.com/pengupowered/penguwatch/blob/main/docs/security.md). Found a vulnerability? Report it privately
+([SECURITY.md](https://github.com/pengupowered/penguwatch/blob/main/SECURITY.md)).
 
 ## Contributing
 
-Bug reports, ideas and code are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md) and the
-[code of conduct](CODE_OF_CONDUCT.md).
+Bug reports, ideas and code are welcome: see [CONTRIBUTING.md](https://github.com/pengupowered/penguwatch/blob/main/CONTRIBUTING.md) and the
+[code of conduct](https://github.com/pengupowered/penguwatch/blob/main/CODE_OF_CONDUCT.md).
 
 ## Development
 
@@ -233,7 +232,7 @@ to run PenguWatch.
 
 ## License
 
-[MIT](LICENSE). PenguWatch is not affiliated with SIMKL or TVmaze; its default driver uses SIMKL's public API with your own client ID.
+[MIT](https://github.com/pengupowered/penguwatch/blob/main/LICENSE). PenguWatch is not affiliated with SIMKL or TVmaze; its default driver uses SIMKL's public API with your own client ID.
 
 **TVmaze credit:** when the TVmaze driver is used, TV data comes from [TVmaze](https://www.tvmaze.com) under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), and PenguWatch says so in the page footer, on Services &

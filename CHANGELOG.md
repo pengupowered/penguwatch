@@ -5,6 +5,12 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-11-06
+
+### Fixed
+- The project page on PyPI shows the README's screenshots, logo and links: they now use full GitHub addresses, since
+  PyPI cannot follow the relative paths that only work on GitHub.
+
 ## [0.15.1] - 2026-11-06
 
 ### Fixed
@@ -125,6 +131,7 @@ The first public release.
 - The example `config.yaml` no longer sets `server.host` or `database.db_path`; leave them out to get the defaults
   above. The container and `docker compose` behave as before, and your existing `config.yaml` keeps working.
 
-[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.15.1...HEAD
+[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.15.2...HEAD
+[0.15.2]: https://github.com/pengupowered/penguwatch/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/pengupowered/penguwatch/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/pengupowered/penguwatch/releases/tag/v0.15.0
