@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """A minimal PenguWatch webhook receiver that checks the signature. Standard library only.
 
-    PENGUWATCH_WEBHOOK_SECRET=<the same secret as in config.yaml> python receive_webhook.py
+    PENGUWATCH_WEBHOOK_SECRET=<the webhook's signing secret, as typed on the Settings tab> python receive_webhook.py
 
-Then point a webhook at http://<this machine>:9000/ (see docs/extending.md). Each delivery carries
+Then point a webhook at http://<this machine's LAN address>:9000/ (see docs/extending.md). Not localhost or 127.0.0.1:
+PenguWatch never calls its own machine by a loopback or link-local address. Each delivery carries
   X-PenguWatch-Timestamp  Unix seconds when it was sent
   X-PenguWatch-Signature  sha256=<HMAC-SHA256 of "<timestamp>.<body>" keyed with the secret>
 The receiver recomputes the signature over the exact bytes it received, compares in constant time, and refuses

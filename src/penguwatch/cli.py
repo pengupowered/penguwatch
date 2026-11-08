@@ -6,9 +6,12 @@
                                    write the example config.yaml to your config folder
     penguwatch paths [--system]    config file, data folder, database and listen address, and where each came from
     penguwatch backup [--to DIR] [--system]
-                                   a consistent copy of the database (safe while the app runs) and the sessions file,
-                                   in a timestamped folder (default: <data folder>/backups)
-    penguwatch doctor [--offline]  can it start here? Port, config file, data folder, services, time zone
+                                   a consistent copy of the database (safe while the app runs), the sessions file and
+                                   secrets.json, in a timestamped folder (default: <data folder>/backups)
+    penguwatch doctor [--offline]  can it start here? Port, config file, data folder, services, time zone, settings
+    penguwatch settings check-import CONFIG DB [--live]
+                                   a dry run of the one-time settings import on a copy of DB (never written; no
+                                   driver is built, no network connection opened); prints key names, never values
     penguwatch service install|uninstall|status
                                    start PenguWatch automatically (systemd, launchd or a logon task; penguwatch.service)
     penguwatch --version
@@ -186,12 +189,24 @@ def cmd_paths(args: argparse.Namespace) -> int:
         ("database", *settings["db"]),
         ("listen host", *settings["host"]),
         ("listen port", str(settings["port"][0]), settings["port"][1]),
-        ("settings file", str(paths.env_file_path()), "penguwatch.env next to the config file"),
+        ("env file", str(paths.env_file_path()), "penguwatch.env next to the config file"),
+        ("settings", settings_place(Path(settings["db"][0])), "the Settings tab; config.yaml is read once"),
     ]
     width = max(len(r[0]) for r in rows)
     for name, value, where in rows:
         print(f"{name:<{width}}  {value}   [{where}]")
     return 0
+
+
+def settings_place(db: Path) -> str:
+    """Where the settings are: "in the database (since <date>)", or "not imported yet". Reads the database read-only."""
+    from penguwatch import doctor
+    state = doctor.read_settings_state(db)
+    if state is None or not state.get("initialized"):
+        return "not imported yet (the first start imports config.yaml)"
+    at = state.get("imported_at")
+    since = datetime.fromtimestamp(at, timezone.utc).strftime("%Y-%m-%d") if at else "the import"
+    return f"in the database (since {since})"
 
 
 def _use_system_service(args: argparse.Namespace) -> bool:
@@ -233,7 +248,8 @@ def _copy_private_file(source: Path, target: Path) -> None:
 
 def make_backup(db: Path, to: Optional[str] = None, now: Optional[datetime] = None) -> Path:
     """A timestamped folder with a consistent copy of the database (VACUUM INTO on a read-only connection: safe while
-    the app writes, WAL included) and the sessions file next to it. The copy holds the account logins: keep it private."""
+    the app writes, WAL included) and the sessions file and secrets.json next to it (the Settings tab's digest and
+    webhook addresses and signing secrets). The copy holds the account logins and those secrets: keep it private."""
     if not db.is_file():
         raise SystemExit(f"penguwatch backup: no database at {db} (nothing to back up)")
     parent = Path(to).expanduser() if to else paths.backups_dir(str(db))
@@ -250,11 +266,11 @@ def make_backup(db: Path, to: Optional[str] = None, now: Optional[datetime] = No
         finally:
             con.close()
         os.chmod(folder / paths.DB_FILE, 0o600)
-        sessions = paths.sessions_path(str(db))
-        if sessions.is_symlink() or sessions.is_file():
-            target = folder / sessions.name
-            _copy_private_file(sessions, target)
-            os.chmod(target, 0o600)
+        for private in (paths.sessions_path(str(db)), paths.secrets_path(str(db))):
+            if private.is_symlink() or private.is_file():
+                target = folder / private.name
+                _copy_private_file(private, target)
+                os.chmod(target, 0o600)
     except (sqlite3.Error, OSError) as exc:
         shutil.rmtree(folder, ignore_errors=True)
         raise SystemExit(f"penguwatch backup failed: {exc}") from exc
@@ -286,11 +302,22 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return doctor.run(resolve(args), offline=args.offline)
 
 
+def cmd_settings_check_import(args: argparse.Namespace) -> int:
+    from penguwatch.settings.check import check_import
+
+    config, db = args.config_file or args.config, args.db_file or args.db
+    if not config or not db:
+        print("penguwatch settings check-import: give the config file and the database copy "
+              "(penguwatch settings check-import CONFIG DB)", file=sys.stderr)
+        return 2
+    return check_import(config, db, live=args.live)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="penguwatch", description="TV and movie tracker with a streaming-subscription "
                                      "planner and two-way sync with your tracker. No command: start the server.")
     parser.add_argument("--version", action="version", version=f"penguwatch {__version__}")
-    sub = parser.add_subparsers(dest="command", metavar="{serve,init-config,paths,backup,doctor,service}")
+    sub = parser.add_subparsers(dest="command", metavar="{serve,init-config,paths,backup,doctor,service,settings}")
 
     def common(p: argparse.ArgumentParser) -> None:
         p.add_argument("--config", metavar="FILE", help="config file (same as PENGUWATCH_CONFIG)")
@@ -318,6 +345,16 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.add_argument("--offline", action="store_true", help="skip the checks that need the internet (the drivers' services)")
     doctor.set_defaults(func=cmd_doctor)
     service.add_parser(sub)
+    settings = sub.add_parser("settings", help="the settings store: a dry run of the one-time import")
+    settings_sub = settings.add_subparsers(dest="settings_command", metavar="{check-import}", required=True)
+    check = settings_sub.add_parser("check-import", help="dry-run the one-time import of CONFIG on a copy of DB "
+                                    "(nothing is written; no network)")
+    check.add_argument("config_file", nargs="?", metavar="CONFIG", help="the config.yaml to import")
+    check.add_argument("db_file", nargs="?", metavar="DB", help="the database (a backup copy); it is never written")
+    check.add_argument("--config", help=argparse.SUPPRESS)
+    check.add_argument("--db", help=argparse.SUPPRESS)
+    check.add_argument("--live", action="store_true", help="the database is already imported: compare only")
+    check.set_defaults(func=cmd_settings_check_import)
     init = sub.add_parser("init-config", help="write the example config.yaml to your config folder")
     init.add_argument("--config", metavar="FILE", help="write here instead of the default place")
     init.add_argument("--force", action="store_true", help="replace an existing file")

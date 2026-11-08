@@ -35,25 +35,30 @@ The returned `Component` has a `name` and two optional parts:
 1. **storage** (`db/storage.py`). Opens (migrates) the database and gives the request guards the session store next
    to it. Every later component reads the repository, and its `stop` runs last, so it closes after everything that
    writes.
-2. **drivers** (`sync/component.py`). Builds each driver config.yaml's `drivers:` names, once, with its stored login
+2. **settings** (`settings/component.py`). Opens `secrets.json`, creates the settings hub, runs the one-time import of
+   `config.yaml` into the database (once), loads the stored settings and copies the effective configuration (stored
+   values under the environment's pins) into the running one; a later save changes it in place and publishes what changed
+   to small appliers that own the live effect (sync intervals, the digest, webhooks, log level, time zone, Grafana
+   links). Settings that say "restart" are stored but not copied. It needs the repository.
+3. **drivers** (`sync/component.py`). Builds each driver the `drivers.*` settings name, once, with its stored login
    (see [The driver layer](#the-driver-layer)), and the sync engine on the library driver. Needs the repository. Its
    `stop` closes the drivers' HTTP connections.
-3. **optimizer** (`optimizer/component.py`). Needs the repository.
-4. **container** (`api/component.py`). Builds the `AppContainer` the request handlers read (`Depends(get_*)`) and
+4. **optimizer** (`optimizer/component.py`). Needs the repository.
+5. **container** (`api/component.py`). Builds the `AppContainer` the request handlers read (`Depends(get_*)`) and
    installs it on the app, once the parts it holds exist.
-5. **sync worker** (`sync/worker.py`). Hooks the activity tracker and spawns the background loop that pushes queued
+6. **sync worker** (`sync/worker.py`). Hooks the activity tracker and spawns the background loop that pushes queued
    changes and pulls what changed. Its `stop` makes one last attempt (10 s at most) to deliver the outbox, which has
    to happen while the drivers are still open: it stops before the drivers component's `stop` because it is later in
    the list.
-6. **notifications** (`notify_component.py`). Optional. Puts the notifier on the container and, when a notification
-   URL is set, spawns the daily digest worker.
-7. **webhooks** (`webhooks_component.py`). Optional. Reads `webhooks:` from the config, resolves each secret (an
-   environment variable or a file; one that cannot be read keeps its webhook off, never unsigned), puts the
+7. **notifications** (`notify_component.py`). Optional. Puts the notifier on the container and spawns the daily digest worker, which
+   reads the digest address, kind and hour from the settings each pass (a save on the Settings tab takes effect at once).
+8. **webhooks** (`webhooks_component.py`). Optional. Reads the webhooks from the settings (their addresses and stored secrets come from `secrets.json`) and resolves each secret (an
+   environment variable, a file, or the stored one; one that cannot be read keeps its webhook off, never unsigned), puts the
    dispatcher on the container and connects it to the repository's data-change events. `start` spawns one delivery
    task per webhook (own bounded queue, so a dead receiver delays only itself) and the `episode.airs_today` check.
    It comes after the container (it sits on it) and the database (it listens to its commits). See
    [Extending](extending.md).
-8. **telemetry sampler** (`telemetry_component.py`). Optional, and only when OpenTelemetry exports metrics. Spawns the
+9. **telemetry sampler** (`telemetry_component.py`). Optional, and only when OpenTelemetry exports metrics. Spawns the
    loop that measures event-loop lag and refreshes the state gauges from the finished container, so it is last.
 
 The order is explicit, never discovered: start-up has real dependencies, and a reader should see everything that runs,
@@ -96,7 +101,7 @@ in `drivers/base.py`:
 | `discovery` | `DiscoveryProvider` | trending titles, recommendations for a title |
 | `ratings` | `rating_sources` | built-in rating sources; their values travel on `Title.ratings` |
 
-config.yaml's `drivers:` names the driver for each role ([Configuration](configuration.md#drivers)): one library
+The `drivers.*` settings name the driver for each role ([Configuration](configuration.md#all-settings)): one library
 driver, and a list for the catalogue, schedule and discovery (the first that knows the title wins). The drivers
 component builds each named driver once; `ActiveDrivers` (`sync/active.py`) holds them by name and by role.
 

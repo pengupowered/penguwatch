@@ -7,7 +7,7 @@ wrong. Logs: see [Install](install.md#troubleshooting).
 ## The page does not open, or the port is in use
 
 - `penguwatch doctor` reports "FAIL port" when something else holds the port. Pick another one: `--port 8081` when you
-  start it, `penguwatch service install --port 8081` for the background service, `server.port` in `config.yaml`, or the
+  start it, `penguwatch service install --port 8081` for the background service, `server.port` in `config.yaml` (the one setting that is still there), or the
   left side of `8080:8080` in the compose file.
 - A native install listens on `127.0.0.1`, this computer only. To reach it from a phone or another computer, see
   [Opening PenguWatch to other devices](install.md#opening-penguwatch-to-other-devices).
@@ -39,11 +39,10 @@ side's version. Turn review mode off to sync automatically. Details: [Sync](sync
 
 ## A title is on the wrong streaming service
 
-A title's service is matched from its network name against your `services:` list ([Configuration](configuration.md#which-service-carries-a-title)).
+A title's service is matched from its network name against your services ([Configuration](configuration.md#which-service-carries-a-title)).
 Fix it for one title: open its details and change **Streams on** (a manual pick is never overwritten). Fix it for a
-whole group, or for one title that streams somewhere other than its network: edit `config.yaml`, add the network name
-to the right service's `aliases`, or the exact title to its `titles` (a **title rule**, which wins over the network),
-and restart. The **Tidy** button lists titles with no service.
+whole group, or for one title that streams somewhere other than its network: open **Services & Sync**, edit the right service and add the network name to its `aliases`, or the exact title to its
+`titles` (a **title rule**, which wins over the network). A change is saved at once; no restart. The **Tidy** button lists titles with no service.
 
 ## The time zone is wrong
 

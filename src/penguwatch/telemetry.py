@@ -94,6 +94,17 @@ WEBHOOK_DELIVERIES = meter.create_counter(
 SLOW_IN_BROWSER = meter.create_counter(
     "penguwatch.client.slow_requests", unit="{request}",
     description="API requests the page found slow (>= 2 s in the browser), by outcome")
+# The Settings tab (penguwatch.settings.manager); attributes are fixed words, never a key's value or a secret
+SETTINGS_SAVES = meter.create_counter(
+    "penguwatch.settings.saves", unit="{save}",
+    description="Settings saves by source (save, restore, yaml_import) and outcome (saved, invalid, conflict, failed)")
+SETTINGS_IMPORTS = meter.create_counter(
+    "penguwatch.settings.imports", unit="{import}",
+    description="Settings imports by kind (config_yaml: the one-time import at the first start; yaml: Settings > "
+                "Import drafts) and outcome")
+SETTINGS_LIVE_FAILURES = meter.create_counter(
+    "penguwatch.settings.live_failures", unit="{failure}",
+    description="Settings appliers that raised after a save (the change applies at the next start), by applier")
 LOOP_LAG = meter.create_histogram(
     "penguwatch.event_loop.lag", unit="s",
     description="How late a 1 s timer fired: time the event loop was blocked or busy",
@@ -234,6 +245,11 @@ async def sample_loop(container: Any, interval: float = SAMPLE_SECONDS, tick: fl
 
 # True inside the background sync worker's task (and tasks it starts): its upstream calls are signs of life
 in_worker: contextvars.ContextVar[bool] = contextvars.ContextVar("penguwatch_in_worker", default=False)
+
+
+def settings_live_failure(applier: str) -> None:
+    """The settings hub's on_failure: one applier raised after a save (its name is a fixed word such as clock.zone)."""
+    SETTINGS_LIVE_FAILURES.add(1, {"applier": applier})
 
 
 def worker_beat(step: Optional[str] = None) -> None:

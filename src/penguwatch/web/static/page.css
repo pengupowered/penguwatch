@@ -1,4 +1,4 @@
-/* PenguWatch page shell. Copied from Pengumon (commit 14ab11d), owned by PenguWatch from here on.
+/* PenguWatch page shell.
    The header (brand, sync status pill, spending, actions), the tab strip under it on wide screens and the bottom
    tab bar on phones, the More sheet, the reconnect banner and the page area. Reads tokens only. */
 
@@ -67,6 +67,13 @@ button.chip.st:hover { border-color: color-mix(in srgb, var(--st) 55%, transpare
 .nav-btn.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; border-radius: 2px 2px 0 0; background: var(--accent); }
 .nav-btn:focus-visible { outline-offset: -2px; }
 .nav-short, .nav-more { display: none; }
+/* js/tabs.js (setupTabFit): the full labels do not fit, so the short ones show; if those do not fit either, the strip scrolls
+   under a fade at the right edge. */
+.tabs-compact .nav-full { display: none; }
+.tabs-compact .nav-short { display: inline; }
+.tabs-icons .nav-short { display: none; }
+.tabs-icons .nav-btn { padding: 0 10px; }
+.tabs-scroll { -webkit-mask-image: linear-gradient(to right, currentColor calc(100% - 28px), transparent); mask-image: linear-gradient(to right, currentColor calc(100% - 28px), transparent); }
 
 /* ---------- Page area ---------- */
 .app-main {

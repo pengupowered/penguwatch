@@ -1,8 +1,10 @@
 // Discover tab: trending and recommendations.
 import { api } from "../../js/api.js";
+import { on } from "../../js/bus.js";
 import { refreshAfterChange } from "../../js/data.js";
 import { register } from "../../js/dispatch.js";
 import { discoveryOn, hasAccount, libraryLabel } from "../../js/drivers.js";
+import { state } from "../../js/state.js";
 import { onTabActivated } from "../../js/tabs.js";
 import { PLACEHOLDER_POSTER, STATUS_LABELS, esc, householdShared, icon, mediaIcon, showToast } from "../../js/util.js";
 
@@ -37,9 +39,17 @@ function setupDiscover() {
 }
 
 async function loadDiscover() {
-  if (!discoveryOn()) return;  // no discovery driver: the tab shows a note instead (js/drivers.js)
   const container = document.getElementById("discover-container");
   const note = document.getElementById("discover-note");
+  if (!discoveryOn()) {
+    // No discovery driver at all: the tab shows a note instead (js/drivers.js). A driver that is not signed in: say so
+    // here, without asking the server (which would answer 400).
+    if (state.drivers?.discovery?.length) {
+      container.innerHTML = `<div class="empty">${icon("compass")}<span>No discovery source is set up.</span></div>`;
+      note.hidden = true;
+    }
+    return;
+  }
   container.innerHTML = '<div class="empty loading-state"><span class="spinner" aria-hidden="true"></span><span>Loading…</span></div>';
   note.hidden = true;
   try {
@@ -130,6 +140,8 @@ async function addDiscovered(idx, household) {
 }
 
 onTabActivated("discover-tab", () => loadDiscover());
+// the login state arrives after the page loads (and changes when the account is connected or disconnected)
+on("library-status", () => { if (state.activeTab === "discover-tab") loadDiscover(); });
 register({ addDiscovered });
 
 export default { id: "discover", mount: setupDiscover };

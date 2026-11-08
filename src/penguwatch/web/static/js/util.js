@@ -55,7 +55,7 @@ export function statusOptionsFor(show) {
     .join("");
 }
 
-// Who watches: tag -> name, from config.yaml (household.members), which the server puts in a <meta> of the page.
+// Who watches: tag -> name, from the Household setting (household.members), which the server puts in a <meta> of the page.
 const HOUSEHOLD_NAMES = (() => {
   try {
     return JSON.parse(document.querySelector('meta[name="penguwatch-household"]')?.content || "{}");

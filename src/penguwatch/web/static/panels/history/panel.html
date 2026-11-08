@@ -1,0 +1,16 @@
+<!-- History: what was watched over the last 7, 30 or 365 days, against the period before (panel.js) -->
+<section id="history-tab" class="tab-pane" data-panel="history" role="tabpanel" aria-labelledby="tab-history">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-history"/></svg>
+    <h1 class="page-t">History</h1>
+    <span class="page-m">What you watched, compared with the period before.</span>
+    <div class="page-tools">
+      <div class="seg" id="history-period" role="group" aria-label="Period">
+        <button type="button" data-days="7" aria-pressed="false">Last 7 days</button>
+        <button type="button" data-days="30" aria-pressed="true">Last 30 days</button>
+        <button type="button" data-days="365" aria-pressed="false">Last 12 months</button>
+      </div>
+    </div>
+  </div>
+  <div id="history-container" class="hist-grid" aria-live="polite"><div class="empty loading-state"><span class="spinner" aria-hidden="true"></span><span>Loading…</span></div></div>
+</section>

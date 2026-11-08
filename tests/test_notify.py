@@ -9,8 +9,15 @@ import respx
 from penguwatch.config import OptimizerConfig
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.models import Show, ServiceConfig, ShowStatus
+from penguwatch import notify
 from penguwatch.notify import Event, Notifier, build_events, deliver_new
 from penguwatch.optimizer.engine import SubscriptionOptimizer
+
+
+@pytest.fixture(autouse=True)
+def unguarded_transport(monkeypatch):
+    """respx mocks by URL; the guard (tests/test_settings_webhooks.py) rewrites the URL to the resolved address."""
+    monkeypatch.setattr(notify, "GuardedTransport", lambda: httpx.AsyncHTTPTransport())
 
 
 @pytest.fixture

@@ -104,15 +104,22 @@ def test_titles_are_identified_by_the_catalogue_ids_when_the_library_has_no_acco
     assert identity_providers("local", ["simkl"]) == ["simkl"]  # not "local": it identifies nothing a search returns
 
 
-async def test_an_unknown_driver_in_config_yaml_stops_the_start(tmp_path, monkeypatch):
+async def test_an_unknown_driver_in_config_yaml_is_left_out_and_the_start_goes_on(tmp_path, monkeypatch, caplog):
+    """Since the settings store (0.16), config.yaml is read leniently outside the bootstrap keys: the unknown driver
+    costs that value only (the import reports it and the default runs), it no longer stops the start."""
+    import logging
     cfg = tmp_path / "config.yaml"
     cfg.write_text("drivers:\n  library: nosuch\n", encoding="utf-8")
     monkeypatch.setenv("PENGUWATCH_CONFIG", str(cfg))
-    monkeypatch.setenv("PENGUWATCH_DB_PATH", str(tmp_path / "never.db"))
-    with pytest.raises(ValidationError, match="drivers.library: unknown driver 'nosuch'"):
+    monkeypatch.setenv("PENGUWATCH_DB_PATH", str(tmp_path / "app.db"))
+    with caplog.at_level(logging.INFO):
         async with main.lifespan(main.app):
-            pass  # pragma: no cover
-    assert not (tmp_path / "never.db").exists()  # nothing was opened
+            container = main.app.state.container
+            assert container.config.drivers.library == "simkl"
+            assert [r["key"] for r in container.settings.import_report()] == ["drivers.library"]
+    assert "drivers.library left out" in caplog.text and "unknown driver 'nosuch'" in caplog.text
+    if hasattr(main.app.state, "container"):
+        del main.app.state.container
 
 
 # --- neutral types --------------------------------------------------------------------------------------------------

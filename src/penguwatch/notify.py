@@ -12,7 +12,8 @@ Configure with env vars:
 """
 
 from penguwatch import clock, telemetry
-from penguwatch.config import EnvOverrides
+from penguwatch.webhooks import GuardedTransport, failure_label
+from penguwatch.config import EnvOverrides, NotifyConfig
 import asyncio
 import logging
 from dataclasses import dataclass, field
@@ -23,7 +24,7 @@ import httpx
 
 logger = logging.getLogger("penguwatch.notify")
 
-RENEWAL_WARNING_DAYS = 3
+RENEWAL_WARNING_DAYS = 3  # the default of notify.renewal_warning_days; the digest reads the setting
 
 
 @dataclass
@@ -39,10 +40,19 @@ class Event:
 
 
 class Notifier:
-    def __init__(self, url: str = "", kind: str = "ntfy", timeout: float = 10.0):
+    def __init__(self, url: str = "", kind: str = "ntfy", timeout: float = 10.0,
+                 transport: Optional[httpx.AsyncBaseTransport] = None):
+        self.transport = transport  # tests; None = GuardedTransport
         self.url = (url or "").strip()
         self.kind = (kind or "ntfy").lower()
         self.timeout = timeout
+        self.changed = asyncio.Event()  # set by reconfigure: the worker looks again at once instead of in 10 minutes
+
+    def reconfigure(self, url: str, kind: str) -> None:
+        """Takes a new address and kind while running (settings applier notify.channel). Never logs the address."""
+        self.url = (url or "").strip()
+        self.kind = (kind or "ntfy").lower()
+        self.changed.set()
 
     @classmethod
     def from_env(cls, env: EnvOverrides) -> "Notifier":
@@ -55,7 +65,10 @@ class Notifier:
     async def send(self, event: Event) -> None:
         if not self.enabled:
             raise RuntimeError("notifications are not configured")
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        # the guarded transport refuses to connect to this machine or a link-local address (also after DNS), and no
+        # proxy variable can route around it
+        async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport or GuardedTransport(),
+                                     trust_env=False) as client:
             if self.kind == "ntfy":
                 # Header values must be latin-1; titles with other characters are percent-safe via ntfy's JSON API
                 headers = {"Title": event.title.encode("ascii", "replace").decode(), "Priority": str(event.priority),
@@ -66,13 +79,14 @@ class Notifier:
             resp.raise_for_status()
 
 
-async def build_events(repo, optimizer, today: Optional[date] = None) -> List[Event]:
+async def build_events(repo, optimizer, today: Optional[date] = None,
+                       renewal_warning_days: int = RENEWAL_WARNING_DAYS) -> List[Event]:
     today = today or clock.today()
     events: List[Event] = []
 
     plan = await optimizer.calculate_plan()
     for r in plan.service_rankings:
-        if not r.is_active or r.renewal_in_days is None or r.renewal_in_days > RENEWAL_WARNING_DAYS:
+        if not r.is_active or r.renewal_in_days is None or r.renewal_in_days > renewal_warning_days:
             continue
         if r.verdict == "unused":
             events.append(Event(
@@ -129,8 +143,7 @@ async def deliver_new(repo, notifier: Notifier, events: List[Event]) -> int:
         except Exception as e:
             telemetry.NOTIFICATIONS.add(1, {"outcome": "failed"})
             # not the error's text: an HTTP error names the URL, and an ntfy topic URL is as good as a password
-            why = f"HTTP {e.response.status_code}" if isinstance(e, httpx.HTTPStatusError) else type(e).__name__
-            logger.warning(f"Notification '{ev.key}' failed: {why}")
+            logger.warning(f"Notification '{ev.key}' failed: {failure_label(e)}")
             continue
         await repo.set_state(marker, clock.utc_now().isoformat())
         telemetry.NOTIFICATIONS.add(1, {"outcome": "sent"})
@@ -138,21 +151,33 @@ async def deliver_new(repo, notifier: Notifier, events: List[Event]) -> int:
     return sent
 
 
-async def notify_worker(repo, optimizer, notifier: Notifier, hour: int = 9) -> None:
-    """Runs the daily check once per day, at or after `hour` local time."""
+async def notify_worker(repo, optimizer, notifier: Notifier, hour: int = 9, config: Optional[NotifyConfig] = None,
+                        poll_seconds: float = 600) -> None:
+    """Runs the daily check once per day, at or after the hour, local time. With `config` (the live
+    `config.notify`) the hour and the renewal warning days are read again on every round and the worker always runs:
+    it checks `notifier.enabled` each round, so a digest address set (or cleared) on the Settings page counts at once.
+    Without it, `hour` is fixed (the old call)."""
     last_day: Optional[str] = None
     while True:
         try:
+            notifier.changed.clear()  # (before the checks: a reconfigure during them makes the wait below return)
             now = clock.now()
-            if now.hour >= hour and last_day != now.date().isoformat():
+            at = config.hour if config is not None else hour
+            warn = config.renewal_warning_days if config is not None else RENEWAL_WARNING_DAYS
+            if notifier.enabled and now.hour >= at and last_day != now.date().isoformat():
                 with telemetry.span("notify.daily_check") as sp:
-                    n = await deliver_new(repo, notifier, await build_events(repo, optimizer))
+                    n = await deliver_new(repo, notifier, await build_events(repo, optimizer, renewal_warning_days=warn))
                     sp.set_attribute("penguwatch.notify.sent", n)
                 logger.info(f"Daily notification check: {n} sent")
                 last_day = now.date().isoformat()
-            await asyncio.sleep(600)
+            try:
+                await asyncio.wait_for(notifier.changed.wait(), timeout=poll_seconds)
+            except asyncio.TimeoutError:
+                pass
         except asyncio.CancelledError:
             break
         except Exception as e:
-            logger.error(f"Notification worker error: {e}", exc_info=True)
-            await asyncio.sleep(600)
+            # the type only: an HTTP error's text names the address, and an ntfy topic URL is as good as a password
+            logger.error(f"Notification worker error: {type(e).__name__}")
+            logger.debug("Notification worker error", exc_info=True)
+            await asyncio.sleep(poll_seconds)

@@ -15,9 +15,12 @@
 # Before replacing a running container it keeps one rollback point (older ones are removed):
 #   * the current image, tagged localhost/penguwatch:pre-deploy-<stamp>
 #   * ~/backups/penguwatch/<stamp>/ with a consistent copy of the database (VACUUM INTO; it holds the
-#     SIMKL token, so the folder is private to this user)
+#     SIMKL token) and a copy of secrets.json from the data volume (the digest address and the webhook addresses
+#     and signing secrets set on the Settings tab; it exists once one is set), so the folder and both files are
+#     private to this user (0600)
 # Rollback: podman tag localhost/penguwatch:pre-deploy-<stamp> localhost/penguwatch:latest, put the backup
-# database back into the volume, then scripts/deploy.sh --no-build.
+# database AND secrets.json back into the volume (the settings are in the database, their secrets are in
+# secrets.json), then scripts/deploy.sh --no-build.
 #
 # Host setup this relies on (once): loginctl enable-linger and systemctl --user enable podman-restart.service.
 set -u
@@ -78,7 +81,14 @@ if [ $running = 1 ]; then
         || fail "database backup failed; nothing was changed"
     run podman cp "$NAME:/app/data/.pre-deploy.db" "$BACKUPS/$STAMP/penguwatch.db" || fail "copying the backup out failed"
     run podman exec "$NAME" rm -f data/.pre-deploy.db
+    # secrets.json is absent until a secret is saved on the Settings tab; a failed copy of an existing one aborts
+    if podman exec "$NAME" test -f data/secrets.json 2>/dev/null; then
+        step "Backing up secrets.json to $BACKUPS/$STAMP"
+        ( umask 077; run podman cp "$NAME:/app/data/secrets.json" "$BACKUPS/$STAMP/secrets.json" ) \
+            || fail "copying secrets.json out failed; nothing was changed"
+    fi
     run chmod -R go-rwx "$BACKUPS/$STAMP"
+    if [ -f "$BACKUPS/$STAMP/secrets.json" ]; then chmod 600 "$BACKUPS/$STAMP/secrets.json"; fi
 fi
 
 # ---- build and recreate ----

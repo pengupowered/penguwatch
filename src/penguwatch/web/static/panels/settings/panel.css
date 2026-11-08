@@ -1,0 +1,117 @@
+/* Settings tab: rows, the rail, the sticky bar. Tokens only, so every theme and both modes work. */
+.set-wrap { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: var(--sp-6); align-items: start; min-width: 0; }
+.set-rail { position: sticky; top: calc(var(--sp-6) * 3); display: flex; flex-direction: column; gap: 2px; }
+.set-rail button {
+  text-align: left; background: transparent; border: 0; border-radius: var(--r-sm); padding: 6px 10px; cursor: pointer;
+  color: var(--ink-2); font: inherit; font-size: var(--fs-sm);
+}
+.set-rail button:hover { background: var(--surface-3); color: var(--ink-1); }
+.set-jump { display: none; position: sticky; z-index: 3; background: var(--bg); padding: var(--sp-2) 0; flex-direction: column; gap: 4px; font-size: var(--fs-sm); color: var(--ink-3); }
+.set-sections { display: grid; gap: var(--sp-4); min-width: 0; }
+.set-sections > * { min-width: 0; scroll-margin-top: 120px; }
+#settings-banner:empty, #settings-notes:empty { display: none; }
+#settings-notes { display: grid; gap: var(--sp-2); }
+.set-sec .panel-b { display: grid; gap: var(--sp-2); }
+.set-adv > summary { cursor: pointer; list-style: none; }
+.set-adv > summary::-webkit-details-marker { display: none; }
+.set-chev { flex: none; color: var(--ink-3); transform: rotate(-90deg); transition: transform var(--t-fast) var(--ease); }
+.set-adv[open] > summary > .set-chev, .set-card[open] > summary > .set-chev { transform: none; }
+@media (prefers-reduced-motion: reduce) { .set-chev { transition: none; } }
+.set-group { display: grid; margin-bottom: var(--sp-3); }
+.set-group-t { font-size: var(--fs-sm); font-weight: var(--fw-semi); color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; margin: var(--sp-2) 0 var(--sp-1); }
+
+/* ---- one row: label and control, then the effect on the left and the default, chips and Reset on the right ---- */
+.set-row { padding: var(--sp-3) 0; border-top: 1px solid var(--line); min-width: 0; --set-col: 300px; }
+.set-group-t + .set-row, .set-group > .set-row:first-child { border-top: 0; }
+.set-row.unsaved { box-shadow: -3px 0 0 var(--warn); padding-left: var(--sp-3); margin-left: 3px; }
+.set-row.bad .input { border-color: var(--crit); }
+.set-main { display: grid; grid-template-columns: minmax(0, 1fr) var(--set-col); gap: var(--sp-1) var(--sp-4); align-items: center; }
+.set-label { min-width: 0; font-size: var(--fs-md); font-weight: var(--fw-medium); color: var(--ink-1); }
+.set-input { min-width: 0; display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.set-input > .input { flex: 1 1 auto; width: 100%; min-width: 0; }
+.set-input > .input.num { flex: 0 0 8em; width: 8em; text-align: right; }
+.set-input .seg { flex: none; max-width: 100%; flex-wrap: wrap; }
+.set-unit { flex: 1 1 auto; min-width: 0; font-size: var(--fs-sm); color: var(--ink-3); }
+.set-meta { margin-top: 4px; font-size: var(--fs-xs); color: var(--ink-3); display: grid; grid-template-columns: minmax(0, 1fr) var(--set-col); gap: 4px var(--sp-4); align-items: start; overflow-wrap: anywhere; }
+.set-effect { min-width: 0; }
+.set-side { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-2); min-width: 0; }
+.set-def { color: var(--ink-2); }
+.set-warn { grid-column: 1 / -1; color: var(--warn); }
+.set-ro { grid-column: 1 / -1; color: var(--ink-2); }
+.set-msg { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--crit); }
+.set-msg:empty { display: none; }
+.set-lnk { background: none; border: 0; padding: 0; font: inherit; font-size: var(--fs-xs); color: var(--accent); cursor: pointer; text-decoration: underline; }
+.set-lnk:hover { color: var(--ink-1); }
+.set-input input[readonly], .set-input select[disabled] { cursor: not-allowed; }
+.seg button:disabled { opacity: .55; cursor: not-allowed; }
+.set-names { display: grid; gap: var(--sp-2); width: 100%; }
+
+/* ---- ordered pickers (driver roles) ---- */
+.set-picker { display: grid; gap: var(--sp-2); width: 100%; }
+.set-order { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-1); }
+.set-order li { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.set-order li > span { flex: 1 1 8em; min-width: 0; }
+.set-down svg { transform: rotate(180deg); }
+
+/* ---- secrets ---- */
+.set-slot { border-top: 1px solid var(--line); }
+.set-secret-state { flex-wrap: wrap; }
+.set-secret-edit { display: flex; gap: var(--sp-2); margin-top: var(--sp-2); }
+.set-secret-edit .input { flex: 1 1 auto; min-width: 0; }
+
+/* ---- the webhooks list ---- */
+.set-list { margin: var(--sp-4) 0 0; display: grid; gap: var(--sp-2); }
+.set-card { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); min-width: 0; }
+.set-card > summary { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; padding: var(--sp-3) var(--sp-4); cursor: pointer; list-style: none; }
+.set-card > summary::-webkit-details-marker { display: none; }
+.set-card-t { flex: 0 1 auto; max-width: calc(100% - 3em); min-width: 0; font-weight: var(--fw-semi); overflow-wrap: anywhere; }
+.set-card-s { color: var(--ink-3); font-size: var(--fs-sm); overflow-wrap: anywhere; min-width: 0; flex: 1 1 120px; }
+.set-card-b { padding: 0 var(--sp-4) var(--sp-4); display: grid; gap: var(--sp-3); }
+.set-card .set-row { --set-col: 240px; }
+.set-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.set-imported code { overflow-wrap: anywhere; }
+.set-f label { font-size: var(--fs-sm); color: var(--ink-2); font-weight: var(--fw-medium); }
+.set-events { border: 0; padding: 0; margin: 0; min-width: 0; }
+.set-events legend { font-size: var(--fs-sm); color: var(--ink-2); font-weight: var(--fw-medium); padding: 0; margin-bottom: 4px; }
+.set-checks { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4); }
+.set-card-f { display: flex; gap: var(--sp-2); justify-content: flex-end; flex-wrap: wrap; }
+.set-empty { margin: 0; }
+
+/* ---- kept elsewhere, about, versions, export ---- */
+.set-links { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); }
+.set-about { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px var(--sp-4); font-size: var(--fs-sm); margin: 0; }
+.set-about dt { color: var(--ink-3); }
+.set-about dd { margin: 0; overflow-wrap: anywhere; font-family: var(--mono); }
+.set-vers { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.set-vers li { display: flex; gap: var(--sp-3); align-items: center; justify-content: space-between; padding: var(--sp-2) 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.set-ver-t { display: flex; gap: var(--sp-1) var(--sp-3); flex-wrap: wrap; align-items: baseline; min-width: 0; flex: 1 1 220px; overflow-wrap: anywhere; }
+.set-ver-s { flex: 1 1 100%; color: var(--ink-2); font-size: var(--fs-sm); }
+.set-yaml { height: auto; padding: var(--sp-2) var(--sp-3); font-family: var(--mono); font-size: var(--fs-sm); resize: vertical; }
+
+/* ---- the sticky bar: Versions, Export, Import on the left; Cancel and Save on the right ---- */
+.set-bar {
+  position: sticky; bottom: 0; z-index: 4; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-3) var(--sp-4); background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--r-md); box-shadow: var(--shadow-card);
+}
+.set-bar-l, .set-bar-r { display: flex; gap: var(--sp-2); flex-wrap: wrap; align-items: center; }
+.set-bar-r { margin-left: auto; }
+.set-tools, .set-bar-n { display: none; }
+
+/* ---- phone and narrow: one column, the jump list ---- */
+@media (max-width: 720px) {
+  .set-wrap { grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); }
+  .set-rail { display: none; }
+  .set-jump { display: flex; }
+  .set-row { --set-col: 1fr; }
+  .set-main, .set-meta { grid-template-columns: minmax(0, 1fr); }
+  .set-side { grid-column: 1; }
+  .set-input > .input.num { flex: 0 0 7em; width: 7em; }
+  .set-about { grid-template-columns: minmax(0, 1fr); }
+  /* Versions, Export and Import live in a row at the top; the bar shows only while there is a draft: the count, Cancel, Save */
+  .set-tools { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+  .set-bar { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); padding: var(--sp-2) var(--sp-3); flex-wrap: nowrap; }
+  .set-bar:not(.dirty), .set-bar-l { display: none; }
+  .set-bar-r { flex: 1 1 auto; gap: var(--sp-2); }
+  .set-bar-n { display: block; flex: 1 1 auto; min-width: 0; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--ink-1); }
+  .set-card-f { justify-content: stretch; }
+}

@@ -62,6 +62,8 @@ class Metrics:
         self.sync_runs: Deque[Dict[str, Any]] = deque(maxlen=50)
         # (webhook name, outcome) -> count
         self.webhook_count: Dict[Tuple[str, str], int] = defaultdict(int)
+        # (tool, outcome) -> count of MCP tool calls (POST /mcp)
+        self.mcp_count: Dict[Tuple[str, str], int] = defaultdict(int)
 
     # -- recording ---------------------------------------------------------
 
@@ -79,6 +81,9 @@ class Metrics:
 
     def observe_webhook(self, name: str, outcome: str) -> None:
         self.webhook_count[(name, outcome)] += 1
+
+    def observe_mcp(self, tool: str, outcome: str) -> None:
+        self.mcp_count[(tool, outcome)] += 1
 
     def observe_upstream(self, service: str, endpoint: str, status: int, seconds: float) -> None:
         endpoint = normalize_upstream_path(endpoint)
@@ -356,6 +361,10 @@ def render_prometheus(m: Metrics, gauges: Iterable[Tuple[str, str, Dict[str, Any
     family("penguwatch_webhook_deliveries_total", "counter", "Event webhook deliveries by webhook and outcome.")
     for (name, outcome), n in sorted(m.webhook_count.items()):
         out.append(f"penguwatch_webhook_deliveries_total{_labels(webhook=name, outcome=outcome)} {n}")
+
+    family("penguwatch_mcp_calls_total", "counter", "MCP tool calls (POST /mcp) by tool and outcome (ok or error).")
+    for (tool, outcome), n in sorted(m.mcp_count.items()):
+        out.append(f"penguwatch_mcp_calls_total{_labels(tool=tool, outcome=outcome)} {n}")
 
     family("penguwatch_log_messages_total", "counter", "Warnings and errors logged since start.")
     for level in ("warning", "error", "critical"):

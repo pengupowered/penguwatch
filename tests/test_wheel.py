@@ -15,6 +15,7 @@ import pytest
 import yaml
 
 from penguwatch import __version__
+from penguwatch.catalog import load_catalog
 from penguwatch.config import AppConfig, packaged_example_text
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -90,7 +91,7 @@ def test_wheel_carries_every_python_module_the_example_config_and_the_license(wh
     assert _missing(wheel, modules) == []
     names = set(wheel.namelist())
     assert {"penguwatch/cli.py", "penguwatch/paths.py", "penguwatch/config.example.yaml",
-            "homeguard/security.py"} <= names
+            "penguwatch/catalog/services.yaml", "penguwatch/catalog/__init__.py", "homeguard/security.py"} <= names
     assert f"penguwatch-{__version__}.dist-info/licenses/LICENSE" in names
 
 
@@ -118,8 +119,8 @@ def test_packaged_example_config_is_the_repository_example():
     `penguwatch init-config`. Edit the root file, then copy it over the one in src/penguwatch/."""
     assert (PACKAGE / "config.example.yaml").read_bytes() == (ROOT / "config.example.yaml").read_bytes()
     assert packaged_example_text() == (ROOT / "config.example.yaml").read_text(encoding="utf-8")
-    config = AppConfig(**yaml.safe_load(packaged_example_text()))
-    assert config.services  # the shipped example lists streaming services
+    AppConfig(**yaml.safe_load(packaged_example_text()))  # the shipped example is valid
+    assert load_catalog()  # the streaming services ship in the catalogue (catalog/services.yaml), not the example
 
 
 def test_the_wheel_installs_and_the_command_runs(tmp_path, built):
@@ -143,8 +144,8 @@ def test_the_wheel_installs_and_the_command_runs(tmp_path, built):
                            capture_output=True, text=True, env=env, cwd=tmp_path).stdout.strip()
     assert where.startswith(str(target))
     assert (Path(where) / "web" / "static").is_dir() and (Path(where) / "config.example.yaml").is_file()
-    # no config of the user's and none beside it: the app still has its streaming services (the packaged example)
-    code = "from penguwatch.config import load_config; print(len(load_config().services))"
+    # no config of the user's and none beside it: the app still has its streaming services (the packaged catalogue)
+    code = "from penguwatch.catalog import load_catalog; print(len(load_catalog()))"
     services = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env, cwd=tmp_path)
     assert services.returncode == 0, services.stderr
     assert int(services.stdout.strip()) > 0

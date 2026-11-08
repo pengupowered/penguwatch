@@ -35,11 +35,13 @@ services:
     environment:
       - PENGUWATCH_HOST=0.0.0.0
       - PENGUWATCH_PORT=8080
-      # these are parsed without an empty-value fallback, so they keep their defaults here
-      - PENGUWATCH_LOG_LEVEL=${PENGUWATCH_LOG_LEVEL:-info}
+      # Passed empty when you don't set them, and an empty value counts as unset. A variable that IS set pins the
+      # setting (the Settings tab shows it read-only), so these three have no default here: leave them out of .env
+      # to edit log level and digest kind and hour on the Settings tab.
+      - PENGUWATCH_LOG_LEVEL=${PENGUWATCH_LOG_LEVEL:-}
+      - PENGUWATCH_NOTIFY_KIND=${PENGUWATCH_NOTIFY_KIND:-}
+      - PENGUWATCH_NOTIFY_HOUR=${PENGUWATCH_NOTIFY_HOUR:-}
       - PENGUWATCH_LOG_FORMAT=${PENGUWATCH_LOG_FORMAT:-text}
-      - PENGUWATCH_NOTIFY_KIND=${PENGUWATCH_NOTIFY_KIND:-ntfy}
-      - PENGUWATCH_NOTIFY_HOUR=${PENGUWATCH_NOTIFY_HOUR:-9}
       - PENGUWATCH_TZ=${PENGUWATCH_TZ:-}
       - PENGUWATCH_ACCESS_TOKEN=${PENGUWATCH_ACCESS_TOKEN:-}
       - PENGUWATCH_ALLOWED_HOSTS=${PENGUWATCH_ALLOWED_HOSTS:-}

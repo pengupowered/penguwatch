@@ -17,4 +17,7 @@ COPY src/ src/
 COPY tests/ tests/
 # the published images (tests/test_pwa.py checks them for metadata) and the docs and examples (tests/test_openapi.py, test_examples.py)
 COPY docs/ docs/
+# Unprivileged, like the production image (scripts/test.sh also runs it with a read-only root filesystem)
+USER 10001:10001
+ENV HOME=/tmp
 CMD ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider"]

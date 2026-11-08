@@ -9,7 +9,7 @@ def test_load_config_defaults(tmp_path):
     assert config.server.host == "0.0.0.0"
     assert config.server.port == 8080
     assert config.database.db_path == "data/penguwatch.db"
-    assert config.optimizer.max_active_services == 1
+    assert config.optimizer.max_active_services == 3  # 1 before 0.16; the settings import keeps 1 where a file relied on it
 
 
 def test_load_config_from_yaml(tmp_path):
@@ -168,6 +168,8 @@ def test_main_listens_where_config_yaml_says(tmp_path, monkeypatch):
 
 # --- the variables outside config.yaml (EnvOverrides is the one place that reads them) -------------------------------
 
+from penguwatch.config import env_pins  # noqa: E402
+
 _NOTIFY_ENV = ("PENGUWATCH_NOTIFY_URL", "PENGUWATCH_NOTIFY_KIND", "PENGUWATCH_NOTIFY_HOUR", "PENGUWATCH_GRAFANA_URL",
                "PENGUWATCH_LOG_FORMAT")
 
@@ -177,7 +179,8 @@ def test_the_notification_grafana_and_log_format_variables_have_their_documented
     for name in _NOTIFY_ENV:
         monkeypatch.delenv(name, raising=False)
     env = EnvOverrides()
-    assert (env.notify_url, env.notify_kind, env.notify_hour, env.grafana_url, env.log_format) == ("", "ntfy", 9, "", None)
+    # notify_kind / notify_hour: None = not set, so the settings notify.kind / notify.hour (ntfy, 9) apply
+    assert (env.notify_url, env.notify_kind, env.notify_hour, env.grafana_url, env.log_format) == ("", None, None, "", None)
 
 
 def test_the_notification_grafana_and_log_format_variables_are_read(monkeypatch):
@@ -188,26 +191,31 @@ def test_the_notification_grafana_and_log_format_variables_are_read(monkeypatch)
     monkeypatch.setenv("PENGUWATCH_GRAFANA_URL", " https://grafana.example:3000/ ")
     monkeypatch.setenv("PENGUWATCH_LOG_FORMAT", "json")
     env = EnvOverrides()
+    # the pinning variables are kept as written; their settings' fields read them (config.apply_env, env_pins)
     assert (env.notify_url, env.notify_kind, env.notify_hour, env.grafana_url, env.log_format) == (
-        "https://ntfy.example/topic", "webhook", 18, "https://grafana.example:3000", "json")
+        "https://ntfy.example/topic", "webhook", "18", "https://grafana.example:3000", "json")
+    assert env_pins(env)[0]["notify.hour"] == 18
 
 
-def test_a_blank_notify_hour_is_the_default_and_a_garbled_one_is_an_error(monkeypatch):
-    import pytest
+def test_a_blank_notify_hour_is_the_default_and_a_garbled_one_is_ignored(monkeypatch):
+    """An invalid pinning variable does not stop the start; it is ignored (the setting applies)."""
     from penguwatch.config import EnvOverrides
     monkeypatch.setenv("PENGUWATCH_NOTIFY_HOUR", "")
-    assert EnvOverrides().notify_hour == 9
+    assert EnvOverrides().notify_hour is None  # unset: the setting notify.hour (default 9) applies
     monkeypatch.setenv("PENGUWATCH_NOTIFY_HOUR", "nine")
-    with pytest.raises(ValueError, match="PENGUWATCH_NOTIFY_HOUR"):
-        EnvOverrides()
+    env = EnvOverrides()  # no error
+    pinned, ignored = env_pins(env)
+    assert "notify.hour" not in pinned and "PENGUWATCH_NOTIFY_HOUR" in ignored["notify.hour"]
+    assert "nine" not in ignored["notify.hour"]
 
 
-def test_a_grafana_url_that_is_not_a_plain_base_url_is_an_error(monkeypatch):
-    import pytest
-    from penguwatch.config import EnvOverrides
+def test_a_grafana_url_that_is_not_a_plain_base_url_is_ignored(monkeypatch):
+    from penguwatch.config import AppConfig, EnvOverrides, apply_env
     monkeypatch.setenv("PENGUWATCH_GRAFANA_URL", "https://user:pw@grafana.example")
-    with pytest.raises(ValueError, match="PENGUWATCH_GRAFANA_URL"):
-        EnvOverrides()
+    env = EnvOverrides()
+    assert apply_env(AppConfig(), env).display.grafana_url == ""
+    assert "PENGUWATCH_GRAFANA_URL is set but not valid" in env_pins(env)[1]["display.grafana_url"]
+    assert "user:pw" not in env_pins(env)[1]["display.grafana_url"]
 
 
 def test_notifier_and_logging_take_their_settings_from_env_overrides(monkeypatch):

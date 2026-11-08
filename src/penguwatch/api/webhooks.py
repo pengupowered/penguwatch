@@ -40,7 +40,7 @@ class WebhookTestResult(BaseModel):
 
 @router.get("/webhooks", response_model=List[WebhookStatus], summary="List the configured webhooks and their delivery state")
 async def list_webhooks(c: AppContainer = Depends(get_container)):
-    """Name, host, events and counters of each webhook from config.yaml. The URL and the secret are never returned."""
+    """Name, host, events and counters of each webhook (Settings tab). The URL and the secret are never returned."""
     return c.webhooks.describe() if c.webhooks else []
 
 

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from penguwatch.notify import Notifier
     from penguwatch.optimizer.engine import SubscriptionOptimizer
     from penguwatch.security import SecurityConfig
+    from penguwatch.settings.hub import SettingsHub
     from penguwatch.sync.active import ActiveDrivers
     from penguwatch.sync.engine import SyncEngine
     from penguwatch.telemetry import Telemetry
@@ -55,6 +56,8 @@ class Context:
     security: Optional["SecurityConfig"] = None
     otel: Optional["Telemetry"] = None
     repository: Optional["DatabaseRepository"] = None  # storage
+    settings: Optional["SettingsHub"] = None  # settings: appliers subscribe here in their register (settings/hub.py)
+    settings_manager: Any = None  # settings: the settings store (settings.manager.SettingsManager)
     drivers: Optional["ActiveDrivers"] = None  # drivers: the running drivers, by name and by role
     sync: Optional["SyncEngine"] = None  # drivers: the sync engine on the library driver
     optimizer: Optional["SubscriptionOptimizer"] = None  # optimizer

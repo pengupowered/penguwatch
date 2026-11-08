@@ -1,0 +1,35 @@
+/* History tab: tiles with the change against the period before, a column chart per period, ranked lists. The chart
+   SVG is drawn by panel.js with classes only; the colours are the tokens'. */
+.hist-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+.hist-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--sp-4); }
+.hist-two > .panel { min-width: 0; }
+.hist-change { color: var(--ink-3); }
+.hist-change[data-dir="new"] { color: var(--accent); }
+.hist-vs { color: var(--ink-4); }
+.hist-bulk { margin: 0; font-size: var(--fs-sm); }
+.hist-note { margin: var(--sp-3) 0 0; font-size: var(--fs-xs); }
+.hist-sub { display: block; color: var(--ink-3); font-size: var(--fs-xs); font-weight: var(--fw-medium); white-space: normal; }
+.hc-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.hc-grid { stroke: var(--line); stroke-width: 1; }
+.hc-axis { fill: var(--ink-3); font-family: var(--font); font-size: 11px; font-variant-numeric: tabular-nums; }
+.hc-bar { fill: var(--s1); }
+.hc-bar.hc-partial { fill: color-mix(in srgb, var(--s1) 50%, var(--surface-1)); }
+.hc-bar:hover { fill: color-mix(in srgb, var(--s1) 80%, var(--ink-1)); }
+.hl { display: grid; gap: var(--sp-3); }
+.hl-row { display: grid; grid-template-columns: minmax(90px, 32%) minmax(0, 1fr) 64px; align-items: start; gap: var(--sp-3); font-size: var(--fs-sm); }
+.hl-row .bar-track { margin-top: 5px; }
+.hl-name { min-width: 0; overflow-wrap: anywhere; }
+.hl-val { text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.hl .bar-fill, .hist-show .bar-fill { background: var(--s1); }
+.hist-shows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-3); }
+.hist-show { display: grid; grid-template-columns: 34px minmax(0, 1fr) 64px; align-items: center; gap: var(--sp-3); font-size: var(--fs-sm); }
+.hist-poster { width: 34px; }
+.hist-show-b { min-width: 0; display: grid; gap: 4px; }
+.hist-show-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hc-table { margin-top: var(--sp-3); }
+.hc-table summary { cursor: pointer; color: var(--ink-3); font-size: var(--fs-xs); }
+.hc-table .tbl { margin-top: var(--sp-2); }
+@media (max-width: 480px) {
+  .page-tools, .page-tools .seg { max-width: 100%; }
+  .page-tools .seg button { padding: 4px 7px; }
+}

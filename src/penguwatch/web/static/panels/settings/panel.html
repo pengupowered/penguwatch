@@ -1,0 +1,32 @@
+<!-- Settings: every setting of PenguWatch on one tab (panel.js). A draft: nothing applies until Save. -->
+<section id="settings-tab" class="tab-pane" data-panel="settings" role="tabpanel" aria-labelledby="tab-settings">
+  <div class="page-h">
+    <svg class="i" aria-hidden="true"><use href="#i-settings"/></svg>
+    <h1 class="page-t" id="settings-title" tabindex="-1">Settings</h1>
+    <span class="page-m" id="settings-meta">Nothing changes until Save.</span>
+  </div>
+  <div id="settings-banner" role="status"></div>
+  <div id="settings-notes" role="status" aria-live="polite"></div>
+  <div class="set-tools" role="group" aria-label="Versions, export and import">
+    <button type="button" class="btn sm" data-action="settings-versions" aria-haspopup="dialog" title="Earlier versions"><svg class="i" aria-hidden="true"><use href="#i-history"/></svg><span>Versions</span></button>
+    <button type="button" class="btn sm" data-action="settings-export" aria-haspopup="dialog" title="Export as YAML"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg><span>Export</span></button>
+    <button type="button" class="btn sm" data-action="settings-import" aria-haspopup="dialog" title="Import a YAML file"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg><span>Import</span></button>
+  </div>
+  <div class="set-wrap">
+    <nav class="set-rail" aria-label="Sections" id="settings-rail"></nav>
+    <label class="set-jump" for="settings-jump"><span>Jump to section</span><select class="input" id="settings-jump" data-change="settings-goto"></select></label>
+    <div id="settings-sections" class="set-sections"><div class="empty loading-state"><span class="spinner" aria-hidden="true"></span><span>Loading…</span></div></div>
+  </div>
+  <div class="set-bar" id="settings-bar" role="group" aria-label="Save, versions and transfer">
+    <div class="set-bar-l">
+      <button type="button" class="btn sm" data-action="settings-versions" aria-haspopup="dialog" aria-label="Versions" title="Earlier versions"><svg class="i" aria-hidden="true"><use href="#i-history"/></svg><span class="fl">Versions</span></button>
+      <button type="button" class="btn sm" data-action="settings-export" aria-haspopup="dialog" aria-label="Export" title="Export as YAML"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg><span class="fl">Export</span></button>
+      <button type="button" class="btn sm" data-action="settings-import" aria-haspopup="dialog" aria-label="Import" title="Import a YAML file"><svg class="i" aria-hidden="true"><use href="#i-file"/></svg><span class="fl">Import</span></button>
+    </div>
+    <div class="set-bar-r">
+      <span class="set-bar-n" id="settings-count" aria-live="polite"></span>
+      <button type="button" class="btn" id="settings-cancel" data-action="settings-cancel" disabled>Cancel</button>
+      <button type="button" class="btn primary" id="settings-save" data-action="settings-save" disabled><svg class="i" aria-hidden="true"><use href="#i-ok"/></svg><span>Save</span></button>
+    </div>
+  </div>
+</section>

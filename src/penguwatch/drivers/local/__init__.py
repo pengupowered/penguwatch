@@ -54,6 +54,9 @@ class LocalLibrary:
         return DriverStatus(driver=NAME, connected=True, auth_state="ok", configured=True, message=LOCAL_ONLY_MESSAGE,
                             details={"local_only": True})
 
+    async def local_status(self) -> DriverStatus:
+        return await self.status()  # nothing to ask: there is no account
+
     async def connect(self, step: Optional[Mapping[str, Any]] = None) -> ConnectStep:
         return ConnectStep(kind="error", message="The local library has no account to connect.")
 

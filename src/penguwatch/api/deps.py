@@ -22,6 +22,7 @@ class AppContainer:
     security: Any = None  # SecurityConfig, for the System tab
     notifier: Any = None  # notify.Notifier
     webhooks: Any = None  # webhooks.WebhookDispatcher
+    settings: Any = None  # settings.manager.SettingsManager (the settings store; None until the settings component sets it up)
     background: set = field(default_factory=set)
 
 

@@ -96,7 +96,7 @@ and their removal counterparts.
 PenguWatch follows SIMKL's [Sync guide](https://api.simkl.org/guides/sync) and keeps its API use low:
 
 * **Schedule:** a check every 30 min while the app is in use, every 3 h after 12 h without use
-  (`auto_sync_interval_minutes`, `idle_after_hours`, `idle_sync_interval_minutes` in `config.yaml`).
+  (`auto_sync_interval_minutes`, `idle_after_hours`, `idle_sync_interval_minutes`, on the Settings tab under Sync; a change applies at once).
   The open page refreshing itself does not count as use; the next real interaction triggers one sync.
 * **Each cycle** makes one `/sync/activities` call, and fetches lists only for the buckets that changed
   (with `date_from`). Changes waiting in review are not re-fetched until SIMKL moves again.

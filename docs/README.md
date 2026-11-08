@@ -15,8 +15,9 @@ Every document, grouped by what you are trying to do. The [project README](../RE
 - [Using PenguWatch](usage.md): the tabs, tracking episodes, the optimizer and rotation planner, the calendar feed,
   shortcuts and the phone app.
 - [Screenshots](screenshots.md): the pages and dialogs, in both themes.
-- [Configuration](configuration.md): every `config.yaml` key and environment variable, the household, services and
-  bundles, and how a title gets its service.
+- [Configuration](configuration.md): the Settings tab (every setting, its range and default), the few bootstrap keys left in
+  `config.yaml`, the environment variables, the one-time import when upgrading, services and bundles, and how a title gets
+  its service.
 
 ## Running it
 
@@ -28,6 +29,7 @@ Every document, grouped by what you are trying to do. The [project README](../RE
 
 - [Drivers](drivers.md): the drivers that ship (SIMKL, local, TVmaze) and a guide to writing one.
 - [API](api.md): authentication, the stable endpoints and their shapes, errors and limits.
+- [MCP](mcp.md): the optional read-only endpoint that lets an AI assistant ask about your library.
 - [Extending](extending.md): your own rating sources, event webhooks, drivers and components.
 - [Architecture](architecture.md): the ordered backend components, start-up failures, shutdown and the driver layer.
 
@@ -35,6 +37,7 @@ Every document, grouped by what you are trying to do. The [project README](../RE
 
 - [Development](development.md): project layout, running locally, tests, migrations.
 - [The web UI](ui.md): how the page is built, theming, adding a tab and the rules the tests enforce.
+- [Themes](themes.md): the seven palettes, the server default, the theme.json contract, the checks, adding a theme.
 - [Releasing](releasing.md): CI, the release workflow and the first public release.
 - [Supply chain](supply-chain.md): the dependency policy and how dependencies are updated.
 - [Contributing](../CONTRIBUTING.md), [Security policy](../SECURITY.md) and the [changelog](../CHANGELOG.md).

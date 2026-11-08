@@ -5,6 +5,121 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-07
+
+### Added
+- **Settings tab.** Everything that was in `config.yaml` is now changed in the app: household names, the sync schedule,
+  the optimizer's weights, the daily digest (address, kind, hour, renewal warning), event webhooks, the theme and time zone,
+  MCP, the Grafana address, which driver fills each data role, and a few advanced values. Changes apply at once (data
+  sources, the SIMKL app name and the TVmaze request limits say "applies after a restart"), are checked against their
+  ranges, are kept as versions (the last 50, restorable), and two open tabs cannot overwrite each other. A setting fixed by
+  an environment variable shows "From environment" and is read-only. Export writes the settings as YAML (no address or
+  secret) and Import reads such a file into the form for review. `GET /api/settings/schema`, `/api/settings`,
+  `/api/settings/values`, `/validate`, `/versions`, `/export`, `/import` and `PUT /api/settings` serve it
+  ([API](docs/api.md#settings); not stable, and guarded by the access token like every `/api` route). Four values that
+  were fixed in the code are settings now: the renewal warning days, the optimizer's viewing window, its "not used"
+  threshold and History's bulk-mark threshold.
+- **`secrets.json`.** The digest address and each webhook's address and signing secret are kept in a file next to the
+  database (mode 0600, written atomically), write-only through the API and never exported, logged or put in a version.
+  The tab cannot point a webhook at a variable or a file for its signing secret: a `secret_env` or `secret_file` imported
+  from `config.yaml` is kept read-only (or cleared with "Stop using it"), a new or changed one is refused. A typed
+  signing secret needs 16 characters. An address (a webhook's or the digest's) must be `http(s)` without
+  `user:password@`, and may not be this machine or a link-local address (`localhost`, `127.0.0.1`, `::1`, `169.254.x.x`,
+  and numeric forms such as `2130706433`); the same check runs again on the resolved address when a call is made, so a
+  name that later points at this machine is refused too. A webhook that signs with an imported variable or file can't
+  be given a new address on the tab ([Security](docs/security.md#settings-and-secrets)).
+- `penguwatch backup` and `scripts/deploy.sh` copy `secrets.json` with the database. `penguwatch settings check-import
+  CONFIG DB` tries the one-time import of `CONFIG` on a copy of the database `DB` (which is never written) and reports
+  what would change, never a value; `--live` compares an install that was already imported.
+- Streaming services that came from the built-in list and that you never edited are brought up to date with the built-in
+  list at each start (name, aliases, titles, bundle members; never prices, renewal dates or whether a service is active).
+  Services you edited or added are never touched.
+- **Edit on the Services tab.** Each streaming service has an Edit link that changes its name, price, aliases, titles
+  and (for a bundle) its members in place, instead of removing the service and adding it again.
+- **Browser tests in the repository.** `scripts/test-ui.sh` runs the dashboard in headless Chromium (and a pass in
+  Firefox) in a locked-down container with no network ([docs/development.md](docs/development.md)).
+- **History tab.** What you watched over the last 7 days, 30 days or 12 months, compared with the period before:
+  hours, episodes, movies, titles started and finished, days with viewing, a chart over time, top shows, hours and
+  cost per hour by service, genres, and weekday and time of day (in your time zone). Episodes marked in bulk (three or
+  more with one exact timestamp) are left out unless you include them. `GET /api/history`. The demo library now has a
+  year of watching, with a few bulk marks.
+- **Themes.** Seven palettes (the standard look, Nord, Dracula, Solarized, E-ink, High contrast and Blueprint) picked per
+  browser in the header's theme menu, which replaces the light/dark button and keeps light, dark and "like the system" as a
+  separate choice. `display.theme` in `config.yaml` is the theme a browser shows until it picks one (an unknown name falls
+  back to the standard look, with one warning in the log). Themes are palettes only: a folder of `theme.json` under
+  `static/themes/`, checked in the tests for text contrast, status colours and the card edge ([docs/themes.md](docs/themes.md)).
+  `GET /api/themes` lists them. The sign-in page follows light/dark only.
+- **MCP endpoint.** An optional, read-only `POST /mcp` lets an AI assistant such as Claude Code ask about the library:
+  `up_next`, `tonights_pick`, `search_library`, `title`, `schedule`, `optimizer`, `sync_status` and `history` (what
+  was watched over 7, 30 or 365 days, the same data as the History tab). Off by default
+  (`mcp.enabled` in config.yaml, or `PENGUWATCH_MCP_ENABLED`); guarded like the API (access token, Host and Origin
+  checks, body cap); no secret is ever in an answer; calls are counted as `penguwatch_mcp_calls_total`
+  ([docs/mcp.md](docs/mcp.md)). PenguWatch speaks the protocol itself: no new runtime dependency.
+
+### Changed
+- **`config.yaml` is read once.** On the first start of this version the app stores the settings in your `config.yaml`
+  in its database, and from then on ignores them: the file keeps only `server.host`, `server.port` and `database.db_path`.
+  The built-in list of streaming services moved out of `config.example.yaml` (it is packaged with the app).
+- The default for `optimizer.max_active_services` is 3 (it was 1; `config.example.yaml` already said 3). An existing
+  install keeps the value it ran with.
+- A `PENGUWATCH_*` variable that pins a setting (`PENGUWATCH_TZ`, `PENGUWATCH_LOG_LEVEL`, `PENGUWATCH_NOTIFY_HOUR`,
+  `PENGUWATCH_NOTIFY_KIND`, `PENGUWATCH_MCP_ENABLED`, `PENGUWATCH_GRAFANA_URL`) but holds an invalid value is ignored: the
+  setting's stored value (or its default) applies and stays editable, one warning in the log names the variable and why
+  (never the value), the Settings tab says so next to the setting, and `penguwatch doctor` lists it. The app still
+  starts (0.15 fell back to UTC or `info` for a bad time zone or log level). `PENGUWATCH_NOTIFY_KIND` and
+  `PENGUWATCH_NOTIFY_HOUR` have no default any more, so they pin the setting only when set.
+- **`config.yaml` is lenient outside the bootstrap keys.** A bad `server.host`, `server.port` or `database.db_path` still
+  stops the start; any other value the app refuses (an unknown driver or theme, a number out of range) is left out with
+  one warning naming the key and why, its default runs, and the one-time import lists it under Settings > About.
+- **Webhooks and the daily digest never call this machine or a link-local address.** Every call checks the address
+  the name resolves to and refuses loopback (`localhost`, `127.0.0.1`, `::1`), `0.0.0.0`, link-local (`169.254.x.x`,
+  `fe80::`) and multicast, also for `PENGUWATCH_NOTIFY_URL` and webhooks imported from `config.yaml`. LAN addresses are
+  fine. A receiver or ntfy server on the same host must be reached by the host's LAN address; in a rootless Podman
+  container `host.containers.internal` can be link-local and is then refused too.
+- **Webhook errors are coarse.** The System tab, `GET /api/webhooks` and `/metrics` describe a failed call as
+  `delivered`, `redirect not followed`, `refused by the receiver (HTTP 4xx)`, `server error (HTTP 5xx)`, `timed out` or
+  `could not connect`: no status code, exception name or receiver text (they could repeat an address).
+- **The daily digest no longer uses a proxy.** Like the webhook client already did, its HTTP client ignores the proxy and
+  certificate variables (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `SSL_CERT_FILE`), so a proxy can't route a call around
+  the address check; the ntfy server or receiver must be reachable directly.
+- **A webhook in `config.yaml` that signs with another variable or file is not imported.** The one-time import keeps a
+  `secret_env` only when it is named `PENGUWATCH_WEBHOOK_...` and a `secret_file` only under `/run/secrets/`; any other
+  leaves that webhook out (it would send unsigned), named in Settings > About. Rename the variable, or add the webhook
+  again on the tab with a stored signing secret.
+- **Compose files.** `docker-compose.yml` and `compose.release.yaml` pass `PENGUWATCH_LOG_LEVEL`, `PENGUWATCH_NOTIFY_KIND` and
+  `PENGUWATCH_NOTIFY_HOUR` as `${NAME:-}` (empty, which counts as unset) instead of `info`, `ntfy` and `9`.
+- The header's light/dark pick moved from `localStorage` `penguwatch.theme` to `penguwatch.mode`; the first page load keeps an
+  existing pick.
+- Tonight's Pick keeps its choosing rules in one place (`penguwatch.pick`), shared with the MCP tool; the endpoint's
+  behaviour is unchanged.
+- The test container runs as an unprivileged user with a read-only root filesystem, dropped capabilities and size limits.
+
+### Upgrading from 0.15
+- **Your `config.yaml` is imported once, then ignored** (except the listen address and the database location). Every
+  setting it sets is stored with the same value, so nothing changes in behaviour; the one default that moved,
+  `optimizer.max_active_services` (1 to 3), is stored as `1` for a file that did not set it. Webhooks move over with their
+  addresses going to `secrets.json`; your `services:` list seeds the Services tab; your own rating sources become ordinary
+  ones you can edit; a SIMKL client ID or token in the file moves into the stored login. Check **Settings > About** for
+  anything the import skipped. Editing `config.yaml` later changes nothing; use the Settings tab (or Import).
+- **Environment variables that pin a setting.** A set variable still wins, and the tab shows it read-only: `PENGUWATCH_TZ`
+  (time zone), `PENGUWATCH_LOG_LEVEL`, `PENGUWATCH_NOTIFY_KIND`, `PENGUWATCH_NOTIFY_HOUR`, `PENGUWATCH_NOTIFY_URL` (the digest
+  address), `PENGUWATCH_MCP_ENABLED` and `PENGUWATCH_GRAFANA_URL`. Remove a variable (and restart) to edit its setting on the
+  tab. **If you keep your own copy of `compose.release.yaml` or `docker-compose.yml`,** take the new file or change the
+  `PENGUWATCH_LOG_LEVEL`, `PENGUWATCH_NOTIFY_KIND` and `PENGUWATCH_NOTIFY_HOUR` lines to `${NAME:-}`: the old defaults
+  (`info`, `ntfy`, `9`) would pin those three settings.
+- **Back up `secrets.json`** (in the data folder, `/app/data` in the container) together with the database. The
+  database download (`/api/export/backup.db`) deliberately does not include it. `penguwatch backup` and `scripts/deploy.sh`
+  do.
+- **Going back to 0.15** works on the migrated database but reads `config.yaml` again and does not see changes made on the
+  tab; restore the backup you took before upgrading to return cleanly.
+
+### Fixed
+- On a window about 1280 px wide the tab bar no longer cuts off its last tabs: it shows the short names (Plan, Pick, Schedule...)
+  when the full ones do not fit, and only icons below about 1100 px. It measures, so it also adapts to the theme and font.
+- Searching for `%` or `_` finds titles that contain those characters instead of matching everything.
+- The SIMKL account details are not fetched again for five minutes after a failed fetch, so a page that polls the sync
+  status does not call SIMKL on every poll while it is unreachable.
+
 ## [0.15.2] - 2026-11-06
 
 ### Fixed
@@ -131,7 +246,8 @@ The first public release.
 - The example `config.yaml` no longer sets `server.host` or `database.db_path`; leave them out to get the defaults
   above. The container and `docker compose` behave as before, and your existing `config.yaml` keeps working.
 
-[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.15.2...HEAD
+[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/pengupowered/penguwatch/compare/v0.15.2...v0.16.0
 [0.15.2]: https://github.com/pengupowered/penguwatch/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/pengupowered/penguwatch/compare/v0.15.0...v0.15.1
 [0.15.0]: https://github.com/pengupowered/penguwatch/releases/tag/v0.15.0

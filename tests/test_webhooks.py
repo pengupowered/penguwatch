@@ -124,7 +124,7 @@ async def test_gives_up_after_the_last_retry_and_says_why():
     d.publish("title.added", {})
     assert not await d.deliver(hook, *hook.queue.get_nowait())
     assert len(rx.requests) == len(d.retry_delays) + 1
-    assert hook.failed == 1 and hook.last_error == "HTTP 500" and hook.state == "failing"
+    assert hook.failed == 1 and hook.last_error == "server error (HTTP 5xx)" and hook.state == "failing"
 
 
 @pytest.mark.parametrize("status", [400, 401, 403, 404, 410, 422])
@@ -133,7 +133,7 @@ async def test_client_errors_are_not_retried(status):
     hook, d = make(rx)
     d.publish("title.added", {})
     assert not await d.deliver(hook, *hook.queue.get_nowait())
-    assert len(rx.requests) == 1 and hook.last_error == f"HTTP {status}"
+    assert len(rx.requests) == 1 and hook.last_error == "refused by the receiver (HTTP 4xx)"
 
 
 @pytest.mark.parametrize("status", [408, 429])
@@ -145,7 +145,7 @@ async def test_timeouts_and_rate_limits_are_retried(status):
 
 
 async def test_network_errors_and_timeouts_are_retried_and_described_without_the_url():
-    for exc, expected in ((httpx.ConnectTimeout("t"), "timeout"), (httpx.ConnectError(f"cannot reach {URL}"), "connection error (ConnectError)")):
+    for exc, expected in ((httpx.ConnectTimeout("t"), "timed out"), (httpx.ConnectError(f"cannot reach {URL}"), "could not connect")):
         rx = Receiver(200, raises=exc)
         hook, d = make(rx)
         d.publish("title.added", {})
@@ -160,7 +160,7 @@ async def test_a_redirect_is_not_followed():
     d.publish("title.added", {})
     assert not await d.deliver(hook, *hook.queue.get_nowait())
     assert [str(r.url) for r in rx.requests] == [URL]  # the Location was never requested
-    assert hook.failed == 1 and "redirects are not followed" in hook.last_error
+    assert hook.failed == 1 and hook.last_error == "redirect not followed"
 
 
 async def test_a_full_queue_drops_new_events_and_counts_them():
@@ -213,7 +213,7 @@ async def test_send_test_reports_the_outcome():
     ok, d = make(Receiver(200))
     assert await d.send_test(ok) is True
     bad, d2 = make(Receiver(500))
-    assert await d2.send_test(bad) is False and bad.last_error == "HTTP 500"
+    assert await d2.send_test(bad) is False and bad.last_error == "server error (HTTP 5xx)"
 
 
 # --- the events the data raises --------------------------------------------------------------------
@@ -353,8 +353,9 @@ async def test_a_webhook_whose_secret_is_missing_stays_off_and_never_sends_unsig
     assert "MISSING_HOOK_SECRET is not set" in caplog.text
     hook = container.webhooks.hooks[0]
     assert hook.state == "disabled" and container.webhooks.publish("title.added", {}) == 0
-    assert container.repository._event_listeners == []
+    assert len(container.repository._event_listeners) == 1   # always installed: hooks can be added while running
     await component.stop()
+    assert container.repository._event_listeners == []
 
 
 async def test_the_component_wires_events_to_deliveries_and_unwires_on_stop(container, monkeypatch):
@@ -490,7 +491,7 @@ async def test_webhooks_show_on_the_system_tab_and_in_metrics(container):
         metrics = (await ac.get("/metrics")).text
     assert system["hooks"][0]["name"] == "home" and system["hooks"][0]["state"] == "failing"
     assert system["hooks"][0]["failed"] == 1 and system["hooks"][0]["queued"] == 1
-    assert system["recent"][0]["outcome"] == "failed" and system["recent"][0]["detail"] == "HTTP 500"
+    assert system["recent"][0]["outcome"] == "failed" and system["recent"][0]["detail"] == "server error (HTTP 5xx)"
     assert 'penguwatch_webhook_deliveries_total{webhook="home",outcome="failed"}' in metrics
     assert 'penguwatch_webhook_queue_depth{webhook="home"} 1' in metrics
 
@@ -524,6 +525,8 @@ async def test_end_to_end_config_lifespan_signed_delivery_to_a_real_receiver(tmp
             pass
 
     server = HTTPServer(("127.0.0.1", 0), Handler)
+    from penguwatch import webhooks as webhooks_module
+    monkeypatch.setattr(webhooks_module, "blocked_host", lambda host: False)   # this receiver is on loopback
     threading.Thread(target=server.serve_forever, daemon=True).start()
     config = tmp_path / "config.yaml"
     config.write_text(f"""
@@ -534,11 +537,11 @@ webhooks:
   - name: local
     url: http://127.0.0.1:{server.server_port}/in
     events: [title.added, ratings.imported]
-    secret_env: E2E_HOOK_SECRET
+    secret_env: PENGUWATCH_WEBHOOK_E2E
 """, encoding="utf-8")
     monkeypatch.setenv("PENGUWATCH_CONFIG", str(config))
     monkeypatch.setenv("PENGUWATCH_DB_PATH", str(tmp_path / "data" / "app.db"))
-    monkeypatch.setenv("E2E_HOOK_SECRET", SECRET)
+    monkeypatch.setenv("PENGUWATCH_WEBHOOK_E2E", SECRET)
     for var in ("SIMKL_ACCESS_TOKEN", "SIMKL_CLIENT_ID", "PENGUWATCH_NOTIFY_URL"):
         monkeypatch.delenv(var, raising=False)
     try:
@@ -548,7 +551,8 @@ webhooks:
                 assert made.status_code == 200
                 sid = made.json()["id"]
                 sources = (await ac.get("/api/rating-sources")).json()
-                assert sources[-1]["id"] == "letterboxd" and sources[-1]["read_only"]
+                # handed over by the one-time settings import: editable on the Ratings tab (origin api)
+                assert sources[-1]["id"] == "letterboxd" and not sources[-1]["read_only"]
                 done = await ac.put("/api/ratings/letterboxd", json={"items": [{"match": {"title": "heat", "year": 1995}, "value": 4.5}]})
                 assert done.json()["updated"] == 1
                 await ac.patch(f"/api/shows/{sid}", json={"priority": "high"})   # not subscribed: no event
@@ -609,7 +613,7 @@ async def test_a_receiver_that_never_finishes_is_cut_off_by_the_overall_deadline
     d.publish("title.added", {})
     started = asyncio.get_running_loop().time()
     assert not await d.deliver(hook, *hook.queue.get_nowait())
-    assert asyncio.get_running_loop().time() - started < 2 and hook.last_error == "timeout"
+    assert asyncio.get_running_loop().time() - started < 2 and hook.last_error == "timed out"
     assert d.recent[-1]["event"] == "title.added" and d.recent[-1]["outcome"] == "failed"   # the entry names its event
 
 

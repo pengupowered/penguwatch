@@ -26,7 +26,6 @@ let importing = false;
 
 function originBadge(s) {
   if (s.builtin) return `<span class="badge quiet st-unknown">${icon("lock")}Built in</span>`;
-  if (s.read_only) return `<span class="badge quiet st-unknown">${icon("file")}config.yaml</span>`;
   return `<span class="badge quiet st-good">${icon("ok")}Yours</span>`;
 }
 

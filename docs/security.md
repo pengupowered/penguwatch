@@ -46,6 +46,44 @@ PENGUWATCH_ACCESS_TOKEN=<the token>
 * After rolling back to a version without sign-out, copied cookies that were signed out work again: change the token
   after such a rollback.
 
+## Settings and secrets
+
+Settings are changed on the Settings tab, through `/api/settings*`. These routes need the access token like every
+other `/api` route, and are never open: **with a token set, whoever can sign in can change settings; without one,
+anyone who can reach the port can**, exactly as they can already change your library. What the settings add to that is
+the ability to point the daily digest and the event webhooks at any address, so the tab shows the no-token warning at its
+top. Set the token.
+
+* **Secrets file.** The digest address and each webhook's address and signing secret are kept in `secrets.json` next to
+  the database (`/app/data/secrets.json` in the container): mode 0600, written atomically, in the 0700 data folder. They
+  are **write-only**: no API answer, page, Export, saved version, log line, error message or telemetry attribute carries
+  one (the tab shows "set" and the address's host). The SIMKL login stays in the database, as before.
+* **Back it up with the database.** `penguwatch backup` and `scripts/deploy.sh` copy it (privately). The downloadable
+  `backup.db` is deliberately without it, so that file stays safe to keep anywhere; see [Operations](operations.md#backups-and-exports).
+* **Pinned by the environment.** A secret or setting set by an environment variable (for example
+  `PENGUWATCH_NOTIFY_URL`) cannot be changed through the API; a write is refused with the variable's name.
+* **Webhook restrictions.** A webhook's signing secret is signed into every delivery it makes, so the page and the API
+  never let a caller choose where that secret comes from: a save that sets a new or changed `secret_env` or
+  `secret_file` is refused. One imported from a 0.15 `config.yaml` (which the import keeps only when it is named
+  `PENGUWATCH_WEBHOOK_...` or is a path under `/run/secrets/`) can be kept or cleared, nothing else, and while a webhook
+  still reads it, its address can't be changed either. Without that, anyone able to write settings could have the server
+  sign with a secret of their choice (`PENGUWATCH_ACCESS_TOKEN`, `/etc/passwd`, ...) and send the result to their own
+  address, to guess it offline. Webhook items are matched to the stored ones by id, never by name. A typed signing secret
+  must be at least 16 characters.
+* **Addresses (SSRF).** A webhook address and the digest address must be `http` or `https` with a host and a valid
+  port, without `user:password@`, and not this machine or a link-local address: `localhost`, loopback, `0.0.0.0`,
+  link-local (`169.254.x.x`, the cloud metadata address included), multicast, IPv4-mapped forms and numeric spellings such
+  as `2130706433` or `0x7f.1` are refused when saved. Every call checks again, on the address the name resolves to, and
+  connects to that checked address (TLS still verifies the name), so a name that later points at this machine (DNS
+  rebinding) gets nothing. This also covers `PENGUWATCH_NOTIFY_URL` and imported webhooks. LAN addresses stay allowed.
+  Redirects are not followed, and the two HTTP clients ignore proxy variables, so nothing routes around the check.
+* **Coarse errors.** A failed webhook or digest call is recorded as `redirect not followed`, `refused by the receiver
+  (HTTP 4xx)`, `server error (HTTP 5xx)`, `timed out` or `could not connect`, never with the receiver's text or the
+  exception's message; a failing settings applier is logged with its exception type and frames, never its message.
+* **Errors** name the field, never repeat what you typed.
+* **Settings are rate-limited** (saves, validation and import) and subject to the same Host, Origin and body-size checks
+  as every write.
+
 ## Always on
 
 * **Host check:** requests whose `Host` header is not an IP address, `localhost`, a single-label name, a name ending
@@ -65,12 +103,27 @@ PENGUWATCH_ACCESS_TOKEN=<the token>
   calendar key is not logged); exported telemetry carries no titles or search text (see [Operations](operations.md)).
 * **CSV export** neutralises spreadsheet formulas in titles that come from the catalogue services.
 
+## The MCP endpoint
+
+`POST /mcp` ([MCP](mcp.md)) is **off by default** (`mcp.enabled`). When on, it is guarded exactly like the API: the Host
+check, the cross-site rule, the body cap and the access token (with no token set it is open, like the API). It accepts
+only `application/json` bodies and its answers are never cached. Its tools only read, and no tool returns a secret, but:
+
+* **The token is the full admin token.** There are no scoped keys: a client that holds it can also write the library,
+  connect and disconnect the library service's account and download a backup through the API. Keep it out of project
+  files (see [MCP](mcp.md#keep-the-token-out-of-project-files)).
+* **Answers go to the assistant's provider.** Whatever a tool returns (titles, progress, ratings, service names and prices)
+  is sent to the AI service you use as part of your conversation.
+* **The token crosses the network in clear** over plain HTTP, as on the web page.
+* **Rate limit:** 120 calls a minute per client address, answered with `429` as a JSON-RPC error; under rootless Podman
+  every client shares one address (see Limits).
+
 ## The container
 
 * Runs as uid 10001, not root, with a read-only root file system, `/tmp` as tmpfs, all Linux capabilities dropped and
   `no-new-privileges` (see `docker-compose.yml`).
 * Writes only to `/app/data` (the `penguwatch_data` volume). The database and its WAL files are created with mode
-  0600; the backups `scripts/deploy.sh` keeps are private to your user.
+  0600, and so is `secrets.json`; the backups `scripts/deploy.sh` keeps are private to your user.
 * Python packages are installed from hash-locked files and the base image is pinned by digest
   (see [Supply chain](supply-chain.md)).
 * An older data volume created by a root-run container needs a one-time `chown -R 10001:0`.

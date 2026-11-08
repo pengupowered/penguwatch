@@ -2,7 +2,7 @@
 
 All pictures show the made-up demo library that `scripts/demo_library.py` builds: every title, network, rating and poster
 in them is invented. Posters are generated artwork. The page follows your system's light or dark setting until you pick
-one with the button in the header.
+one in the header's theme menu, which also picks the theme ([Themes](themes.md)).
 
 ## Up Next
 
@@ -72,3 +72,41 @@ Finished shows with new episodes, shows you have not touched for months, and tit
 Up Next and the Library on a phone, with the bottom tab bar.
 
 ![Up Next on a phone](images/phone-up-next.png) ![The library on a phone](images/phone-library.png)
+
+## History
+
+What you watched in the last 30 days (7 days and 12 months are one click away), compared with the period before.
+
+![History, last 30 days](images/history-30d-dark.png) ![History on a phone](images/phone-history.png)
+
+## Settings
+
+The Settings tab: everything that used to be in `config.yaml`, changed in the app. The picture shows the top of the page; the
+phone picture shows the same page with nothing changed. The warning about the access token is there because the demo runs
+without one.
+
+![The Settings tab](images/settings-dark.png) ![Settings on a phone](images/phone-settings.png)
+
+## Themes
+
+The same page, Up Next, in six of the seven themes ([Themes](themes.md)): PenguWatch (the default), Nord, Dracula, E-ink (a
+light-only theme), High contrast and Blueprint (with its grid-paper background). Solarized is the seventh. Every theme but
+the one-mode ones also has a light and a dark palette.
+
+The header's theme menu, open: the theme for this browser, and light, dark or like the system.
+
+![The theme menu](images/theme-menu.png)
+
+![Up Next in the default theme](images/theme-default.png)
+![Up Next in Nord](images/theme-nord.png)
+![Up Next in Dracula](images/theme-dracula.png)
+![Up Next in E-ink](images/theme-e-ink.png)
+![Up Next in High contrast](images/theme-high-contrast.png)
+![Up Next in Blueprint](images/theme-blueprint.png)
+
+## How they were made
+
+Every picture is a headless Chromium screenshot of the demo library (`scripts/demo_library.py --signed-in`) at 1280x820
+(the tall ones at 1280x1000 and 1280x1500), or 390x844 at twice the pixel ratio for the phone ones, in the dark or the
+light setting of the system. They run offline, so the demo's made-up SIMKL login is shown as a sync that went through.
+Each is quantised to a 256-colour palette and written without any metadata chunk.

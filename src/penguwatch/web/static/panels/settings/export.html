@@ -1,0 +1,19 @@
+<!-- Dialog: the settings as YAML, without secrets (panel.js). -->
+<div class="modal" id="settings-export-modal" role="dialog" aria-modal="true" aria-labelledby="settings-export-title">
+  <div class="modal-content">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-download"/></svg>
+      <h2 class="modal-t" id="settings-export-title">Export</h2>
+      <button type="button" class="btn icon m-close" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <p class="fine">Every stored setting and list as YAML. Addresses and secrets are never included. Import reads it on another install.</p>
+      <label class="sr-only" for="settings-export-text">Exported settings</label>
+      <textarea class="input set-yaml" id="settings-export-text" readonly rows="14" spellcheck="false"></textarea>
+    </div>
+    <div class="modal-f">
+      <a class="btn" id="settings-export-file" href="/api/settings/export" download="penguwatch-settings.yaml"><svg class="i" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+      <button type="button" class="btn primary" data-action="settings-export-copy"><svg class="i" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button>
+    </div>
+  </div>
+</div>

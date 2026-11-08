@@ -47,11 +47,14 @@ TAGS: List[Dict[str, Any]] = [
     {"name": "Tonight's pick", "description": "Picks something to watch. For the page; may change."},
     {"name": "Discover", "description": "Trending titles and recommendations. For the page; may change."},
     {"name": "Planner", "description": "Month-by-month rotation plan. For the page; may change."},
+    {"name": "History", "description": "Viewing over the last 7, 30 or 365 days. For the page; may change."},
     {"name": "Insights", "description": "Viewing insights. For the page; may change."},
     {"name": "Catalog", "description": "Searching the catalogue for titles to add. For the page; may change."},
     {"name": "Drivers", "description": "The drivers, and the library driver's login and sync. For the page; may change."},
     {"name": "Sync review", "description": "Review mode and the outbox. For the page; may change."},
     {"name": "Notifications", "description": "The daily digest preview and test. For the page; may change."},
+    {"name": "Themes", "description": "The themes the page can show and the server's default. For the page; may change."},
+    {"name": "Settings", "description": "The Settings tab: the settings, their sources and ranges. For the page; may change."},
     {"name": "System", "description": "Health, statistics and the System tab. Only /api/health is stable."},
 ]
 

@@ -3,15 +3,15 @@
 A driver is the code for one service: a tracker with an account (the **library service**, the one your library is kept
 in step with), a public catalogue. It turns that service's answers
 into the neutral types of `src/penguwatch/drivers/base.py`, so nothing else in PenguWatch knows the service. The design
-is in [Architecture](architecture.md#the-driver-layer); which driver fills which role is config.yaml's `drivers:`
-([Configuration](configuration.md#drivers)).
+is in [Architecture](architecture.md#the-driver-layer); which driver fills which role is the Settings tab's Data sources (`drivers:`)
+([Configuration](configuration.md#what-the-settings-mean)).
 
 ## The drivers that ship
 
 | Driver | Offers | Account | Options |
 |---|---|---|---|
-| `simkl` | `catalog`, `library_sync`, `schedule`, `discovery`, `ratings` (SIMKL, IMDb / MyAnimeList) | a SIMKL app id, then a device-PIN login | config.yaml `simkl:` ([Configuration](configuration.md#simkl)) |
-| `tvmaze` | `catalog`, `schedule`, `ratings` (TVmaze); TV only | none | config.yaml `tvmaze:` ([Configuration](configuration.md#tvmaze)) |
+| `simkl` | `catalog`, `library_sync`, `schedule`, `discovery`, `ratings` (SIMKL, IMDb / MyAnimeList) | a SIMKL app id, then a device-PIN login | Settings tab, Sync and Advanced ([Configuration](configuration.md#all-settings)) |
+| `tvmaze` | `catalog`, `schedule`, `ratings` (TVmaze); TV only | none | Settings tab, Advanced ([Configuration](configuration.md#all-settings)) |
 | `local` | `library_sync` only | none | none |
 
 The `local` driver is the library without an account: the library, the watch history and the ratings live only in
@@ -31,12 +31,12 @@ every capability (`drivers/simkl/`):
   and recommendations.
 - `ratings`: SIMKL's and IMDb's (MyAnimeList's for anime), stored in the `simkl_rating` and `imdb_rating` columns.
 
-Options: config.yaml `simkl:` ([Configuration](configuration.md#simkl)); the environment variables `SIMKL_CLIENT_ID` and
+Options: the Settings tab ([Configuration](configuration.md#all-settings)); the environment variables `SIMKL_CLIENT_ID` and
 `SIMKL_ACCESS_TOKEN` override the client ID and the access token.
 
 ## The local library driver
 
-`drivers: {library: local}`. Titles still come from the catalogue drivers (`catalog`), so adding one works as before;
+The library set to Local (Settings > Data sources, `drivers.library: local`). Titles still come from the catalogue drivers (`catalog`), so adding one works as before;
 what changes is that nothing is sent to or read from an account:
 
 - nothing contacts any network for the library, and nothing is ever delivered. The only outbox rows written are the
@@ -119,7 +119,7 @@ driver declares them as class attributes next to `name` and `label` (`Driver` in
   stays off, a warning is logged and shown on the System tab; rename or delete your source and restart to turn it on.
 - Not offered: `library_sync` (no accounts at TVmaze), `discovery` (no trending or recommendations), movies.
 
-**Use it:** `drivers: {catalog: [tvmaze, simkl], schedule: [tvmaze]}`. With `library: simkl` and no SIMKL login,
+**Use it:** on the Settings tab, Data sources: Catalogue `tvmaze` then `simkl`, Schedule `tvmaze` (`drivers.catalog: [tvmaze, simkl]`, `drivers.schedule: [tvmaze]`; applies after a restart). With `library: simkl` and no SIMKL login,
 titles are added and followed from TVmaze alone. The first catalogue that has the title's own id answers.
 
 **Limits and manners:** TVmaze allows at least 20 calls per 10 seconds per IP address and answers 429 beyond it. The
@@ -204,6 +204,9 @@ driver is built.
 | `rating_sources` | yes | A tuple of `BuiltinRatingSource` the driver fills; `()` for none ([below](#built-in-rating-sources)). |
 | `secret_state_keys` | yes | The `app_state` keys that hold credentials, without the namespace; `()` for none. They are left out of backups and exports (`api/exports.py` builds the full keys with `state_key(name, key)`). Store credentials only under `state_key(name, key)` (`driver.<name>.<key>`). |
 | `env_options` | no | Tuple of `(environment variable, option name)` pairs: a variable that is set overrides that field of the options (SIMKL's `SIMKL_CLIENT_ID`). Read by `config.py`. |
+| `settings` | no | Tuple of `DriverSetting(field, section, label, effect, unit=None, live=True)`: the options of `options_model` the Settings tab shows (keyed `<driver>.<field>`, grouped under the driver's label; `section` is `sync` or `advanced`). Type, range and default come from the field, so the range lives in one place. `live=False` marks an option read once when the driver is built ("applies after a restart"). A test fails for a field of the model that is neither here nor in `not_on_page`. |
+| `not_on_page` | no | `{field: reason}` for options the tab must not show (SIMKL's `client_id` and `access_token`: credentials). |
+| `legacy_defaults` | no | The defaults the option had before the Settings tab, for the one-time import (only where they differ from the model's). |
 | `health_url` | no | A URL `penguwatch doctor` fetches to say whether the service is reachable. |
 | `attribution` | no | `Attribution(text=..., url=...)`: the credit the service's terms ask for. `GET /api/drivers` lists it and the page shows it ([below](#showing-a-credit)). |
 | `remote` | library drivers | `True` when an account sits behind the library, `False` when it lives only in PenguWatch ([The `remote` flag](#the-remote-flag)). |
@@ -360,8 +363,11 @@ config validation, the `GET /api/drivers` listing, the rating sources, the backu
 (`drivers/__init__.py`): a name that is not in `DRIVERS`, or a driver that lacks the role's capability, stops the start
 with a message naming the key and the driver (`drivers.catalog: the local driver does not offer catalog`). A driver's own
 section (`example:` at the top level of config.yaml) is parsed by its `options_model` (`AppConfig._parse_driver_options`),
-so a wrong value fails with the field's name. Document the section in [Configuration](configuration.md) and add a
-commented example to `config.example.yaml` (the copy under `src/penguwatch/` must stay identical; a test checks that).
+so a wrong value fails with the field's name. Declare each option the user may change in `settings` (see the table above;
+it appears on the Settings tab without any front-end work), document it in [Configuration](configuration.md#all-settings)
+and, if it matters for a first start, add a commented example to `config.example.yaml` (the copy under `src/penguwatch/`
+must stay identical; a test checks that). After the first start the values on the Settings tab, not `config.yaml`, are
+the ones in effect.
 
 ### The vendor-name guard tests
 

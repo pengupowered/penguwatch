@@ -75,6 +75,8 @@ PROFILE = AppProfile(
     # Calendar apps can't send headers, so the feed is also reachable with ?key=<calendar_key>.
     capabilities={"/api/calendar.ics": CALENDAR_PURPOSE},
     cache_rules=(
+        # the MCP endpoint's answers are the user's data, for one caller: never stored by a cache in between
+        CacheRule("/mcp", "no-store"),
         # content-addressed: the hash is part of the path, so the bytes behind it never change.
         # Errors are never cached: a 404 for an old hash must not outlive a rollback.
         CacheRule("/static/v/", "public, max-age=31536000, immutable", "no-store"),

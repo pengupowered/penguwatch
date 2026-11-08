@@ -46,7 +46,7 @@ function syncChip(s) {
   return s.age_seconds > limit ? chip("warn", `Stale (${fmtDur(s.age_seconds)})`) : chip("ok", `Synced ${fmtDur(s.age_seconds)} ago`);
 }
 
-// Event webhooks (config.yaml): state, counts and the last error; never the address or the secret (the API has neither)
+// Event webhooks (Settings > Notifications): state, counts and the last error; never the address or the secret (the API has neither)
 const HOOK_STATE = {
   ok: { kind: "ok", word: "Delivering" }, idle: { kind: "idle", word: "Nothing sent yet" }, failing: { kind: "bad", word: "Failing" },
   dropping: { kind: "warn", word: "Dropping events" }, disabled: { kind: "bad", word: "Off" },
@@ -55,7 +55,7 @@ const HOOK_STATE = {
 function webhooksCard(w) {
   const hooks = (w && w.hooks) || [];
   if (!hooks.length) {
-    return card("Event webhooks", "calls to your own URLs", `<div class="panel-b"><p class="muted fine">None configured. Add <code>webhooks:</code> to config.yaml to be called when a title is added, a status changes or an episode is watched.</p></div>`, "link");
+    return card("Event webhooks", "calls to your own URLs", `<div class="panel-b"><p class="muted fine">None configured. Add one in Settings (Notifications) to be called when a title is added, a status changes or an episode is watched.</p><button type="button" class="btn sm outline" data-action="open-settings-tab">Open Settings</button></div>`, "link");
   }
   const rows = hooks.map((h) => {
     const { kind, word } = HOOK_STATE[h.state] || HOOK_STATE.idle;
@@ -183,6 +183,7 @@ async function testWebhook(el) {
 }
 
 registerAction("webhook-test", testWebhook);
+registerAction("open-settings-tab", () => { location.hash = "#/settings"; });
 onTabActivated(TAB, loadSystem);
 
 export default {

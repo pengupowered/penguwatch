@@ -152,6 +152,7 @@ async def read(repo) -> Dict[str, Any]:
 # --- what GET /api/simkl/status tells the page about the login ----------------------------------------------------
 
 USER_INFO_TTL = timedelta(hours=6)
+FAILED_USER_INFO_TTL = timedelta(minutes=5)  # a failed fetch is not retried on every poll of the status
 
 
 def login_status(*, has_token: bool, stored_state: Optional[str], has_refresh_token: bool,
@@ -196,13 +197,18 @@ async def describe(repo, client, renew_margin: float) -> Dict[str, Any]:
 
 async def cached_user_info(cache: Tuple[Optional[datetime], Any], client) -> Tuple[Any, Tuple[Optional[datetime], Any]]:
     """(the SIMKL user settings, the cache to keep). The page polls the status, so SIMKL is asked at most every
-    USER_INFO_TTL; a failed fetch gives None and keeps the cache as it was."""
+    USER_INFO_TTL; a failed fetch gives None. With nothing cached the failure itself is remembered for
+    FAILED_USER_INFO_TTL (so a page that polls does not call SIMKL again and again while it is unreachable); an older
+    good answer is kept as it was."""
     cached_at, cached = cache
-    if cached is not None and cached_at and clock.utc_now() - cached_at < USER_INFO_TTL:
+    age = clock.utc_now() - cached_at if cached_at else None
+    if cached is not None and age is not None and age < USER_INFO_TTL:
         return cached, cache
+    if cached is None and age is not None and age < FAILED_USER_INFO_TTL:
+        return None, cache
     try:
         info = await client.get_user_settings()
     except Exception as e:
         logger.warning(f"Failed to fetch SIMKL user settings: {e}")
-        return None, cache
+        return None, ((clock.utc_now(), None) if cached is None else cache)
     return info, (clock.utc_now(), info)

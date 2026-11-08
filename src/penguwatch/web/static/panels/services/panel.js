@@ -6,7 +6,7 @@ import { pricesChanged, subscriptionsChanged } from "../../js/data.js";
 import { registerAction, registerChange } from "../../js/dispatch.js";
 import { state } from "../../js/state.js";
 import { esc, icon, showToast } from "../../js/util.js";
-import { renderMemberChoices, setupAddService } from "./addservice.js";
+import { renderMemberChoices, setupAddService, startEditService } from "./addservice.js";
 import { setupReview } from "./review.js";
 import { setupSession } from "./session.js";
 import { setupLibraryListeners } from "./library.js";
@@ -18,6 +18,7 @@ registerChange("service-billing", (el) => saveServiceFields(el.dataset.service, 
 registerChange("service-renewal-date", (el) => saveServiceFields(el.dataset.service, { renewal_date: el.value === "" ? null : el.value }, el.value === "" ? "renewal date cleared" : "renewal date saved"));
 registerChange("service-note", (el) => saveServiceFields(el.dataset.service, { notes: el.value.trim() === "" ? null : el.value.trim() }, "note saved"));
 registerAction("service-prices", (el) => togglePriceHistory(el.dataset.service));
+registerAction("service-edit", (el) => startEditService(el.dataset.service));
 registerAction("toggle-service", (el, ev) => {
   const d = el.dataset;
   ev.stopPropagation();
@@ -162,6 +163,7 @@ function renderServicesManager(services) {
             ${!members.length && !by && s.monthly_cost === 0 ? `<div class="svc-includes">Included, no extra cost${s.notes ? `: ${esc(s.notes)}` : ""}</div>` : ""}
             ${priceRow(s, by)}
             <button class="btn-link svc-prices-toggle" type="button" data-action="service-prices" data-service="${esc(s.id)}">Price history</button>
+            <button class="btn-link svc-edit" type="button" data-action="service-edit" data-service="${esc(s.id)}" aria-label="Edit ${esc(s.name)}">Edit</button>
             <div class="svc-prices" id="prices-${esc(s.id)}" hidden></div>
           </div>
         </div>

@@ -4,18 +4,24 @@ Checks, each one line `ok`, `warn` or `FAIL`:
     config file    exists and is valid YAML with settings in it (a missing file is a warning: the built-in example is used)
     data folder    exists and can be written to, or can be created
     port           free, or already served by PenguWatch (/api/health), or taken by something else (FAIL)
-    time zone      the household zone (PENGUWATCH_TZ, server.timezone in the config, TZ) is one the system knows
+    time zone      the household zone (PENGUWATCH_TZ, the stored setting, else server.timezone in the config; TZ) is one
+                   the system knows
+    settings       where the settings are (the revision, the import date) and how many config.yaml keys differ from
+                   them (by name); a pinning variable that is set but not valid (ignored) is a warning
     <service>      each driver's service answers over HTTPS (a warning when it does not: the app works without it)
-Exit status 0 unless a check says FAIL. Nothing is created or changed, and no setting's value is printed.
+Exit status 0 unless a check says FAIL. Nothing is created or changed (the database is opened read-only), and no
+setting's value is printed.
 """
 
+import json
 import socket
+import sqlite3
 import ssl
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
-from urllib.parse import urlsplit
+from typing import Any, Callable, Dict, List, Optional, Tuple
+from urllib.parse import quote, urlsplit
 
 OK, WARN, FAIL = "ok", "warn", "FAIL"
 Row = Tuple[str, str, str]  # (level, what, detail)
@@ -90,6 +96,68 @@ def check_time_zone(configured: Optional[str], env_tz: Optional[str]) -> Row:
     return OK, "time zone", name
 
 
+def read_settings_state(db: Path) -> Optional[Dict[str, Any]]:
+    """The settings store of the database, read-only (never written, no side files when no app has it open):
+    {"initialized", "revision", "imported_at", "values"}; None when there is no database or it cannot be read."""
+    if not db.is_file():
+        return None
+    mode = "mode=ro" if db.with_name(db.name + "-wal").exists() else "mode=ro&immutable=1"
+    try:
+        con = sqlite3.connect(f"file:{quote(str(db.resolve()))}?{mode}", uri=True, timeout=5)
+    except sqlite3.Error:
+        return None
+    try:
+        meta = dict(con.execute("SELECT key, value FROM app_state WHERE key IN ('settings_initialized', "
+                                "'settings_revision', 'settings_imported_at')").fetchall())
+        values = {}
+        if meta.get("settings_initialized") == "1":
+            for key, raw in con.execute("SELECT key, value FROM settings_values").fetchall():
+                try:
+                    values[key] = json.loads(raw)
+                except ValueError:
+                    pass
+    except sqlite3.Error:
+        return None
+    finally:
+        con.close()
+    try:
+        imported_at = float(meta["settings_imported_at"]) if meta.get("settings_imported_at") else None
+    except ValueError:
+        imported_at = None
+    revision = meta.get("settings_revision") or "0"
+    return {"initialized": meta.get("settings_initialized") == "1", "revision": int(revision) if revision.isdigit()
+            else 0, "imported_at": imported_at, "values": values}
+
+
+def check_settings(state: Optional[Dict[str, Any]], raw: dict) -> Row:
+    """Where the settings are, and the config.yaml keys that differ from them (names only)."""
+    from datetime import datetime, timezone
+
+    if state is None or not state["initialized"]:
+        return OK, "settings", "not imported yet: the first start imports config.yaml into the Settings tab"
+    from penguwatch.settings import registry
+    from penguwatch.settings.importer import read_settings
+    since = datetime.fromtimestamp(state["imported_at"], timezone.utc).strftime("%Y-%m-%d") \
+        if state["imported_at"] else "the import"
+    differing = sorted(key for key, value in read_settings(raw).document.values.items()
+                       if value != state["values"].get(key, registry.get(key).default()))
+    detail = f"in the database since {since}, revision {state['revision']}"
+    if differing:
+        detail += (f"; config.yaml is ignored for them, {len(differing)} key{'s' if len(differing) != 1 else ''} "
+                   f"differ: {', '.join(differing)}")
+    return OK, "settings", detail
+
+
+def check_pins(env: Dict[str, str]) -> List[Row]:
+    """A warning per variable that pins a setting but is not valid (it is ignored; the reason names it, never its
+    value)."""
+    from penguwatch.config import EnvOverrides, env_pins
+    read = {name: (env.get(info.validation_alias) or "").strip() or None
+            for name, info in EnvOverrides.model_fields.items() if isinstance(info.validation_alias, str)}
+    overrides = EnvOverrides.model_construct(**read, driver_values={})  # as written: env_pins checks each one
+    return [(WARN, "variable", why) for why in env_pins(overrides)[1].values()]
+
+
 def check_service(label: str, url: str, timeout: float = 5.0) -> Row:
     """Whether a driver's service answers at `url` (its health_url)."""
     request = urllib.request.Request(url, headers={"User-Agent": "penguwatch-doctor"})
@@ -131,7 +199,12 @@ def run(settings: dict, offline: bool = False, out=None, health: Optional[Callab
         rows.append(check_port(str(settings["host"][0]), port, health))
     except ValueError:
         rows.append((FAIL, "port", f"{settings['port'][0]!r} is not a port number"))
-    rows.append(check_time_zone(env.get("PENGUWATCH_TZ") or (cli._section(raw, "server").get("timezone")), env.get("TZ")))
+    state = read_settings_state(Path(settings["db"][0]))
+    stored_zone = state["values"].get("server.timezone") if state and state["initialized"] else None
+    zone = stored_zone if state and state["initialized"] else cli._section(raw, "server").get("timezone")
+    rows.append(check_time_zone(env.get("PENGUWATCH_TZ") or zone, env.get("TZ")))
+    rows.append(check_settings(state, raw))
+    rows.extend(check_pins(env))
     rows.extend([(OK, "services", "skipped (--offline)")] if offline else services())
     for level, what, detail in rows:
         print(f"{level:>4}  {what:<12} {detail}", file=out)

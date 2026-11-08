@@ -7,9 +7,9 @@ TVmaze's data is CC BY-SA 4.0 and must be credited: `attribution` is what to sho
 
 This module stays light (the registry imports it): `build` imports the parts that talk to TVmaze."""
 
-from typing import ClassVar, FrozenSet, Tuple
+from typing import Any, ClassVar, FrozenSet, Mapping, Tuple
 
-from penguwatch.drivers.base import Attribution, BuiltinRatingSource, Capability
+from penguwatch.drivers.base import Attribution, BuiltinRatingSource, Capability, DriverSetting
 from penguwatch.drivers.tvmaze.options import TvmazeOptions
 
 
@@ -25,6 +25,24 @@ class TvmazeDriver:
     secret_state_keys: ClassVar[Tuple[str, ...]] = ()
     health_url: ClassVar[str] = "https://api.tvmaze.com/"  # what `penguwatch doctor` checks is reachable
     attribution: ClassVar[Attribution] = Attribution(text="TV data from TVmaze", url="https://www.tvmaze.com")
+    # The Settings tab (Advanced, group "TVmaze"); the client is built once with the last three
+    settings: ClassVar[Tuple[DriverSetting, ...]] = (
+        DriverSetting("schedule_max_titles", "advanced", "Titles checked per schedule run",
+                      "How many library titles the TVmaze schedule looks up each run (one request each).",
+                      unit="titles"),
+        DriverSetting("rate_limit_calls", "advanced", "Requests per window",
+                      "TVmaze allows at least 20 per 10 seconds per address; stay a little under.", unit="requests",
+                      live=False),
+        DriverSetting("rate_window_seconds", "advanced", "Rate window", "The window the request limit counts in.",
+                      unit="s", live=False),
+        DriverSetting("timeout_seconds", "advanced", "Request timeout",
+                      "A TVmaze request without an answer in this time fails.", unit="s", live=False),
+    )
+    not_on_page: ClassVar[Mapping[str, str]] = {}
+    # 0.15 / 80aebed defaults (frozen)
+    legacy_defaults: ClassVar[Mapping[str, Any]] = {
+        "schedule_max_titles": 60, "rate_limit_calls": 18, "rate_window_seconds": 10.0, "timeout_seconds": 20.0,
+    }
 
     @classmethod
     async def build(cls, repository, options, *, app_version: str, on_request=None):

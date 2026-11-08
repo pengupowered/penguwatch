@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-looks='{{ looks|tojson }}' data-look-default="{{ look_default }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PenguWatch | TV & Movie Tracker and Subscription Optimizer</title>
-  <script src="/static/v/{{ version }}/theme.js"></script>
   <link rel="stylesheet" href="/static/v/{{ version }}/tokens.css">
   <link rel="stylesheet" href="/static/v/{{ version }}/components.css">
   <link rel="stylesheet" href="/static/v/{{ version }}/page.css">
   <link rel="stylesheet" href="/static/v/{{ version }}/style.css">
+  <!-- after the shared stylesheets: it applies this browser's theme and writes the link to that theme's stylesheet here -->
+  <script src="/static/v/{{ version }}/theme.js"></script>
   {%- for css in ui.css %}
   <link rel="stylesheet" href="/static/v/{{ version }}/{{ css }}">
   {%- endfor %}
@@ -52,7 +53,11 @@
           </div>
         </div>
         {%- endif %}
-        <button type="button" class="btn icon" id="btn-theme" data-action="toggle-theme" title="Switch theme" aria-label="Switch theme"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg></button>
+        <!-- The theme menu (js/themes.js fills it when it opens): a theme for this browser, then light or dark -->
+        <div class="tb-menu tb-theme">
+          <button type="button" class="btn icon" id="btn-theme" data-action="toggle-menu" data-arg="theme-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="theme-menu" title="Theme" aria-label="Theme"><svg class="i" aria-hidden="true"><use href="#i-palette"/></svg></button>
+          <div class="menu theme-menu" id="theme-menu" role="menu" aria-label="Theme" hidden></div>
+        </div>
       </nav>
     </div>
     <!-- One tab per panel folder (static/panels/<id>/, found by penguwatch.ui). On phones the tabs marked "bar" make

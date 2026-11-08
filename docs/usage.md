@@ -1,7 +1,7 @@
 # Using PenguWatch
 
 The dashboard is a single page with tabs. Every tab has an address (`#/upnext`, `#/optimizer`, `#/system`, ...), and
-`g` followed by `u o l r d p c s i y` (in the order of the tabs: Up Next, Optimizer, Library, Ratings, Discover, Pick, Schedule, Services, Insights, System) jumps to one; `/` filters the library and `?` lists the shortcuts.
+`g` followed by `u o l r d p c s i h y e` (in the order of the tabs: Up Next, Optimizer, Library, Ratings, Discover, Pick, Schedule, Services, Insights, History, System, Settings) jumps to one; `/` filters the library and `?` lists the shortcuts.
 
 ## Up Next
 
@@ -46,7 +46,7 @@ Discover needs a driver that offers `discovery` (SIMKL does; TVmaze does not, so
 
 * Each service is ranked by backlog hours, ready-to-binge seasons, titles you both want and ratings, with a
   keep / cancel / rotate-to verdict, "wait for the finale" detection and savings tracking.
-* **Bundles:** a service can include other services (see [Configuration](configuration.md#services)). While a bundle
+* **Bundles:** a service can include other services (see [Configuration](configuration.md#services-and-ratings)). While a bundle
   is active its members count as covered and cost nothing extra. The optimizer suggests switching to a bundle when it
   is cheaper than its members paid separately, and dropping one when only some members are watched.
 * **Rotation planner:** plans the next 3, 6 or 12 months: which service to keep, subscribe to, pause or cancel
@@ -76,6 +76,33 @@ own key, because calendar apps cannot sign in.
 ## Insights
 
 Monthly hours, hours by service, top genres and your weekday rhythm.
+
+## History
+
+What you watched over the last 7 days, 30 days or 12 months, each compared with the period of the same length just
+before it (an arrow and a percentage, or "new" when there was nothing before). The periods roll: they are whole days
+ending today, not calendar weeks, months or years. It shows hours, episodes, movies, titles started (the first episode
+you ever watched falls in the period) and finished (completed, last watched in the period), days with viewing, an hours
+per day (or per month) chart, top shows, hours and cost per hour by service, top genres, and when you watch by weekday
+(Sunday first, like Insights) and hour of day. Days and hours are in your configured time zone. A watch with only a date
+(no time) counts for its day but not for the hour-of-day chart. Your last choice of period is remembered in that browser.
+
+- **Bulk marks.** Three or more episodes with exactly the same timestamp (marking a whole season, "first N", an import)
+  say nothing about when you watched, so they are not counted in any figure or chart; the page says how many were left
+  out and offers to include them.
+- **Cost per hour.** PenguWatch does not record when you subscribed to a service, only whether it is active now and
+  every price it has had. So the cost is worked out for services that are active now, as if paid for every day of the
+  period at the price in effect that day, divided by the hours watched on the service. Cancelled services show hours only.
+
+## Settings
+
+The **Settings** tab holds everything you can tune: household names, the sync schedule, the optimizer's weights, the daily
+digest and event webhooks, the theme and time zone, which services fill each data role, and the advanced values. Change a
+value and save; most apply at once, and a few say "applies after a restart". Reset puts a setting back to its default,
+**Versions** lists the last 50 saves and restores one, and Export and Import move the settings as a YAML file. A setting
+that an environment variable fixes shows "From environment" and cannot be edited there. Every setting, its range and its
+default is in [Configuration](configuration.md#all-settings). The tab is the last one (`g` then `e`); nothing changes
+until **Save**, and leaving the tab with unsaved changes asks first.
 
 ## On a phone
 

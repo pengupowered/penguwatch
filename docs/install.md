@@ -126,7 +126,7 @@ only reach over SSH needs [PenguWatch opened to other devices](#opening-penguwat
 
 One deployment option among the others, and the right one for a NAS or a server that already runs containers. The image
 is `ghcr.io/pengupowered/penguwatch` for Intel/AMD (amd64) and ARM (arm64, including a Raspberry Pi 4 or newer with a
-64-bit system). Tags are exact versions (`0.15.2`) and `latest`. It is built from the same wheel as the native install,
+64-bit system). Tags are exact versions (`0.16.0`) and `latest`. It is built from the same wheel as the native install,
 runs as an unprivileged user (uid 10001) with a read-only root, and writes only to `/app/data` (a volume) and `/tmp`.
 
 ### Compose, from the published image
@@ -139,8 +139,10 @@ curl -fsSL https://raw.githubusercontent.com/pengupowered/penguwatch/main/.env.e
 docker compose up -d              # or: podman compose up -d
 ```
 
-Edit `config.yaml` first (services, prices, household names) and, in `.env`, set `PENGUWATCH_ACCESS_TOKEN` if the
-port is reachable by anyone you do not trust. Open `http://<host-ip>:8080`.
+`config.yaml` only needs to exist (compose mounts it); the defaults suit most installs, and it is read for the listen
+address and the database location. Household names, services, prices, notifications and everything else are set in the
+app, on the Settings and Services & Sync tabs. In `.env`, set `PENGUWATCH_ACCESS_TOKEN` if the port is reachable by
+anyone you do not trust. Open `http://<host-ip>:8080`.
 
 The compose file publishes port 8080 on all interfaces; to keep it on the host only, change the port line to
 `"127.0.0.1:8080:8080"`.
@@ -160,16 +162,23 @@ docker compose up -d --build      # or: podman-compose up -d --build
 docker run -d --name penguwatch --restart unless-stopped -p 8080:8080 \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   -v penguwatch_data:/app/data -v "$PWD/config.yaml:/app/config.yaml:ro" \
-  ghcr.io/pengupowered/penguwatch:0.15.2
+  ghcr.io/pengupowered/penguwatch:0.16.0
 ```
 
-In the container the config is `/app/config.yaml` and the data is `/app/data`. An existing root-owned data volume needs
+In the container the config is `/app/config.yaml` and the data is `/app/data`, which also holds `secrets.json` (the
+digest and webhook addresses and signing secrets you enter on the Settings tab). An existing root-owned data volume needs
 a one-time `chown -R 10001:0` on its contents.
 
 ### Upgrading the container
 
 Change the tag in `compose.yaml` to the new version and run `docker compose up -d` again (from a clone: `git pull`,
-then `docker compose up -d --build`). Back up first.
+then `docker compose up -d --build`). Back up first, and back up `secrets.json` with the database
+([Operations](operations.md#backups)).
+
+Upgrading from 0.15: take the new `compose.release.yaml` (or, if you keep your own copy, change the lines for
+`PENGUWATCH_LOG_LEVEL`, `PENGUWATCH_NOTIFY_KIND` and `PENGUWATCH_NOTIFY_HOUR` to `${NAME:-}`; the old defaults would pin
+those three settings so the Settings tab could not change them). On the first start the app reads your `config.yaml`
+once and stores its settings; see [Configuration](configuration.md#the-one-time-import).
 
 ## First run
 
@@ -184,9 +193,10 @@ The full walk-through is [Getting started](getting-started.md).
 
 ## Settings and secrets
 
-`config.yaml` holds the server settings, the sync schedule, your household and the streaming services. Secrets and
-deployment settings (the access token, the notification URL, a webhook's signing secret) are environment variables
-([Configuration](configuration.md)). A native install keeps them in **`penguwatch.env`**, next to `config.yaml`
+`config.yaml` holds only where PenguWatch listens and where its database is; everything else is on the Settings tab
+([Configuration](configuration.md)), and the digest and webhook addresses and signing secrets you enter there are kept
+in `secrets.json` in the data folder. Deployment settings (the access token, and optionally pins for the digest address,
+time zone and the like) are environment variables. A native install keeps them in **`penguwatch.env`**, next to `config.yaml`
 (`penguwatch paths` prints where). The installer creates it with only comments in it and readable by its owner only; it
 is never replaced by an upgrade.
 
@@ -268,7 +278,7 @@ If you set the access token with `systemctl edit penguwatch` instead of the sett
 - `penguwatch service status`: whether the service is installed, running and answering `/api/health`. Exit 0 yes, 1
   installed but not answering, 3 not installed.
 - `penguwatch` (or `penguwatch serve`) starts the server in this terminal, `penguwatch paths` shows where the config,
-  settings file, data and database are and the listen address, `penguwatch init-config` writes an example `config.yaml`,
+  settings file, data and database are and the listen address, `penguwatch init-config` writes an example `config.yaml` (optional),
   `penguwatch backup` copies the data, and `penguwatch doctor` checks that the port is free (or served by PenguWatch),
   the config file is readable, the data folder is writable, the time zone is known and each driver's service is
   reachable (`--offline` skips that last check; exit 0 unless something is wrong). `penguwatchw` is the same program without a
@@ -332,7 +342,7 @@ environment and puts `penguwatch` on your PATH, with Python 3.11 or newer:
 
 ```bash
 uv tool install penguwatch        # or: pipx install penguwatch
-penguwatch init-config            # writes an example config.yaml; edit it
+penguwatch init-config            # optional: writes an example config.yaml (listen address and database location)
 penguwatch                        # http://127.0.0.1:8080
 ```
 

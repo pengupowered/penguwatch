@@ -1,0 +1,19 @@
+<!-- Dialog: read settings from YAML into the page as a draft (panel.js). Nothing is applied until Save. -->
+<div class="modal" id="settings-import-modal" role="dialog" aria-modal="true" aria-labelledby="settings-import-title">
+  <div class="modal-content">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-file"/></svg>
+      <h2 class="modal-t" id="settings-import-title">Import</h2>
+      <button type="button" class="btn icon m-close" data-action="close-modal" aria-label="Close"><svg class="i" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="modal-b">
+      <p class="fine">Choose a file from Export, or paste its text. The page shows what it would change as a draft; nothing is applied until you press Save.</p>
+      <div class="field"><label for="settings-import-file">YAML file</label><input class="input" type="file" id="settings-import-file" accept=".yaml,.yml,text/yaml,application/yaml" data-change="settings-import-file"></div>
+      <div class="field"><label for="settings-import-text">or paste the text</label><textarea class="input set-yaml" id="settings-import-text" rows="10" spellcheck="false" data-first-focus></textarea></div>
+      <p class="set-msg" id="settings-import-msg" role="alert"></p>
+    </div>
+    <div class="modal-f">
+      <button type="button" class="btn primary" data-action="settings-import-read">Read as a draft</button>
+    </div>
+  </div>
+</div>

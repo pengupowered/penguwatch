@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 from penguwatch import activity, clock, telemetry
 from penguwatch.activity import ActivityTracker
@@ -40,7 +40,7 @@ async def worker_step(engine: SyncEngine, pull_due: bool) -> str:
     return "flushed"
 
 
-async def sync_worker(engine: SyncEngine, interval_minutes: int,
+async def sync_worker(engine: SyncEngine, interval_minutes: Optional[int] = None,
                       idle_interval_minutes: Optional[int] = None, tracker: Optional[ActivityTracker] = None):
     """Background loop.
 
@@ -48,24 +48,38 @@ async def sync_worker(engine: SyncEngine, interval_minutes: int,
       Unaffected by idleness.
     * Every `interval_minutes`, asks the library driver what changed and pulls only that; after a long time without
       user interaction only every `idle_interval_minutes`, and promptly once use resumes.
+    The intervals not passed are read from `engine.library` on every round, so the Settings page can change them
+    while running (apply_intervals sets them there and kicks the worker); a shorter one also brings the next pull
+    forward.
     """
-    idle_interval = idle_interval_minutes if idle_interval_minutes is not None else interval_minutes
+    def intervals() -> Tuple[int, int]:
+        every = interval_minutes if interval_minutes is not None else engine.library.pull_interval_minutes
+        idle_every = (idle_interval_minutes if idle_interval_minutes is not None
+                      else engine.library.idle_pull_interval_minutes if interval_minutes is None else every)
+        return every, idle_every
+
+    interval_minutes_now, idle_interval = intervals()
     telemetry.in_worker.set(True)  # this task's upstream calls count as worker heartbeats (a long sync is not "stuck")
     tracker = tracker or activity.tracker
     label = engine.library.label
     if engine.library.remote:
-        logger.info(f"{label} sync worker started (pull every {interval_minutes} min, {idle_interval} min when idle, "
+        logger.info(f"{label} sync worker started (pull every {interval_minutes_now} min, {idle_interval} min when idle, "
                     f"push on change).")
     else:
         logger.info(f"{label} library has no account: the worker only keeps titles' details up to date "
-                    f"(every {interval_minutes} min, {idle_interval} min when idle).")
+                    f"(every {interval_minutes_now} min, {idle_interval} min when idle).")
     await asyncio.sleep(5)
     loop = asyncio.get_running_loop()
     next_pull = loop.time()
     next_housekeeping = loop.time()
+    pulled_at: Optional[float] = None  # when the last pull ended; None while the next one is not set by an interval
     while True:
         try:
             telemetry.worker_beat()
+            interval_minutes_now, idle_interval = intervals()
+            if pulled_at is not None:  # a shorter interval brings the next pull forward
+                next_pull = min(next_pull, pulled_at + activity.pick_interval_minutes(
+                    tracker.is_idle(), interval_minutes_now, idle_interval) * 60)
             if loop.time() >= next_housekeeping:
                 next_housekeeping = loop.time() + HOUSEKEEPING_EVERY_S
                 try:
@@ -82,9 +96,11 @@ async def sync_worker(engine: SyncEngine, interval_minutes: int,
                 step = await worker_step(engine, loop.time() >= next_pull)
                 telemetry.worker_beat(step)
                 if step == "pulled":
-                    minutes = activity.pick_interval_minutes(tracker.is_idle(), interval_minutes, idle_interval)
-                    next_pull = loop.time() + minutes * 60
+                    minutes = activity.pick_interval_minutes(tracker.is_idle(), interval_minutes_now, idle_interval)
+                    pulled_at = loop.time()
+                    next_pull = pulled_at + minutes * 60
                 elif step == "paused":
+                    pulled_at = None
                     next_pull = max(next_pull, loop.time() + 60)  # nothing to do until the hourly probe or a reconnect
             timeout = max(5.0, min(120.0, next_pull - loop.time()))
             if not engine.library.is_connected():
@@ -104,17 +120,40 @@ async def sync_worker(engine: SyncEngine, interval_minutes: int,
             await asyncio.sleep(60)
 
 
+# library attribute <- the field of the driver's options (the options object is the one in the live config, which the
+# settings manager has already updated when the applier runs)
+INTERVAL_FIELDS = (("pull_interval_minutes", "auto_sync_interval_minutes"),
+                   ("idle_pull_interval_minutes", "idle_sync_interval_minutes"),
+                   ("idle_after_hours", "idle_after_hours"))
+
+
+def apply_intervals(engine: SyncEngine, options: Any, tracker: ActivityTracker) -> None:
+    """Sets the library's intervals from its options, the tracker's idle limit, and wakes the worker."""
+    library = engine.library
+    for attribute, option in INTERVAL_FIELDS:
+        setattr(library, attribute, getattr(options, option))
+    tracker.idle_after_seconds = library.idle_after_hours * 3600
+    engine.kick.set()
+
+
 async def register(ctx: Context) -> Component:
     engine = ctx.sync
     library = engine.library
+    options = ctx.config.driver_options(library.name)  # None for a library with no options (Local)
+
+    if ctx.settings is not None and options is not None:
+        keys = [f"{library.name}.{option}" for _, option in INTERVAL_FIELDS]
+
+        @ctx.settings.on(keys=keys, name="sync.intervals")
+        def _intervals(change) -> None:
+            apply_intervals(engine, options, activity.tracker)
 
     async def start() -> None:
         # A freshly started container counts as active; use after an idle spell wakes the worker at once.
         activity.tracker.idle_after_seconds = library.idle_after_hours * 3600
         activity.tracker.on_resume = engine.kick.set
         activity.tracker.touch()
-        ctx.spawn(sync_worker(engine, library.pull_interval_minutes, library.idle_pull_interval_minutes,
-                              activity.tracker))
+        ctx.spawn(sync_worker(engine, tracker=activity.tracker))
 
     async def stop() -> None:
         # One last attempt to deliver queued changes before the drivers close

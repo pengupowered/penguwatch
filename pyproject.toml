@@ -53,4 +53,4 @@ asyncio_mode = "auto"
 [tool.setuptools.package-data]
 # Everything read at run time that is not a .py file: the dashboard (HTML, CSS, JS, icons, panels) and the example
 # config. tests/test_wheel.py builds the wheel and checks it is all there.
-penguwatch = ["web/static/**/*", "web/templates/**/*", "config.example.yaml"]
+penguwatch = ["web/static/**/*", "web/templates/**/*", "config.example.yaml", "catalog/services.yaml"]

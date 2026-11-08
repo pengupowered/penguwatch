@@ -1,0 +1,94 @@
+# The built-in streaming services (penguwatch.catalog.load_catalog). The first start of a new database seeds the
+# Services tab from this list; later releases refresh the name, aliases, titles and bundle members of the services
+# you never edited, and never the price, renewal, notes or active state. Aliases and titles describe US streaming.
+# monthly_cost values are US list prices for an ad-free standard tier (checked 2026-10-11); Apple TV+, Prime Video,
+# Hulu, Disney+ and Peacock were not re-checked.
+services:
+  - id: "apple_tv"
+    name: "Apple TV+"
+    monthly_cost: 9.99
+    is_active: false
+    aliases: ["Apple TV+", "Apple TV", "Apple"]
+  
+  - id: "netflix"
+    name: "Netflix"
+    monthly_cost: 19.99
+    is_active: false
+    aliases: ["Netflix", "The CW", "Channel 4"]
+    titles: ["Seinfeld"]
+
+  - id: "max"
+    name: "Max"
+    monthly_cost: 18.49
+    is_active: false
+    aliases: ["Max", "HBO", "HBO Max", "Adult Swim", "Cartoon Network", "Warner Bros.", "DC Universe", "Discovery", "TCM", "Turner Classic Movies", "TBS", "TNT", "TruTV", "CNN"]
+    titles: ["Friends"]
+
+  - id: "prime_video"
+    name: "Prime Video"
+    monthly_cost: 8.99
+    is_active: false
+    aliases: ["Prime Video", "Amazon", "Amazon Prime Video", "MGM+", "Freevee"]
+
+  - id: "disney_plus"
+    name: "Disney+"
+    monthly_cost: 13.99
+    is_active: false
+    aliases: ["Disney+", "Disney", "Disney Channel", "National Geographic", "Nat Geo", "Star Wars", "Marvel", "Pixar", "Disney Junior", "Disney XD"]
+
+  - id: "hulu"
+    name: "Hulu"
+    monthly_cost: 9.99
+    is_active: false
+    aliases: ["Hulu", "FX", "FXX", "FOX", "ABC", "Freeform", "Hulu Originals"]
+
+  - id: "peacock"
+    name: "Peacock"
+    monthly_cost: 7.99
+    is_active: false
+    aliases: ["Peacock", "NBC", "Bravo", "USA Network", "Syfy", "Universal", "E!", "MSNBC", "Oxygen"]
+    titles: ["Yellowstone"]
+
+  - id: "paramount_plus"
+    name: "Paramount+"
+    monthly_cost: 13.99
+    is_active: false
+    aliases: ["Paramount+", "Paramount", "CBS", "UPN", "Showtime", "Comedy Central", "MTV", "Nickelodeon", "Nick", "Syndication", "Smithsonian Channel", "Paramount Network", "BET", "VH1", "The WB"]
+
+  - id: "amc_plus"
+    name: "AMC+"
+    monthly_cost: 10.99
+    is_active: false
+    aliases: ["AMC+", "AMC", "IFC", "SundanceTV", "BBC America", "Shudder", "Acorn TV"]
+
+  - id: "britbox"
+    name: "BritBox"
+    monthly_cost: 10.99
+    is_active: false
+    aliases: ["BritBox", "BBC", "BBC One", "BBC Two", "BBC Three", "BBC Four", "CBBC", "CBeebies", "ITV", "Channel 5", "5"]
+
+  - id: "crunchyroll"
+    name: "Crunchyroll"
+    monthly_cost: 9.99
+    is_active: false
+    aliases: ["Crunchyroll", "Funimation", "Tokyo MX", "TV Tokyo", "AT-X", "MBS", "BS11", "Animax", "Fuji TV", "TV Asahi", "Nippon TV", "TBS (JP)", "tvk", "Niconico", "CTC (JA)", "CBC", "KBS Kyoto", "Mainichi Broadcasting System", "NHK", "NHK Educational TV", "NHK General TV", "BS Fuji", "BS-TBS", "BS Nippon", "BS Asahi", "WOWOW", "Anime"]
+
+  - id: "hidive"
+    name: "HIDIVE"
+    monthly_cost: 6.99
+    is_active: false
+    aliases: ["HIDIVE", "HiDive", "Hidive"]
+
+  - id: "pbs"
+    name: "PBS Passport"
+    monthly_cost: 5.00
+    is_active: false
+    aliases: ["PBS", "PBS Passport", "PBS Masterpiece", "Masterpiece", "WGBH"]
+
+  - id: "disney_hulu_noads"
+    name: "Disney+ & Hulu bundle (no ads)"
+    monthly_cost: 21.99
+    is_active: false
+    includes: ["disney_plus", "hulu"]
+    aliases: ["Disney+ Hulu Bundle"]
+    notes: "Promotional price is $19.99 for the first six months."

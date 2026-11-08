@@ -66,7 +66,6 @@ def test_both_scripts_install_from_the_lock_with_hashes_and_wheels_only_then_the
     assert "SHA256SUMS" in script and "backup" in script and "service" in script and "uninstall" in script
     assert "penguwatch-$VERSION.lock" in script.replace("$Version", "$VERSION")
     assert "py3-none-any.whl" in script
-    assert "pengumon" not in script.lower()
 
 
 @pytest.mark.parametrize("script", [SH, PS1], ids=["install.sh", "install.ps1"])

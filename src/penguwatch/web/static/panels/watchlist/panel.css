@@ -118,4 +118,8 @@
 /* "at least" rating filter: a source picker and a number */
 .minrating { display: inline-flex; gap: var(--sp-2); align-items: center; }
 .minrating input.input { width: 7.5em; }
-@media (max-width: 720px) { .minrating { flex: 1 1 100%; } .minrating select.input { flex: 1 1 auto; } }
+@media (max-width: 720px) {
+  .minrating { flex: 1 1 100%; min-width: 0; }
+  .minrating select.input { flex: 1 1 auto; min-width: 0; }
+  .minrating input.input { flex: 0 1 7.5em; min-width: 0; }
+}

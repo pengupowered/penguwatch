@@ -54,6 +54,18 @@ def test_backup_copies_the_database_and_the_sessions_file_into_a_timestamped_fol
         assert (folder / "penguwatch.db").stat().st_mode & 0o777 == 0o600
 
 
+def test_backup_copies_secrets_json_private(tmp_path, capsys):
+    data = tmp_path / "data"
+    make_db(data / "penguwatch.db")
+    (data / "secrets.json").write_text('{"version": 1, "notify": {"url": "https://ntfy.example.com/t"}}')
+    assert cli.main(["backup", "--data-dir", str(data)]) == 0
+    folder = Path(capsys.readouterr().out.strip())
+    assert sorted(p.name for p in folder.iterdir()) == ["penguwatch.db", "secrets.json"]
+    assert (folder / "secrets.json").read_text() == (data / "secrets.json").read_text()
+    if POSIX:
+        assert (folder / "secrets.json").stat().st_mode & 0o777 == 0o600
+
+
 def test_backup_is_consistent_while_the_database_is_being_written(tmp_path):
     db = tmp_path / "d" / "penguwatch.db"
     make_db(db, rows=50)
@@ -122,6 +134,17 @@ def test_system_flag_points_every_lookup_at_the_services_files(monkeypatch, caps
     assert "/var/lib/penguwatch" in out and "/etc/penguwatch/config.yaml" in out
     for name in ("PENGUWATCH_DATA", "PENGUWATCH_CONFIG"):
         monkeypatch.delenv(name, raising=False)
+
+
+def test_paths_says_where_the_settings_are(tmp_path, capsys):
+    data = tmp_path / "data"
+    assert cli.main(["paths", "--data-dir", str(data)]) == 0
+    out = capsys.readouterr().out
+    assert "env file" in out and "settings file" not in out
+    assert "not imported yet" in out
+    _imported_db(data / "penguwatch.db")
+    assert cli.main(["paths", "--data-dir", str(data)]) == 0
+    assert "in the database (since 2026-11-07)" in capsys.readouterr().out
 
 
 # ---- doctor ------------------------------------------------------------------------------------------------------------
@@ -222,6 +245,45 @@ def test_doctor_service_unreachable_is_a_warning_and_offline_skips_it(tmp_path, 
                                       (doctor.OK, "TVmaze", "api.tvmaze.com is reachable")]  # any HTTP answer will do
 
 
+def _imported_db(path: Path, zone: str = "Asia/Tokyo") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+    con.execute("CREATE TABLE settings_values (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated REAL NOT NULL)")
+    con.executemany("INSERT INTO app_state VALUES (?, ?)", [("settings_initialized", "1"), ("settings_revision", "4"),
+                                                            ("settings_imported_at", "1794073414.0")])
+    con.executemany("INSERT INTO settings_values VALUES (?, ?, 0)", [("server.timezone", f'"{zone}"'),
+                                                                    ("mcp.enabled", "true")])
+    con.commit()
+    con.close()
+
+
+def test_doctor_reads_the_stored_settings_and_names_the_differing_keys(tmp_path):
+    (tmp_path / "config.yaml").write_text("server: {timezone: Europe/Paris}\nmcp: {enabled: false}\n")
+    db = tmp_path / "penguwatch.db"
+    _imported_db(db)
+    before = db.read_bytes()
+    code, out = run_doctor(["--data-dir", str(tmp_path), "--port", str(free_port())])
+    assert code == 0, out  # the stored zone is the one in use: config.yaml's is ignored
+    assert "ok  time zone    Asia/Tokyo" in out
+    assert "in the database since 2026-11-07, revision 4" in out
+    assert "2 keys differ: mcp.enabled, server.timezone" in out and "Paris" not in out
+    assert db.read_bytes() == before and not (tmp_path / "penguwatch.db-wal").exists()
+
+
+def test_doctor_warns_about_an_ignored_variable_without_its_value(tmp_path):
+    (tmp_path / "config.yaml").write_text("{}\n")
+    args = cli.build_parser().parse_args(["doctor", "--data-dir", str(tmp_path), "--port", str(free_port())])
+    import io
+    out = io.StringIO()
+    code = doctor.run(cli.resolve(args), out=out, health=lambda h, p: None, services=lambda: [],
+                      env={"PENGUWATCH_NOTIFY_HOUR": "25", "PENGUWATCH_MCP_ENABLED": "maybe-xyz"})
+    text = out.getvalue()
+    assert code == 0 and "warn  variable" in text
+    assert "PENGUWATCH_NOTIFY_HOUR is set but not valid" in text and "PENGUWATCH_MCP_ENABLED is set but not valid" in text
+    assert "maybe-xyz" not in text and " 25" not in text
+
+
 def test_doctor_names_no_setting_values(tmp_path, monkeypatch):
     secret = "tok-should-not-show-1a2b"
     (tmp_path / "config.yaml").write_text(f"simkl: {{client_id: {secret}, access_token: {secret}}}\n")
@@ -272,6 +334,7 @@ def test_with_a_console_nothing_is_replaced(monkeypatch, tmp_path):
 def test_the_command_line_has_every_new_command():
     parser = cli.build_parser()
     for argv in (["backup", "--to", "x"], ["backup", "--system", "--to", "x"], ["doctor", "--offline"], ["paths", "--system"],
+                 ["settings", "check-import", "c.yaml", "d.db"], ["settings", "check-import", "c.yaml", "d.db", "--live"],
                  ["service", "install", "--user", "--host", "0.0.0.0", "--port", "9000", "--dry-run"],
                  ["service", "uninstall", "--system", "--dry-run"], ["service", "status"]):
         parser.parse_args(argv)

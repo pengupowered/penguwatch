@@ -27,16 +27,15 @@ If it does not open, [the FAQ](faq.md#the-page-does-not-open-or-the-port-is-in-u
 
 ## 3. Names and services
 
-Your household and the streaming services come from `config.yaml` (`penguwatch init-config` writes an example; a
-native install keeps it where `penguwatch paths` says, a container reads `./config.yaml`):
+Open the **Settings** tab and, under Household, enter one or two names. With two, every title says who wants to watch
+it. Everything else on the tab has a sensible default; [Configuration](configuration.md) lists every setting.
 
-- `household.members`: one or two names. With two, every title says who wants to watch it.
-- `services`: the example lists common US services with their list prices and the network names each one carries. Edit
-  the names, prices and aliases for where you live. Prices you change later in the app are never overwritten.
+Then open **Services & Sync** and switch on the services you pay for this month, with their prices and renewal days: the
+optimizer needs this. The tab starts with a built-in list of common US services, with their list prices and the network
+names each one carries; edit the names, prices and aliases for where you live. Prices you change are never overwritten.
 
-Restart PenguWatch after editing. Everything is explained in [Configuration](configuration.md). Then open **Services &
-Sync** and switch on the services you pay for this month, with their prices and renewal days: the optimizer needs
-this.
+(Before this version these came from `config.yaml`. If you are upgrading, the first start reads that file once and moves
+its values onto the tabs; after that the file only sets the listen address and the database location.)
 
 ## 4. Choose where your library lives
 
@@ -54,17 +53,8 @@ The steps below connect SIMKL, the built-in library service. Another library dri
 
 ### Without an account (local library plus TVmaze)
 
-In `config.yaml`:
-
-```yaml
-drivers:
-  library: local
-  catalog: [tvmaze]
-  schedule: [tvmaze]
-  discovery: []
-```
-
-Restart, and add titles with **Add title**, searching TVmaze. There is nothing to connect. The trade-offs (no movies, no
+On the Settings tab, under **Data sources**, set Library to Local, Catalogue to TVmaze, Schedule to TVmaze and Discovery to
+none, save and restart PenguWatch (data sources apply after a restart). Then add titles with **Add title**, searching TVmaze. There is nothing to connect. The trade-offs (no movies, no
 Discover, no sync to another device) are listed in the [README](../README.md#without-an-account).
 
 ## 5. The first sync

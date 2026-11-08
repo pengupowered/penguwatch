@@ -1,7 +1,5 @@
 """The page's tabs (panels) and shared dialogs, discovered from their folders at start.
 
-Copied from Pengumon (commit 14ab11d), owned by PenguWatch from here on.
-
 Every tab lives in its own folder, web/static/panels/<id>/, with
   panel.json   its manifest: order (its place in the tab bar), title, short (the phone label), icon (a sprite name),
                route (the #/<route> address), key (the "g <key>" shortcut) and bar (true: on the phone's bottom bar)

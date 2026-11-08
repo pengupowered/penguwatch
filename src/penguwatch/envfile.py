@@ -32,7 +32,10 @@ TEMPLATE = """\
 #   python -c "import secrets; print(secrets.token_urlsafe(32))"
 # PENGUWATCH_ACCESS_TOKEN=
 
-# Daily digest: an ntfy topic URL or a webhook that accepts JSON
+# Everything below can be set on the Settings tab instead. A variable set here pins that setting: the tab shows
+# it read-only, and changing it means editing this file and restarting.
+
+# Daily digest: an ntfy topic URL or a webhook that accepts JSON (the tab stores the address in secrets.json)
 # PENGUWATCH_NOTIFY_URL=
 # PENGUWATCH_NOTIFY_KIND=ntfy
 # PENGUWATCH_NOTIFY_HOUR=9
@@ -40,7 +43,8 @@ TEMPLATE = """\
 # Links to your Grafana in the page header
 # PENGUWATCH_GRAFANA_URL=
 
-# The secret named by `secret_env:` of an event webhook in config.yaml goes here as NAME=value
+# The signing secret of an event webhook can also live here: name the variable in the webhook's "Secret variable"
+# field on the Settings tab (it must start with PENGUWATCH_WEBHOOK_) and put NAME=value here
 """
 
 

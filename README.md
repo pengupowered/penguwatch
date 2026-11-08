@@ -25,6 +25,18 @@
   <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/phone-up-next.png" width="150" alt="Up Next on a phone">
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-nord.png" width="280" alt="Up Next in the Nord theme">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-e-ink.png" width="280" alt="Up Next in the E-ink theme">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-blueprint.png" width="280" alt="Up Next in the Blueprint theme">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/history-30d-dark.png" width="420" alt="History: hours, episodes and titles of the last 30 days, with a chart per day">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/settings-dark.png" width="420" alt="The Settings tab: household names, sync schedule and more, changed in the app">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/phone-history.png" width="150" alt="History on a phone">
+</p>
+
 <p align="center"><sub>Screenshots of the made-up demo library (<code>scripts/demo_library.py</code>). More in <a href="https://github.com/pengupowered/penguwatch/blob/main/docs/screenshots.md">the gallery</a>.</sub></p>
 
 PenguWatch is for households that follow shows, anime and movies across several streaming services and want one place
@@ -66,6 +78,13 @@ any browser on your network, including as an installable phone app.
   more in the plan. Names come from your configuration.
 - **Tonight's Pick, air schedule and an iCal feed** for your calendar app, including renewal and "cancel by"
   reminders.
+- **History:** what you watched over the last 7 days, 30 days or 12 months, compared with the period before: hours,
+  episodes, titles started and finished, a chart per day, top shows, hours and cost per hour by service, genres and
+  when in the week you watch.
+- **Settings in the app:** household names, the sync schedule, the optimizer's weights, the daily digest, webhooks, the
+  theme and more are changed on the Settings tab, kept as versions you can restore; `config.yaml` is read once and then
+  keeps only where the app listens and where its database is
+  ([docs/configuration.md](https://github.com/pengupowered/penguwatch/blob/main/docs/configuration.md)).
 - **Alerts and insights:** a daily ntfy or webhook digest, monthly hours, hours by service, top genres.
 - **Your own ratings:** add rating sources (a site you follow, a friend, a spreadsheet), import them from CSV or the
   API, then show them as badges, sort and filter by them. The ratings the catalogue drivers provide are built in (SIMKL's and IMDb's, or MyAnimeList's for anime, from SIMKL;
@@ -73,7 +92,9 @@ any browser on your network, including as an installable phone app.
 - **Extensible from outside:** a documented REST API ([docs/api.md](https://github.com/pengupowered/penguwatch/blob/main/docs/api.md)) and signed event webhooks
   (title added, status or rating changed, episode watched or airing today, sync failed); examples in
   [docs/extending.md](https://github.com/pengupowered/penguwatch/blob/main/docs/extending.md).
-- **Light and dark themes**, following your system until you pick one.
+- **Ask an AI assistant:** an optional, read-only MCP endpoint lets Claude answer "what's up next?", "what should we watch
+  tonight?", "which service should I cancel?" and "what did we watch this month?" from your library ([docs/mcp.md](https://github.com/pengupowered/penguwatch/blob/main/docs/mcp.md)); off by default.
+- **Light and dark, and seven themes** (Nord, Dracula, Solarized, E-ink, High contrast, Blueprint and the standard look): pick one per browser in the header, or set the default for new browsers on the Settings tab. Light and dark follow your system until you pick one ([themes](https://github.com/pengupowered/penguwatch/blob/main/docs/themes.md)).
 - **Built for a home network:** optional access token, DNS-rebinding and cross-site protection, a strict CSP, a
   non-root read-only container, Prometheus metrics and optional OpenTelemetry export.
 
@@ -102,7 +123,7 @@ PenguWatch on `http://127.0.0.1:8080`, this computer only. Per-system details, u
 
 ```bash
 uv tool install penguwatch        # or: pipx install penguwatch
-penguwatch init-config            # writes an example config.yaml to edit (your services, prices, household names)
+penguwatch init-config            # optional: writes an example config.yaml (listen address, database location)
 penguwatch                        # http://127.0.0.1:8080, this computer only
 penguwatch service install --user # optional: start it by itself (systemd, launchd or a logon task)
 ```
@@ -117,7 +138,7 @@ docker compose up -d              # or: podman compose up -d
 ```
 
 Or build it yourself from a clone: `cp config.example.yaml config.yaml`, then `docker compose up -d --build`. Open
-`http://<server-ip>:8080`. [Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md) has the details: where config and data live, upgrading, backups.
+`http://<server-ip>:8080` and set your household names on the Settings tab. [Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md) has the details: where config and data live, upgrading, backups.
 Then connect the default library service, SIMKL (the first run, with local and TVmaze instead, is in [Getting started](https://github.com/pengupowered/penguwatch/blob/main/docs/getting-started.md)):
 
 1. Create a SIMKL app once at [simkl.com/settings/developer](https://simkl.com/settings/developer/app/new) and copy
@@ -141,15 +162,12 @@ database migrations run on start.
 
 ## Without an account
 
-SIMKL is the default library service, but PenguWatch works with no account. In `config.yaml`:
+SIMKL is the default library service, but PenguWatch works with no account. On the Settings tab, under Data sources (applies after a restart), choose:
 
-```yaml
-drivers:
-  library: local                    # your library, watch history and ratings live only in PenguWatch
-  catalog: [tvmaze]                 # find and add TV shows at TVmaze (no account or key)
-  schedule: [tvmaze]                # upcoming episodes, from TVmaze
-  discovery: []                     # no Discover tab
-```
+- Library: Local (your library, watch history and ratings live only in PenguWatch)
+- Catalogue: TVmaze (find and add TV shows at TVmaze; no account or key)
+- Schedule: TVmaze (upcoming episodes)
+- Discovery: none (no Discover tab)
 
 You can still add shows, track episodes, rate them, get the air schedule and calendar feed, and use the subscription
 optimizer and planner. What you lose compared with a library service:
@@ -164,23 +182,22 @@ optimizer and planner. What you lose compared with a library service:
 - **Ratings:** TVmaze's average only, with none of the scores a library service's catalogue brings (SIMKL's and IMDb's, with the default).
 
 TVmaze's data is CC BY-SA 4.0, so PenguWatch credits TVmaze (in the page footer, on Services & Sync and in a title's
-details) as its licence asks. [Drivers](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md) has the details, and `library: simkl` with
-`catalog: [tvmaze, simkl]` mixes both.
+details) as its licence asks. [Drivers](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md) has the details, and the library on SIMKL with
+TVmaze first in the catalogue list mixes both.
 
 ## Configuration in brief
 
-`config.yaml` holds the server settings, the sync schedule, the optimizer's weights, your household and the streaming
-services with their network aliases (used to work out which service carries a title). For example:
+Settings are on the **Settings** tab: your household, the sync schedule, the optimizer's weights, the daily digest and
+event webhooks, the theme and time zone, the data sources and the advanced values. A change applies at once (a few say
+"applies after a restart") and is kept in the database with a history you can restore from. Streaming services are on the
+Services & Sync tab and your own rating sources on the Ratings tab. The addresses and signing secrets you enter for
+notifications and webhooks are kept in `secrets.json` next to the database, never shown again, so back that file up with
+the database.
 
-```yaml
-household:
-  members: ["Alex", "Sam"]     # one name hides the "who wants to watch" field
-
-optimizer:
-  max_active_services: 3       # how many paid services the planner may keep at once
-```
-
-`.env` holds secrets and deployment settings (`PENGUWATCH_*`). Everything is described in
+`config.yaml` is optional and keeps only where the app listens and where its database is. If you are upgrading from 0.15,
+the first start reads your `config.yaml` once and moves its settings onto the tabs; after that the file is ignored for
+them. `.env` holds secrets and deployment settings (`PENGUWATCH_*`); a variable such as `PENGUWATCH_TZ` pins its setting
+and the tab shows it read-only. Everything is described in
 [Configuration](https://github.com/pengupowered/penguwatch/blob/main/docs/configuration.md).
 
 ## Documentation
@@ -193,11 +210,12 @@ index of everything.
 | [Getting started](https://github.com/pengupowered/penguwatch/blob/main/docs/getting-started.md) | The first run end to end: install, services, the library service or local, the first sync |
 | [FAQ and troubleshooting](https://github.com/pengupowered/penguwatch/blob/main/docs/faq.md) | Port in use, expired login, nothing syncs, wrong service, time zone, reverse proxy, backup, upgrade, rollback |
 | [Install](https://github.com/pengupowered/penguwatch/blob/main/docs/install.md) | Windows, macOS, Linux, Raspberry Pi, uv or pipx, container, the background service, upgrading, backups |
-| [Configuration](https://github.com/pengupowered/penguwatch/blob/main/docs/configuration.md) | `config.yaml`, environment variables, household, services and bundles, time zone |
+| [Configuration](https://github.com/pengupowered/penguwatch/blob/main/docs/configuration.md) | The Settings tab, the bootstrap `config.yaml`, environment variables, the one-time import, services and bundles, time zone |
 | [Using PenguWatch](https://github.com/pengupowered/penguwatch/blob/main/docs/usage.md) | The tabs, the optimizer and planner, the calendar feed, shortcuts, the phone app |
 | [Sync](https://github.com/pengupowered/penguwatch/blob/main/docs/sync.md) | How the sync engine works (outbox, review mode, removals), then the SIMKL driver's rules: API usage, login renewal |
 | [Drivers](https://github.com/pengupowered/penguwatch/blob/main/docs/drivers.md) | The drivers that ship (SIMKL, local, TVmaze), switching, and a guide to writing one |
 | [API](https://github.com/pengupowered/penguwatch/blob/main/docs/api.md) | Authentication, the stable endpoints and their shapes, errors, limits |
+| [MCP](https://github.com/pengupowered/penguwatch/blob/main/docs/mcp.md) | The read-only endpoint for AI assistants: turning it on, the tools, security |
 | [Extending](https://github.com/pengupowered/penguwatch/blob/main/docs/extending.md) | Your own rating sources, event webhooks, drivers, adding a component |
 | [Security](https://github.com/pengupowered/penguwatch/blob/main/docs/security.md) | Access token, request guards, the container, what is exposed |
 | [Operations](https://github.com/pengupowered/penguwatch/blob/main/docs/operations.md) | Monitoring, Prometheus, OpenTelemetry, notifications, backups and exports |

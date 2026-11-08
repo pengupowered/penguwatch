@@ -1,6 +1,6 @@
 """Where PenguWatch keeps its files when it is started with the `penguwatch` command.
 
-Data directory (the database, and next to it the session file):
+Data directory (the database, and next to it the session file and secrets.json):
     PENGUWATCH_DATA, else the system's per-user location: $XDG_DATA_HOME/penguwatch or ~/.local/share/penguwatch
     (Linux and others), ~/Library/Application Support/PenguWatch (macOS), %LOCALAPPDATA%\\PenguWatch (Windows).
 Config file:
@@ -29,6 +29,7 @@ CONFIG_FILE = "config.yaml"
 ENV_FILE = "penguwatch.env"
 LOG_FILE = "penguwatch.log"
 SESSIONS_FILE = "sessions.json"  # next to the database (penguwatch.security)
+SECRETS_FILE = "secrets.json"  # next to the database: the Settings tab's write-only secrets (penguwatch.secrets)
 BACKUPS_DIR = "backups"
 # THE default listen address of a native install (the `penguwatch` command, and the background service the installers
 # set up). 127.0.0.1 is this computer only; "0.0.0.0" would be every network connection, which needs an access token
@@ -115,6 +116,12 @@ def env_file_path(env: Optional[Mapping[str, str]] = None, platform: Optional[st
 def sessions_path(db: str) -> Path:
     """Where sign-outs are kept: sessions.json next to the database file."""
     return Path(db).parent / SESSIONS_FILE
+
+
+def secrets_path(db: str) -> Path:
+    """Where the Settings tab's secrets are kept (the digest address, the webhooks' addresses and signing secrets):
+    secrets.json next to the database file, mode 0600. Back it up with the database."""
+    return Path(db).parent / SECRETS_FILE
 
 
 def backups_dir(db: str) -> Path:

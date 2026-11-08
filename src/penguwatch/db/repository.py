@@ -14,7 +14,8 @@ from penguwatch.interest import build_profile
 from penguwatch.models import ServiceConfig, ShowStatus
 from penguwatch.db.migrations import run_migrations
 from penguwatch.db._common import _utcnow
-from penguwatch.db.services import ServicesMixin
+from penguwatch.db.services import ServicesMixin, seed_services
+from penguwatch.db.settings import SettingsMixin
 from penguwatch.db.prices import PricesMixin, record_price
 from penguwatch.db.shows import ShowsMixin, UPDATABLE_SHOW_COLUMNS
 from penguwatch.db.titles import TitlesMixin
@@ -23,6 +24,7 @@ from penguwatch.db.views import ViewsMixin
 from penguwatch.db.outbox import OutboxMixin
 from penguwatch.db.state import StateMixin
 from penguwatch.db.reports import ReportsMixin
+from penguwatch.db.history import HistoryMixin
 from penguwatch.db.ratings import RatingsMixin
 from penguwatch.db.events import EventsMixin
 from penguwatch.drivers import DEFAULT_LIBRARY
@@ -34,7 +36,7 @@ T = TypeVar("T")
 
 class DatabaseRepository(
     ServicesMixin, PricesMixin, ShowsMixin, TitlesMixin, EpisodesMixin, ViewsMixin, OutboxMixin, StateMixin, ReportsMixin,
-    RatingsMixin, EventsMixin,
+    RatingsMixin, EventsMixin, HistoryMixin, SettingsMixin,
 ):
     def __init__(self, db_path: str, key_providers: Tuple[str, ...] = (DEFAULT_LIBRARY,)):
         self.db_path = db_path
@@ -102,42 +104,17 @@ class DatabaseRepository(
         )
 
     async def initialize(self, default_services: Optional[List[ServiceConfig]] = None):
-        """Initializes database schema, runs column migrations, and seeds default services."""
+        """Creates the database file's folder and runs the pending migrations. The app seeds nothing here any more:
+        the one-time settings import hands config.yaml's services over once (penguwatch.settings.importer), and the
+        catalogue refreshes the untouched ones. `default_services` is for tests only: those rows are upserted as the
+        import would (db.services.seed_services, not marked edited)."""
         if self.db_path != ":memory:":
             Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         async with self.write() as db:
             await run_migrations(db)
-
-            for svc in default_services or []:
-                before = await (await db.execute("SELECT monthly_cost FROM services WHERE id = ?", (svc.id,))).fetchone()
-                await db.execute(
-                    """
-                    INSERT INTO services (id, name, monthly_cost, is_active, renewal_day, renewal_date, aliases_json, includes_json, notes, titles_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET
-                        name = excluded.name,
-                        aliases_json = excluded.aliases_json,
-                        includes_json = excluded.includes_json,
-                        titles_json = excluded.titles_json
-                    """,  # monthly_cost, is_active, renewal and notes are the user's: a price of 0 means "included", never "unset"
-                    (
-                        svc.id,
-                        svc.name,
-                        svc.monthly_cost,
-                        1 if svc.is_active else 0,
-                        svc.renewal_day,
-                        svc.renewal_date,
-                        json.dumps(svc.aliases),
-                        json.dumps(svc.includes),
-                        svc.notes,
-                        json.dumps(svc.titles),
-                    ),
-                )
-                if before is None:  # a brand-new service starts its price history; existing prices are the user's
-                    await record_price(db, svc.id, svc.monthly_cost, None)
+            if default_services:
+                await seed_services(db, default_services, user_edited=False)
             await db.execute("PRAGMA optimize")  # refreshes the planner's statistics where they have gone stale
-        if default_services:
-            logger.info(f"Initialized database with {len(default_services)} streaming services and updated aliases.")
         self._harden_file_modes()
 
     def _harden_file_modes(self) -> None:

@@ -47,6 +47,45 @@ def _source_from_row(r: aiosqlite.Row, rated: int = 0) -> RatingSource:
     )
 
 
+async def import_rating_sources(db, specs: Iterable[RatingSourceSpec]) -> List[Dict[str, str]]:
+    """The one-time settings import's hand-over of config.yaml's `ratings.sources`, inside the caller's write
+    transaction: each source is created or updated as the old start-up seed did, except that one whose scale would
+    leave stored values outside it is skipped and reported instead of stopping the start; then every source of
+    origin 'config' becomes 'api' (editable on the Ratings tab, never seeded again). Returns [{key, reason}] for the
+    skipped ones (never a value)."""
+    report: List[Dict[str, str]] = []
+    for index, spec in enumerate(specs):
+        where = f"ratings.sources[{index}]"
+        row = await (await db.execute("SELECT origin FROM rating_sources WHERE id = ?", (spec.id,))).fetchone()
+        if row is not None and row["origin"] == "builtin":
+            report.append({"key": where, "reason": "the id is a built-in rating source; left out"})
+            continue
+        outside = (await (await db.execute(
+            "SELECT COUNT(*) AS n FROM title_ratings WHERE source_id = ? AND (value < ? OR value > ?)",
+            (spec.id, spec.scale_min, spec.scale_max))).fetchone())["n"]
+        if outside:
+            report.append({"key": where, "reason": f"its scale would leave {outside} stored value(s) outside it; the "
+                                                   "source was left as it is"})
+            continue
+        count = (await (await db.execute(
+            "SELECT COUNT(*) AS n FROM rating_sources WHERE origin != 'builtin' AND id != ?", (spec.id,))).fetchone())["n"]
+        if row is None and count >= MAX_SOURCES:
+            report.append({"key": where, "reason": f"at most {MAX_SOURCES} custom rating sources; left out"})
+            continue
+        await db.execute(
+            "INSERT INTO rating_sources (id, name, label, scale_min, scale_max, decimals, show_on_cards, position, origin) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'api') "
+            "ON CONFLICT(id) DO UPDATE SET name = excluded.name, label = excluded.label, "
+            "scale_min = excluded.scale_min, scale_max = excluded.scale_max, decimals = excluded.decimals, "
+            "show_on_cards = excluded.show_on_cards, position = excluded.position, origin = 'api', "
+            "updated_at = datetime('now')",
+            (spec.id, spec.name, spec.label, spec.scale_min, spec.scale_max, spec.decimals,
+             1 if spec.show_on_cards else 0, 2 + index),
+        )
+    await db.execute("UPDATE rating_sources SET origin = 'api' WHERE origin = 'config'")
+    return report
+
+
 class RatingsMixin:
     # --- sources ---
 

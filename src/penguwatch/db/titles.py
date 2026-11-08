@@ -42,8 +42,9 @@ async def refresh_search_text(db: aiosqlite.Connection, show_id: int) -> None:
 def search_clause(query: str) -> Tuple[str, List[str]]:
     """SQL condition (and parameters) matching `query` the forgiving way, or the old raw LIKE alone when the
     query has nothing left after normalizing (only punctuation)."""
-    raw = f"%{query.strip()}%"
-    sql = "(s.title LIKE ? OR s.network LIKE ? OR s.genres_json LIKE ?"
+    # % and _ in what was typed are letters, not wildcards ("100%" must not match every title)
+    raw = "%" + query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    sql = ("(s.title LIKE ? ESCAPE '\\' OR s.network LIKE ? ESCAPE '\\' OR s.genres_json LIKE ? ESCAPE '\\'")
     params = [raw, raw, raw]
     spaced, packed = normalize(query), compact(query)
     if packed:

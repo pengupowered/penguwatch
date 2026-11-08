@@ -9,31 +9,37 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 
-from penguwatch import __version__, clock, activity
+from penguwatch import __version__, activity
 from penguwatch import notify_component, telemetry_component, webhooks_component
 from penguwatch.activity import ActivityMiddleware
 from penguwatch.api import component as api_component
+from penguwatch.mcp.route import router as mcp_router
 from penguwatch.api.router import router as api_router
 from penguwatch.api.stable import TAGS, mark_stable
 from penguwatch.api.system import metrics_router
 from penguwatch.components import run_components
-from penguwatch.config import EnvOverrides, HouseholdConfig, load_config
+from penguwatch.config import DisplayConfig, EnvOverrides, HouseholdConfig, load_config
 from penguwatch.db import storage
 from penguwatch.optimizer import component as optimizer_component
 from penguwatch.pwa import add_pwa_routes
 from penguwatch.sync import component as drivers_component, worker as sync_worker_component
 from penguwatch.sync.worker import sync_worker, worker_step  # noqa: F401  (re-exported: the tests import them here)
-from penguwatch.observability import ObservabilityMiddleware, configure_logging, set_level
+from penguwatch.observability import ObservabilityMiddleware, configure_logging
+from penguwatch.settings import component as settings_component
 from penguwatch.security import SecurityConfig, SecurityMiddleware
 from penguwatch import grafana, telemetry, ui as page_ui
+from penguwatch.web import themes
 
-_env = EnvOverrides()  # an invalid value (say PENGUWATCH_GRAFANA_URL) stops the start here
+_env = EnvOverrides()  # a pinning variable its setting refuses is ignored with a warning (config.apply_env)
 configure_logging(_env)  # text or JSON (PENGUWATCH_LOG_FORMAT), request ids, credential redaction
 logger = logging.getLogger("penguwatch")
-grafana.configure(_env.grafana_url)
+try:  # the pre-start default; the settings component sets the effective value at start
+    grafana.configure(_env.grafana_url)
+except ValueError:
+    grafana.configure("")
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "web" / "static"
@@ -44,6 +50,7 @@ TEMPLATES_DIR = BASE_DIR / "web" / "templates"
 # Each is a module with `register(ctx)`; this list is the one place that names them.
 COMPONENTS = [
     storage,            # the database; closes last of the data parts
+    settings_component,  # the settings store: config.yaml imported once, the effective config into ctx.config
     drivers_component,  # the drivers (each with its stored login) and the sync engine on the library driver
     optimizer_component,
     api_component,      # the container the request handlers read
@@ -61,9 +68,7 @@ async def lifespan(app: FastAPI):
     # providers up per request, and no request is served before startup.
     otel = telemetry.setup_telemetry()
     env = EnvOverrides()  # read once per start: what the environment holds now
-    config = load_config(env=env)
-    set_level(config.server.log_level)
-    clock.configure(config.server.timezone)
+    config = load_config(env=env)  # the bootstrap keys; the settings component makes the rest the store's
     os.umask(0o077)  # everything the app creates (database, WAL, backups, temp files) is private to its user
     async with run_components(app, config, COMPONENTS, env=env, security=security_config, otel=otel) as ctx:
         library = ctx.sync.library
@@ -127,6 +132,7 @@ def _asset_version(directory: Path = STATIC_DIR) -> str:
 
 
 ASSET_VERSION = _asset_version()
+app.state.asset_version = ASSET_VERSION  # GET /api/themes names the theme stylesheets by it
 # Every module main.js imports or loads, directly or not (relative to static/): preloaded from the page head so the
 # browser fetches them in one round instead of discovering them import level by import level.
 JS_MODULES = [m for m in page_ui.modules(STATIC_DIR) if m != "js/main.js"]
@@ -144,6 +150,9 @@ def add_versioned_static(target: FastAPI, directory: Path, version: str) -> None
     async def versioned_static(asset_version: str, asset_path: str, request: Request):
         if asset_version != version:
             raise HTTPException(status_code=404)
+        sheet = themes.stylesheet_for(asset_path)  # a theme's stylesheet is generated from its theme.json, not a file
+        if sheet is not None:
+            return Response(sheet, media_type="text/css")
         return await files.get_response(asset_path, request.scope)
 
 
@@ -154,16 +163,19 @@ app.mount("/static", page_ui.Assets(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=[str(TEMPLATES_DIR), str(STATIC_DIR)])
 app.include_router(api_router)
 app.include_router(metrics_router)
+app.include_router(mcp_router)  # POST /mcp; 404 until mcp.enabled (docs/mcp.md)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def serve_dashboard(request: Request):
     container = getattr(request.app.state, "container", None)  # None before startup (and in template tests)
     household = container.config.household if container else HouseholdConfig()
+    display = container.config.display if container else DisplayConfig()
     return templates.TemplateResponse(
         request=request, name="index.html",
         context={"version": ASSET_VERSION, "modules": JS_MODULES, "ui": page_ui.ui(), "grafana_links": grafana.links(),
-                 "household": household, "household_json": json.dumps(household.labels())},
+                 "household": household, "household_json": json.dumps(household.labels()),
+                 "looks": themes.page_list(ASSET_VERSION), "look_default": themes.resolve_default(display.theme)},
     )
 
 

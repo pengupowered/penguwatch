@@ -14,8 +14,8 @@ import { emit, on } from "./bus.js";
 import { state } from "./state.js";
 
 const FEATURE_NOTES = {
-  schedule: "No schedule driver is set (drivers: schedule in config.yaml), so there is no air schedule and no calendar feed.",
-  discovery: "No discovery driver is set (drivers: discovery in config.yaml), so there is nothing to discover here.",
+  schedule: "No schedule source is set (Settings > Data sources), so there is no air schedule and no calendar feed.",
+  discovery: "No discovery source is set (Settings > Data sources), so there is nothing to discover here.",
 };
 
 export async function loadDrivers() {
@@ -40,7 +40,13 @@ export const hasAccount = () => state.drivers?.remote !== false;
 export const catalogLabels = () => labelsOf(state.drivers?.catalog);
 export const catalogLabel = () => catalogLabels().join(", ") || "the catalogue";
 export const scheduleOn = () => (state.drivers?.schedule || []).length > 0;
-export const discoveryOn = () => (state.drivers?.discovery || []).length > 0;
+// Whether discovery can answer: a discovery driver is set, and one that is also the library driver is signed in. The login
+// state is what the header's pill shows (state.libraryStatus, js/library-status.js); until it has arrived it counts as not
+// signed in, and the panel asks again on the "library-status" event.
+export const discoveryOn = () => {
+  const names = state.drivers?.discovery || [];
+  return names.some((n) => n !== state.drivers.library || state.libraryStatus?.authenticated === true);
+};
 export const libraryOffers = (extra) => (libraryDriver()?.extras || []).includes(extra);
 
 // The links to a title's page on each driver that has one and knows the title: [{ label, url }]

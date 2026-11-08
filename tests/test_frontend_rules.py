@@ -1,4 +1,4 @@
-"""The dashboard's rules, enforced (after Pengumon's tests/test_frontend.py): the look comes from the tokens, the CSP
+"""The dashboard's rules, enforced: the look comes from the tokens, the CSP
 needs no inline anything, every tab is a complete folder no shared file names, and every hook the markup names exists.
 See docs/ui.md."""
 
@@ -78,7 +78,7 @@ def test_the_tokens_have_both_themes():
     assert light_os == light_picked  # the toggle and the OS setting give the same light theme
     colour_tokens = {name for name in dark if re.search(rf"{name}:\s*(#|rgba?\()", tokens)}
     assert {"--bg", "--surface-1", "--ink-1", "--accent", "--good", "--warn", "--crit", "--poster-bg"} <= light_os
-    assert colour_tokens - light_os <= {"--on-image", "--on-image-bg", "--on-image-line"}  # over images: one look
+    assert colour_tokens - light_os <= {"--on-image", "--on-image-bg", "--on-image-line", "--grid"}  # over images: one look; no grid
 
 
 def test_every_custom_property_used_is_declared():
@@ -207,7 +207,7 @@ def test_every_panel_folder_is_complete():
     sprite = set(re.findall(r'<symbol id="i-([\w-]+)"', text(WEB / "templates" / "icons.svg")))
     found = ui.discover()
     assert [p.id for p in found.panels] == [p.name for p in sorted(PANELS, key=lambda f: json.loads(text(f / "panel.json"))["order"])]
-    assert len(found.panels) == 10
+    assert len(found.panels) == 12
     routes, keys = [], []
     for part in found.panels:
         folder = STATIC / "panels" / part.id

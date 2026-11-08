@@ -63,11 +63,12 @@ def test_no_module_but_main_imports_a_component_module():
 
 
 def test_the_list_order_keeps_what_each_component_needs():
-    """Storage first (it builds the repository every later one reads, and closes after all of them), the SIMKL client
+    """Storage first (it builds the repository every later one reads, and closes after all of them), the settings next
+    (it makes the live config the settings store's before anything is built from it), the SIMKL client
     before the sync worker (whose stop flushes the outbox before the client closes), the container before the
     notifier and the webhooks that sit on it (the webhooks also need the database to listen to), the sampler last (it reads the finished container)."""
     names = [n.removeprefix("penguwatch.") for n in LISTED]
-    assert names == ["db.storage", "sync.component", "optimizer.component", "api.component", "sync.worker",
+    assert names == ["db.storage", "settings.component", "sync.component", "optimizer.component", "api.component", "sync.worker",
                      "notify_component", "webhooks_component", "telemetry_component"]
 
 
@@ -227,7 +228,7 @@ async def test_shutdown_order(monkeypatch):
     monkeypatch.setattr("penguwatch.telemetry.sample_loop", lambda container: asyncio.sleep(3600))
     monkeypatch.setenv("PENGUWATCH_NOTIFY_URL", "http://127.0.0.1:9/topic")
     async with main.lifespan(main.app):
-        assert len(tasks) == 3  # sync worker, notification worker, telemetry sampler
+        assert len(tasks) == 4  # sync worker, notification worker, webhook airs-today check, telemetry sampler
 
     assert [label for label, _ in events] == ["outbox flushed", "client closed", "repository closed", "last log line",
                                               "telemetry flushed"]

@@ -46,7 +46,38 @@ export function tabFromHash() {
   return tabRoutes()[route] || null;
 }
 
+// The desktop tab strip shows full labels while they fit and the short ones (Plan, Pick, Schedule...) when they do not,
+// decided by measuring: the strip is measured with the full labels, and if it overflows it goes compact (`tabs-compact`).
+// No width is hard-coded, because label widths depend on the theme and the font. The class change happens before the next
+// paint, so nothing flickers; the strip's own width does not change with it, so the observer does not loop. If even the
+// short labels overflow too (about 1000 px and narrower, above the phone layout), only the icons show (`tabs-icons`; each tab
+// keeps its name as aria-label and tooltip); and if even those do not fit, the strip scrolls sideways under a fade (`tabs-scroll`).
+export function setupTabFit() {
+  const bar = document.getElementById("tabs");
+  if (!bar) return;
+  bar.querySelectorAll(".nav-btn[aria-label]").forEach((b) => { b.title = b.getAttribute("aria-label"); });
+  const phone = window.matchMedia("(max-width: 720px)");
+  let queued = false;
+  const overflows = () => bar.scrollWidth > bar.clientWidth + 1;
+  const fit = () => {
+    queued = false;
+    bar.classList.remove("tabs-compact", "tabs-icons", "tabs-scroll");
+    if (phone.matches || !overflows()) return;
+    bar.classList.add("tabs-compact");
+    if (!overflows()) return;
+    bar.classList.add("tabs-icons");
+    if (overflows()) bar.classList.add("tabs-scroll");
+  };
+  const soon = () => { if (!queued) { queued = true; requestAnimationFrame(fit); } };
+  new ResizeObserver(soon).observe(bar);
+  document.addEventListener("themechange", soon);
+  phone.addEventListener("change", soon);
+  document.fonts?.ready.then(soon);
+  fit();
+}
+
 export function setupNavigation() {
+  setupTabFit();
   const all = buttons();
   all.forEach((btn) => btn.addEventListener("click", () => goToTab(btn.dataset.tab)));
   // Arrow keys move between the tabs of the tab strip (one tab stop: the selected tab)

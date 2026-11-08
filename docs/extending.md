@@ -11,21 +11,10 @@ the app is a component (see the end), and a new service (a tracker, a catalogue)
 
 ## Bring your own ratings
 
-1. **Define a source**, once, in `config.yaml`:
-
-   ```yaml
-   ratings:
-     sources:
-       - id: "letterboxd"
-         name: "Letterboxd"
-         label: "LB"            # on the badge
-         scale_min: 0
-         scale_max: 5
-         decimals: 1
-         show_on_cards: true
-   ```
-
-   or with the API (`POST /api/rating-sources`, see [API](api.md#rating-sources)). Restart after editing the file.
+1. **Define a source**, once, on the Ratings tab (**New source**: name, badge label, id, decimals shown, lowest and
+   highest value, and whether it shows on the cards), or with the API (`POST /api/rating-sources`, see [API](api.md#rating-sources)). Sources
+   are not part of the Settings tab or of `config.yaml`: a `ratings: sources:` list in a 0.15 `config.yaml` is read once,
+   at the first start of the version with the Settings tab, and from then on the sources are ordinary ones you can edit.
 2. **Push values** with `PUT /api/ratings/letterboxd`, up to 1000 per request. The complete example below does it from a
    CSV file.
 3. **Use them:** sort the library by the source (`sort_by=rating:letterboxd`), filter (`min_rating=letterboxd:4`),
@@ -80,22 +69,29 @@ batch (`422`) and say which item.
 
 ## Event webhooks
 
-PenguWatch can call your URL when something happens. Configure them in `config.yaml`:
-
-```yaml
-webhooks:
-  - name: "home-automation"            # shown on the System tab; defaults to the host
-    url: "https://hooks.example.net/penguwatch"
-    events: ["title.added", "episode.watched", "sync.failed"]   # leave out for all events
-    secret_env: "PENGUWATCH_WEBHOOK_SECRET"   # the NAME of an environment variable holding the secret, or
-    # secret_file: "/run/secrets/penguwatch_webhook"   # a file that holds it (Docker/Podman secrets)
-```
+PenguWatch can call your URL when something happens. Add webhooks on the Settings tab, under Notifications > Event
+webhooks (at most ten): a name (it becomes the webhook's id, `Home Assistant` -> `home-assistant`), the events it wants
+(all by default), its address and a signing secret. Changes apply at once, no restart.
 
 The secret is how the receiver knows a call is from your PenguWatch: use a long random value (at least 16
-characters, `python -c "import secrets; print(secrets.token_urlsafe(32))"`) and put it in the environment (`.env`) or a
-file, never in `config.yaml`. Without a secret the calls are unsigned. If a secret is configured but cannot be read, that
-webhook stays **off** (it never sends unsigned) and the System tab says why. The address is treated like a password
-too: it is never logged or shown (the System tab and `/api/webhooks` show only its host).
+characters, `python -c "import secrets; print(secrets.token_urlsafe(32))"`). Type it into the tab, where it is kept in
+`secrets.json` and never shown again. Without a secret the calls are unsigned. The address is treated like a password
+too: it is stored in `secrets.json`, and is never logged, exported or shown (the System tab and `/api/webhooks` show only
+its host). A webhook saved without an address stays off.
+
+**The receiver must run on another address than `localhost`.** PenguWatch refuses to call this machine or a link-local
+address (`localhost`, `127.0.0.1`, `::1`, `169.254.x.x`, ...), when the address is saved and again at every call on the
+address the name resolves to; LAN addresses such as `http://192.168.1.20:9000/` are fine. To try the example receiver
+below, run it on another device, or on this one and enter this machine's LAN address. Calls go out directly: proxy
+variables are ignored.
+
+Webhooks in a 0.15 `config.yaml` (with `url`, `name`, `events`, `secret_env`, `secret_file`) are imported once at the first
+start of the version with the Settings tab, their addresses moving to `secrets.json`; after that the file is ignored.
+An imported `secret_env` (named `PENGUWATCH_WEBHOOK_...`) or `secret_file` (under `/run/secrets/`) keeps working: the
+variable or file wins over a typed secret, and if it cannot be read the webhook stays **off** (it never sends unsigned)
+and the System tab says why. The tab shows it read-only with **Stop using it**; it cannot name a new variable or file
+([Security](security.md#settings-and-secrets)). Settings > Export includes the webhooks without their addresses or
+secrets.
 
 ### What is sent
 
@@ -153,8 +149,11 @@ answers are final. Events to one webhook are sent in order, but a retried event 
 `created_at` or `id` if order matters. Nothing is kept across a restart.
 
 A webhook shows the state `dropping` for ten minutes after its queue was last full. Delivered, failed and dropped counts, the last error and the queue length are on the System tab, at `GET /api/webhooks`
-and in `/metrics` (`penguwatch_webhook_deliveries_total`, `penguwatch_webhook_queue_depth`). `POST
-/api/webhooks/{name}/test` sends a `webhook.test` event to see the receiver work.
+and in `/metrics` (`penguwatch_webhook_deliveries_total`, `penguwatch_webhook_queue_depth`). The last error is one of a
+few fixed labels: `redirect not followed`, `refused by the receiver (HTTP 4xx)`, `server error (HTTP 5xx)`, `timed out`
+or `could not connect` (no status code, exception name or receiver text: those could repeat the address). `POST
+/api/webhooks/{name}/test` (the webhook's name, as on the Settings tab; **Send test** on its card) sends a
+`webhook.test` event to see the receiver work.
 
 ### Verify the signature
 
@@ -187,8 +186,9 @@ A known value to test your own implementation against: secret `0123456789abcdef-
 body `{"version":1,"type":"title.added"}` gives
 `sha256=aa6983e669ceeb386f98e2ba091b31b4b3f1e56444cb5a4a6893a02590c00db4`.
 
-Webhook addresses come from `config.yaml`, which only you edit, so PenguWatch calls any address you give it, including
-ones on your own network. Point it at services you trust.
+Webhook addresses are set by whoever can change settings (with an access token set, only people signed in; without one,
+anyone who can reach the port), and PenguWatch calls any address given, including ones on your own network. Point it at
+services you trust, and set the access token.
 
 ## Add a driver
 

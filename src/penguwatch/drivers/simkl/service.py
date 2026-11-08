@@ -187,6 +187,15 @@ class SimklLibrary:
         return DriverStatus(driver=NAME, connected=bool(client.access_token), auth_state=login["auth_state"],
                             configured=bool(client.client_id), message=login["auth_message"], details=details)
 
+    async def local_status(self) -> DriverStatus:
+        """status() from what is stored and in memory only: no call to SIMKL (no account details), so no token is
+        renewed or written. For readers that must not touch the account (the MCP sync_status tool)."""
+        await self.service.ensure_credentials()
+        client = self.client
+        login = await auth.describe(self.repository, client, RENEW_MARGIN)
+        return DriverStatus(driver=NAME, connected=bool(client.access_token), auth_state=login["auth_state"],
+                            configured=bool(client.client_id), message=login["auth_message"], details={})
+
     async def connect(self, step: Optional[Mapping[str, Any]] = None) -> ConnectStep:
         """No step: starts the device login (a code to enter at simkl.com/pin). With the state of that step: checks
         whether it was approved, and stores the login when it was."""

@@ -36,6 +36,7 @@ _REGISTRY = [
     (16, "outbox_ops", "0016_outbox_ops"),
     (17, "driver_state", "0017_driver_state"),
     (18, "staged_cursor", "0018_staged_cursor"),
+    (19, "settings", "0019_settings"),
 ]
 
 MIGRATIONS: List[Tuple[int, str, Migration]] = [

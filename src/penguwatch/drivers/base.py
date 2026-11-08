@@ -414,6 +414,10 @@ class LibrarySync(Protocol):
 
     async def status(self) -> DriverStatus: ...
 
+    # Optionally `async def local_status(self) -> DriverStatus`: status() from stored and in-memory state only, with no
+    # call to the service (status() may fetch account details). Readers that must not touch the account use it when
+    # the driver has it (penguwatch.sync.summary).
+
     async def connect(self, step: Optional[Mapping[str, Any]] = None) -> ConnectStep:
         """Starts connecting (step None) or continues with the state the previous step returned."""
 
@@ -457,6 +461,21 @@ class RatingProvider(Protocol):
     rating_sources: ClassVar[Tuple[BuiltinRatingSource, ...]]
 
 
+@dataclass(frozen=True)
+class DriverSetting:
+    """One option of a driver's config.yaml section as the Settings tab shows it (penguwatch.settings.registry collects
+    them from every driver's `settings`): `field` of its options_model, keyed "<driver>.<field>". `section` is a
+    registry section id ("sync", "advanced"); its group is the driver's label. Type, range and default come from the
+    field."""
+
+    field: str
+    section: str
+    label: str
+    effect: str
+    unit: Optional[str] = None
+    live: bool = True  # False: applies at the next start (the driver is built once)
+
+
 class Driver(Protocol):
     """One service. A class with these attributes; `build(context)` makes the running instance, whose capability
     objects (`catalog`, `library`, `schedule`, `discovery`) are None for what it does not offer."""
@@ -474,3 +493,8 @@ class Driver(Protocol):
     # extras: ClassVar[Tuple[str, ...]] extra controls it offers: "credentials" (an app id form), "diagnose"
     # title_urls: ClassVar[Dict[str, str]]  media type -> a title's page on the service, "{id}" for its id
     # home_url: ClassVar[str]           the service's home page: credited where its data is used
+    # The Settings tab (penguwatch.settings.registry; a driver with an options_model must place every option):
+    # settings: ClassVar[Tuple[DriverSetting, ...]]   the options the page shows
+    # not_on_page: ClassVar[Mapping[str, str]]       option -> why the page leaves it off (a credential)
+    # legacy_defaults: ClassVar[Mapping[str, Any]]   option -> its default before the settings store (frozen, for the
+    #                                                one-time import: penguwatch.settings.legacy)

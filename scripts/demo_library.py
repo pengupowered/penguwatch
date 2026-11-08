@@ -22,7 +22,7 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
-from penguwatch.config import load_config
+from penguwatch.catalog import load_catalog
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.drivers.base import OP_STATUS, OP_WATCHED, OP_RATE, SyncOp
 from penguwatch.models import HouseholdTag, MediaType, Priority, Show, ShowStatus
@@ -59,6 +59,9 @@ DEMO_ACTIVITY = {"all": "2020-01-01T00:00:00Z"}
 # Titles nobody has watched for months (Tidy offers to move a stalled one to Plan to watch; a service only they are on
 # stays unused, so the Optimizer has something to advise)
 STALE = {"Kitchen Lights": 330, "Velvet Circuit": 120}
+# Titles whose first episodes were marked watched in one go (bulk marks: n episodes sharing one timestamp, that many
+# days ago); the History tab leaves such groups out of the watching time
+BULK = {"Fox & Compass": (8, 200), "Pocket Dragon Delivery": (12, 45), "Velvet Circuit": (4, 120)}
 # Your own ratings (SIMKL's 1-10 scale)
 USER_RATINGS = {"Fox & Compass": 9, "The Lantern Keepers": 10, "Pocket Dragon Delivery": 8, "Paper Planets": 7,
                 "Winter Signal": 6, "Northbound": 9, "Signal Lost": 8}
@@ -81,10 +84,22 @@ def poster(title: str) -> str:
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
 
+def watch_stamp(today: date, days_ago: int, hour: int, n: int) -> str:
+    """A made-up watch time `days_ago` days back, in the shapes the real library has: with a Z, with +00:00 and
+    microseconds, and now and then a date only."""
+    day = today - timedelta(days=days_ago)
+    kind = n % 7
+    if kind == 6:
+        return day.isoformat()
+    minute, second = (n * 13) % 60, (n * 29) % 60
+    base = f"{day.isoformat()}T{hour % 24:02d}:{minute:02d}:{second:02d}"
+    return base + "Z" if kind % 2 == 0 else base + f".{n * 7919 % 1000000:06d}+00:00"
+
+
 async def build(path: str, signed_in: bool = False) -> None:
-    config = load_config()
     repo = DatabaseRepository(path)
-    await repo.initialize(config.services)
+    # the built-in catalogue, as a first start seeds an empty table (config.yaml no longer lists services)
+    await repo.initialize(load_catalog())
     for sid in ACTIVE:
         await repo.set_service_active(sid, True, renewal_day=sum(map(ord, sid)) % 27 + 1)
     today = date.today()
@@ -101,6 +116,8 @@ async def build(path: str, signed_in: bool = False) -> None:
         show_id = await repo.upsert_show(show)
         ids.append(show_id)
         if not shape:
+            if kind == "movie" and watched:  # watched once, a while ago (Insights and History count it at this stamp)
+                await repo.update_show_fields(show_id, {"last_watched_at": watch_stamp(today, 12 + (i * 28) % 60, 20, i)})
             continue
         seasons, per = shape
         total = seasons * per
@@ -113,12 +130,20 @@ async def build(path: str, signed_in: bool = False) -> None:
                     for s in range(1, seasons + 1) for n in range(1, per + 1)]
         await repo.upsert_episode_list(show_id, episodes)
         ago = STALE.get(title, 2)
-        await repo.set_episodes_watched(show_id, [(e["season"], e["number"]) for e in episodes[:watched]], True,
-                                        watched_at=(today - timedelta(days=ago)).isoformat() + "T20:00:00+00:00")
+        # Spread the watched episodes back from the newest (every title at its own pace) so the History tab has a
+        # year to show; a bulk-marked start shares one stamp
+        stamps = []
+        bulk_n, bulk_ago = BULK.get(title, (0, 0))
+        step = 2 + i % 5
+        for k in range(watched):
+            if k < bulk_n:
+                stamps.append(watch_stamp(today, bulk_ago, 9, 0))
+            else:
+                stamps.append(watch_stamp(today, ago + (watched - 1 - k) * step, 18 + (k * 7 + i) % 5, k + i))
+        await repo.replace_watched_episodes(show_id, [(e["season"], e["number"], at) for e, at in zip(episodes[:watched], stamps)])
         await repo.update_show_fields(show_id, {"episodes_synced_at": today.isoformat() + "T00:00:00+00:00",
                                                 "total_episodes": total,
-                                                "last_watched_at": (today - timedelta(days=ago)).isoformat() + "T20:00:00+00:00"
-                                                if watched else None})
+                                                "last_watched_at": max(stamps) if watched else None})
         await repo.recompute_progress_from_episodes(show_id)
     for k, (title, *_rest) in enumerate(TITLES):
         if title in USER_RATINGS:

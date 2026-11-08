@@ -71,9 +71,25 @@ async def test_user_info_is_fetched_once_and_cached_for_six_hours(monkeypatch):
     assert client.calls == 2
 
 
-async def test_a_failed_user_fetch_gives_none_logs_and_keeps_the_cache(caplog):
-    cache = (None, None)
+async def test_a_failed_user_fetch_gives_none_and_logs(caplog):
     with caplog.at_level("WARNING", logger="penguwatch.drivers.simkl.auth"):
-        info, kept = await auth_state.cached_user_info(cache, _Client(fail=True))
-    assert info is None and kept is cache
+        info, kept = await auth_state.cached_user_info((None, None), _Client(fail=True))
+    assert info is None and kept[1] is None
     assert "Failed to fetch SIMKL user settings: down" in caplog.text
+
+
+async def test_a_failed_user_fetch_is_not_repeated_for_five_minutes_and_an_old_answer_is_kept(monkeypatch):
+    now = [clock.utc_now()]
+    monkeypatch.setattr(clock, "utc_now", lambda: now[0])
+    down = _Client(fail=True)
+    info, cache = await auth_state.cached_user_info((None, None), down)
+    for _ in range(5):  # a page polling the status
+        info, cache = await auth_state.cached_user_info(cache, down)
+    assert info is None and down.calls == 1
+    now[0] += timedelta(minutes=5, seconds=1)
+    await auth_state.cached_user_info(cache, down)
+    assert down.calls == 2
+    # an answer that has gone stale is kept when the refresh fails (and tried again next time)
+    good = (now[0] - timedelta(hours=7), {"user": {"name": "x"}})
+    info, kept = await auth_state.cached_user_info(good, down)
+    assert info is None and kept is good

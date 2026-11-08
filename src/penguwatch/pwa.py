@@ -10,6 +10,7 @@ from pathlib import Path
 from fastapi import FastAPI, Response
 
 from penguwatch import ui
+from penguwatch.web import themes
 
 SW_TEMPLATE = "sw.js"
 MANIFEST = "manifest.webmanifest"
@@ -17,9 +18,11 @@ MANIFEST = "manifest.webmanifest"
 
 def shell_urls(directory: Path, version: str) -> list:
     """Everything the page needs to start, as the exact URLs index.html requests (versioned static only): the
-    stylesheets, the theme script and every module, the shared ones and each tab's and dialog's (penguwatch.ui)."""
+    stylesheets, the theme script and the generated stylesheet of every theme (the one in use is linked by theme.js), and
+    every module, the shared ones and each tab's and dialog's (penguwatch.ui)."""
     assets = (*ui.stylesheets(directory), "theme.js", *ui.modules(directory), "offline.css", "offline.html")
     urls = [f"/static/v/{version}/{path}" for path in assets]
+    urls += [f"/static/v/{version}/themes/{theme_id}/theme.css" for theme_id in themes.look_stylesheets()]
     urls += [f"/static/icons/{p.name}" for p in sorted((directory / "icons").glob("*")) if p.is_file()]
     return urls
 

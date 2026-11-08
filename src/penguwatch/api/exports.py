@@ -64,6 +64,10 @@ async def export_library_csv(repo: DatabaseRepository = Depends(get_repo)):
 
 
 def _strip_secrets(path: str) -> None:
+    """The drivers' logins and the caches out of a backup copy. The Settings tab's secrets (the digest address, the
+    webhooks' addresses and signing secrets) are not in the database at all: they live in secrets.json next to it
+    (penguwatch.secrets), which this download never includes; `penguwatch backup` copies it (the private full
+    backup). The settings tables hold no secret, so they stay in the download."""
     conn = sqlite3.connect(path)
     try:
         marks = ",".join("?" * len(SECRET_STATE_KEYS))

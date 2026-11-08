@@ -1,6 +1,5 @@
 """Notification preview and test endpoints."""
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException
 
 from penguwatch.api.deps import AppContainer, get_container, get_repo, get_optimizer
@@ -8,6 +7,7 @@ from penguwatch.db.repository import DatabaseRepository
 from penguwatch.optimizer.engine import SubscriptionOptimizer
 from penguwatch.notify import Event, build_events
 from penguwatch.security import rate_limit
+from penguwatch.webhooks import failure_label
 
 router = APIRouter(tags=["Notifications"])
 
@@ -30,11 +30,10 @@ async def notify_preview(
 @router.post("/notify/test", summary="Send a test notification", dependencies=[Depends(rate_limit("notify-test", 3, 60))])
 async def notify_test(c: AppContainer = Depends(get_container)):
     if not c.notifier or not c.notifier.enabled:
-        raise HTTPException(status_code=400, detail="Set PENGUWATCH_NOTIFY_URL to enable notifications.")
+        raise HTTPException(status_code=400, detail="Set the digest address (Settings > Notifications, or PENGUWATCH_NOTIFY_URL) to enable notifications.")
     try:
         await c.notifier.send(Event(key="test", title="PenguWatch test", message="Notifications are working.", tags=["white_check_mark"]))
     except Exception as e:
         # not the error's text: an HTTP error names the URL, and an ntfy topic URL is as good as a password
-        why = f"HTTP {e.response.status_code}" if isinstance(e, httpx.HTTPStatusError) else type(e).__name__
-        raise HTTPException(status_code=502, detail=f"Delivery failed: {why}")
+        raise HTTPException(status_code=502, detail=f"Delivery failed: {failure_label(e)}")
     return {"status": "sent"}

@@ -1,0 +1,14 @@
+<!-- Dialog: one question with two answers (panel.js asks it before discarding a draft or switching the library source). -->
+<div class="modal" id="settings-confirm-modal" role="alertdialog" aria-modal="true" aria-labelledby="settings-confirm-title" aria-describedby="settings-confirm-text">
+  <div class="modal-content sm">
+    <div class="modal-h">
+      <svg class="i" aria-hidden="true"><use href="#i-warn"/></svg>
+      <h2 class="modal-t" id="settings-confirm-title">Are you sure?</h2>
+    </div>
+    <div class="modal-b"><p id="settings-confirm-text"></p></div>
+    <div class="modal-f">
+      <button type="button" class="btn" id="settings-confirm-no" data-action="settings-confirm-no" data-first-focus>Keep editing</button>
+      <button type="button" class="btn danger" id="settings-confirm-yes" data-action="settings-confirm-yes">Discard</button>
+    </div>
+  </div>
+</div>

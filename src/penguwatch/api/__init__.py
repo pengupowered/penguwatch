@@ -3,11 +3,11 @@
 no routes."""
 
 from penguwatch.api import (
-    catalog, decide, discover, drivers, exports, insights, notifications, planner, ratings, schedule, services, shows,
-    sync_review, system, upnext, webhooks,
+    catalog, decide, discover, drivers, exports, history, insights, notifications, planner, ratings, schedule, services,
+    settings, shows, sync_review, system, themes, upnext, webhooks,
 )
 
 ROUTERS = [system.router, shows.router, upnext.router, services.router, decide.router, schedule.router,
            discover.router, catalog.router, drivers.router, sync_review.router, notifications.router, exports.router,
-           insights.router, planner.router, ratings.router,
-           webhooks.router]
+           history.router, insights.router, planner.router, ratings.router,
+           themes.router, webhooks.router, settings.router]

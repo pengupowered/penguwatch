@@ -26,6 +26,7 @@ from penguwatch.db.repository import DatabaseRepository
 
 logger = logging.getLogger("penguwatch.optimizer")
 
+# The defaults of optimizer.value_window_days and optimizer.unused_hours; the optimizer reads the settings
 VALUE_WINDOW_DAYS = 90
 # Below this many hours in the window a service counts as "not used" (one episode of a 24-min anime)
 UNUSED_HOURS = 0.5
@@ -35,10 +36,20 @@ BACKLOG_CAP_HOURS = 60.0
 
 
 class SubscriptionOptimizer:
-    def __init__(self, repository: DatabaseRepository, config: OptimizerConfig, value_window_days: int = VALUE_WINDOW_DAYS):
+    def __init__(self, repository: DatabaseRepository, config: OptimizerConfig, value_window_days: Optional[int] = None):
         self.repository = repository
         self.config = config
-        self.value_window_days = value_window_days
+        self._window_override = value_window_days  # a fixed window (tests); None = the setting, read per use
+
+    @property
+    def value_window_days(self) -> int:
+        """The viewing window: the live setting optimizer.value_window_days (config.optimizer is updated in place)."""
+        return self._window_override if self._window_override is not None else self.config.value_window_days
+
+    @property
+    def unused_hours(self) -> float:
+        """Below this many hours in the window a service counts as "not used" (optimizer.unused_hours)."""
+        return self.config.unused_hours
 
     async def calculate_plan(self) -> OptimizerPlan:
         """Calculates optimal subscription rotation, binge readiness scores, and savings."""
@@ -76,7 +87,7 @@ class SubscriptionOptimizer:
         unused_cost = sum(r.monthly_cost for r in recommendations if r.verdict == "unused")
         household_hours = sum(v.get("hours", 0.0) for v in viewing.values())
         savable, next_decision = apply_status(
-            recommendations, services, all_shows, clock.today(), self.value_window_days, UNUSED_HOURS
+            recommendations, services, all_shows, clock.today(), self.value_window_days, self.unused_hours
         )
 
         return OptimizerPlan(
@@ -200,7 +211,7 @@ class SubscriptionOptimizer:
     ) -> List[BundleSuggestion]:
         hours = {sid: v.get("hours", 0.0) for sid, v in viewing.items()}
         return bundles.switch_suggestions(services, cov) + bundles.partial_use_suggestions(
-            services, hours, UNUSED_HOURS, self.value_window_days
+            services, hours, self.unused_hours, self.value_window_days
         )
 
     def _apply_value(self, rec: OptimizerRecommendation, svc: ServiceConfig, seen: Dict[str, float], today: date) -> None:
@@ -222,7 +233,7 @@ class SubscriptionOptimizer:
 
         if not svc.is_active:
             return
-        if hours < UNUSED_HOURS:
+        if hours < self.unused_hours:
             rec.verdict = "unused"
             rec.verdict_text = (
                 f"No viewing on {svc.name} in the last {window} days. Cancelling saves "

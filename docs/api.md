@@ -107,8 +107,8 @@ that: `/api/shows?min_rating=letterboxd:4&min_rating=imdb:7.5`. An unknown sourc
 ### Rating sources
 
 A rating source is a place your ratings come from: Letterboxd, a spreadsheet, a friend's scores. `SIMKL`, `IMDb` and `TVmaze`
-are built in and read-only (each while its driver runs); you add your own in `config.yaml` (`ratings: sources:`, see
-[Configuration](configuration.md#ratings)) or with `POST /api/rating-sources`:
+are built in and read-only (each while its driver runs); you add your own on the Ratings tab (see
+[Configuration](configuration.md#services-and-ratings)) or with `POST /api/rating-sources`:
 
 ```json
 {"id": "letterboxd", "name": "Letterboxd", "label": "LB", "scale_min": 0, "scale_max": 5, "decimals": 1, "show_on_cards": true}
@@ -116,7 +116,7 @@ are built in and read-only (each while its driver runs); you add your own in `co
 
 `id` is a lowercase slug of 1 to 32 characters (`a-z`, `0-9`, `-`, `_`); the built-in ids (`simkl`, `imdb`, `tvmaze`), `mal`, `user`, `my` and
 `your` are taken. `label` is up to 8 characters, for badges. `decimals` (0 to 3) is how many decimals to show. A source
-defined in `config.yaml` is listed with `"read_only": true`, and changing it through the API is `409`: edit the file.
+imported from a 0.15 `config.yaml` is an ordinary source after the first start, so `"read_only"` is true only for the built-ins.
 A scale cannot be narrowed below values that are already stored (`409`).
 
 `GET /api/rating-sources` lists them, built-ins first, with `rated_titles` (how many titles have a value).
@@ -150,15 +150,70 @@ items is `422`; a body over the size limit is `413`.
 
 ### Webhooks
 
-`/api/webhooks` reports on the webhooks you configured in `config.yaml`; they cannot be created through the API
-(their address and secret live in the file and the environment). See [Extending](extending.md#event-webhooks) for the
+`/api/webhooks` reports on your webhooks and their delivery state; it never returns an address or secret. They are
+created and changed with the Settings routes below, not here. See [Extending](extending.md#event-webhooks) for the
 events and payloads.
+
+### Settings
+
+The Settings tab is a page over these routes. They are **not stable** (they may change in any release), they need the
+access token like every `/api` route, and they are in `/openapi.json` under the tag "Settings". Errors have the shape
+`{"detail": "...", "errors": [{"where": "values.notify.hour", "message": "Enter at most 23"}]}`; `where` is
+`values.<key>`, `lists.webhooks[<i>].<field>` or `secrets.<slot>`, and `message` never repeats what you sent.
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/settings/schema` | Every setting with its section, group, label, help text, unit, type, range, choices, default, whether it applies live and which environment variable pins it; the webhook list; the secret slots; the drivers and roles; the themes. Static per build; carries an `ETag` and answers `304` to `If-None-Match`. |
+| `GET` | `/api/settings` | The state: `revision`, `values` (per key: `value` in effect, `stored`, `source` of `default`, `stored` or `env`, `pending_restart`, `live_failed`, and `env_ignored`: why a variable that would pin it is ignored, naming the variable, never its value), `lists.webhooks` (items without addresses, and each one's state), `secrets` (per slot: `set`, `source`, and the `host` of an address), `about` (version, listen address, paths, whether a token is set, what the one-time import skipped) and `token_set`. |
+| `GET` | `/api/settings/values` | Just `{"revision": N, "values": {key: effective value}}`, for scripts. |
+| `POST` | `/api/settings/validate` | Checks a draft (same body as a save) without saving: `ok`, `errors`, `warnings`, a `summary`. 60 a minute. |
+| `PUT` | `/api/settings` | Saves. 20 a minute. `?source=restore` (a version loaded with `GET /versions/{n}`) or `?source=yaml_import` (an Import draft) is recorded as the version's source; the default is `save`. |
+| `GET` | `/api/settings/versions` | The last 50 saves, newest first: revision, time, source, summary. |
+| `GET` | `/api/settings/versions/{n}` | One version as a draft you can put back with a save. |
+| `GET` | `/api/settings/export` | The stored settings as `text/yaml` (an attachment `penguwatch-settings.yaml`), in `config.yaml` syntax, without any address, secret or slot. |
+| `POST` | `/api/settings/import` | A YAML body (`text/yaml` or `application/x-yaml`, at most 64 KiB) becomes a draft `{values, lists, notes, kept}`. Applies nothing. 20 a minute. |
+
+A save:
+
+```json
+PUT /api/settings
+{"base_revision": 7,
+ "values": {"optimizer.max_active_services": 2, "notify.hour": null},
+ "lists": {"webhooks": [{"id": "home-assistant", "name": "Home Assistant", "events": ["title.added"],
+                         "secret_env": null, "secret_file": null}]},
+ "secrets": {"webhook.home-assistant.url": "https://192.0.2.10/hook", "webhook.home-assistant.secret": "0123456789abcdef"}}
+```
+
+* `base_revision` is the `revision` you read. Keys left out are untouched. `"key": null` resets a setting to its
+  default; `"webhooks": null` resets the list (to none).
+* `secrets` is write-only: a string sets a slot, `""` clears it, and no route ever returns one. The slots are
+  `notify.url`, `webhook.<id>.url` and `webhook.<id>.secret`. A new webhook needs its address in the same save.
+* A key or slot pinned by an environment variable, and a webhook secret while the webhook names a `secret_env` or
+  `secret_file`, is `400`, naming the variable (or saying the webhook reads its secret from a file).
+* A save can't set a new or changed `secret_env` or `secret_file` (an imported one can be kept or cleared, with `null`),
+  can't give a new address to a webhook that still signs with one, and refuses an address with `user:password@` or one
+  that is this machine or link-local (the digest address too), and a signing secret under 16 characters: each is a
+  `422` with its `where` (`lists.webhooks[<i>].secret_env`, `secrets.webhook.<id>.url`, ...). Details in
+  [Security](security.md#settings-and-secrets).
+* The answer (`200`) is `{"revision": 8, "summary": "...", "applied": [...], "restart_needed": [...], "live_failed":
+  [...], "reload": false}`: what changed (the summary never contains a secret or an address), which settings apply only
+  after a restart, which live applier failed, and whether the page should reload (household names).
+* `422` lists what was refused and nothing is saved. `409` (`{"detail": "Changed elsewhere since you opened the page",
+  "revision": 9, "conflicts": [...]}`) means a key, the list or a slot that this save touches changed since your
+  `base_revision`; read again and merge. `500` means `secrets.json` (or the database) could not be written and nothing
+  was saved.
+
+## MCP
+
+`POST /mcp` is a read-only [MCP](mcp.md) endpoint for AI assistants, off by default (`mcp.enabled`). It is not part of the
+REST API above and is not in `/openapi.json`, but the same guards apply: the bearer token, the `Host` check, the `Origin`
+rule and the body cap.
 
 ## What may change
 
 Everything not in the table above is for the page that ships with the app: the drivers (`/api/drivers`: the driver of each role, what each offers, `remote`, the changes waiting for an inactive driver; and the library
 driver's status, connect steps, sync, disconnect and diagnostics under `/api/drivers/{driver}/...`), the catalogue
-search (`/api/catalog/search`), the outbox and review, discover, the optimizer and planner, insights, tidy, the System tab, and the page's helpers. Those routes may
+search (`/api/catalog/search`), the outbox and review, discover, the optimizer and planner, insights, history (`/api/history?days=7|30|365&include_bulk=false`: totals for the last `days` local days and the `days` before, series, top shows, hours and cost per hour by service, genres, weekday and hour-of-day counts; any other `days` is a 422), tidy, the System tab, the themes (`GET /api/themes`: the palettes the page can show and the server's default, see [Themes](themes.md)), and the page's helpers. Those routes may
 change shape or disappear in any release, including a patch release. If you need something from them, ask for it to
 become stable.
 

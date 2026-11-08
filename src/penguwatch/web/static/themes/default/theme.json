@@ -1,0 +1,13 @@
+{
+  "id": "default",
+  "name": "PenguWatch",
+  "description": "The standard look: calm blue on dark slate, or on light grey.",
+  "modes": [
+    "dark",
+    "light"
+  ],
+  "tokens": {},
+  "tags": [
+    "standard"
+  ]
+}
