@@ -42,7 +42,9 @@ async function fetchShows({ keep = false } = {}) {
     const f = filters;
     if (f.status) params.append("status", f.status);
     if (f.activeOnly) params.append("only_active_services", "true");
-    if (f.household) params.append("household_tag", f.household);
+    // a person: the titles they want alone (shared ones are under "shared"), as "Me only" was before 0.17
+    if (f.household === "shared") params.append("shared", "true");
+    else if (f.household) { params.append("member", f.household); params.append("shared", "false"); }
     if (f.serviceId) params.append("service_id", f.serviceId);
     if (f.mediaType) params.append("media_type", f.mediaType);
     if (f.sortBy) params.append("sort_by", f.sortBy);
@@ -119,7 +121,9 @@ function renderTo(target) {
 function matchesFilters(show) {
   const f = filters;
   if (f.status && show.status !== f.status) return false;
-  if (f.household && show.household_tag !== f.household) return false;
+  const who = show.household || [];
+  if (f.household === "shared" && who.length < 2) return false;
+  if (f.household && f.household !== "shared" && !(who.length === 1 && who[0] === f.household)) return false;
   if (f.mediaType && (show.media_type || "show") !== f.mediaType) return false;
   if (f.readyToBinge && !show.is_ready_to_binge) return false;
   if (f.serviceId && !f.activeOnly) {

@@ -2,7 +2,7 @@
 
 import pytest
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import Show, ServiceConfig, ShowStatus, Priority, HouseholdTag
+from penguwatch.models import Show, ServiceConfig, ShowStatus, Priority
 from penguwatch.config import OptimizerConfig
 from penguwatch.optimizer.engine import SubscriptionOptimizer
 
@@ -26,7 +26,7 @@ async def test_optimizer_recommendations_and_rotation(tmp_path):
             service_id="apple_tv",
             status=ShowStatus.WATCHING,
             priority=Priority.HIGH,
-            household_tag=HouseholdTag.BOTH,
+            household=["person1", "person2"],
             imdb_rating=8.3,
             total_episodes=24,
             aired_episodes=24,
@@ -43,7 +43,7 @@ async def test_optimizer_recommendations_and_rotation(tmp_path):
             service_id="max",
             status=ShowStatus.PLANTOWATCH,
             priority=Priority.HIGH,
-            household_tag=HouseholdTag.BOTH,
+            household=["person1", "person2"],
             imdb_rating=8.8,
             total_episodes=9,
             aired_episodes=9,

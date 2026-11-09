@@ -38,7 +38,9 @@ is set, which `Dockerfile.ui` does. CI runs them in the `runner-image` and `ui` 
 
 - **Variants** (`test_ui_smoke.py`, each its own app on a free port with its own data directory): `demo` is the demo
   library with SIMKL not connected, in Chromium: every step file. `token` is the same behind `PENGUWATCH_ACCESS_TOKEN`:
-  the run signs in through the sign-in page, then the core steps. `themed` is the app started with `display: {theme: nord}` (the core steps marked `variants: ["themed"]`: the server default theme). `demo-firefox` is the core steps in Firefox
+  the run signs in through the sign-in page, then the core steps. `themed` is the app started with `display: {theme: nord}` (the core steps marked `variants: ["themed"]`: the server default theme). `household` and `solo` are the demo library
+  with three people and with one (`scripts/demo_library.py --people 3` / `--people 1`; the steps marked
+  `variants: ["household"]` or `["solo"]`). `demo-firefox` is the core steps in Firefox
   (`PENGUWATCH_BROWSER=firefox`, WebDriver BiDi; `FIREFOX_FILES` in `smoke.mjs`). There is no signed-in variant: a SIMKL
   login would make the sync worker call SIMKL five seconds after the start and the header would change state at an
   arbitrary moment; it needs the sync driver stubbed (a `tests/ui/serve.py`) first.

@@ -3,7 +3,7 @@
 import pytest
 from datetime import date, timedelta
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import Show, ServiceConfig, ShowStatus, Priority, HouseholdTag
+from penguwatch.models import Show, ServiceConfig, ShowStatus, Priority
 
 
 @pytest.mark.asyncio
@@ -45,7 +45,7 @@ async def test_repository_show_crud_and_progress(tmp_path):
         network="Apple TV+",
         status=ShowStatus.WATCHING,
         priority=Priority.HIGH,
-        household_tag=HouseholdTag.BOTH,
+        household=["person1", "person2"],
         imdb_rating=8.7,
         total_episodes=10,
         aired_episodes=9,
@@ -73,7 +73,7 @@ async def test_repository_show_crud_and_progress(tmp_path):
     # Stats
     stats = await repo.get_dashboard_stats()
     assert stats["watching_count"] == 1
-    assert stats["both_want_count"] == 1
+    assert stats["shared_count"] == 1
 
     # Delete
     deleted = await repo.delete_show(show_id)

@@ -1,0 +1,26 @@
+{
+  "id": "amber-crt",
+  "name": "Amber CRT",
+  "description": "The page inside an old amber monitor: monospace on near-black, soft-key tabs, double-ruled cards, inverse-video chips, scanlines and a slow roll. Dark.",
+  "modes": ["dark"],
+  "tokens": {
+    "dark": {
+      "--bg": "#0a0600", "--surface-1": "#120c02", "--surface-2": "#1a1204", "--surface-3": "#251a07",
+      "--line": "#3a2809", "--line-strong": "#5c410d", "--scrim": "rgba(6, 3, 0, .78)",
+      "--card-line": "#8a6014", "--card-line-hover": "#c88a1c",
+      "--ink-1": "#ffd98a", "--ink-2": "#f0b94d", "--ink-3": "#d09a3a", "--ink-4": "#a87a2c",
+      "--accent": "#ffb000", "--accent-bg": "rgba(255, 176, 0, .14)", "--on-accent": "#140b00", "--focus": "#ffe0a0",
+      "--good": "#93c47d", "--good-bg": "rgba(147, 196, 125, .12)",
+      "--warn": "#ffb000", "--warn-bg": "rgba(255, 176, 0, .12)", "--warn-fill": "#ffb000",
+      "--serious": "#ff8c3a", "--serious-bg": "rgba(255, 140, 58, .13)",
+      "--crit": "#e4705e", "--crit-bg": "rgba(228, 112, 94, .14)",
+      "--busy": "#ffe6b0", "--busy-bg": "rgba(255, 230, 176, .12)",
+      "--unknown": "#a89068", "--unknown-bg": "rgba(168, 144, 104, .13)",
+      "--nodata": "#2a1d08",
+      "--s1": "#ffb000", "--s2": "#93c47d", "--s3": "#ffe6b0", "--s4": "#e4705e",
+      "--s5": "#a8801e", "--s6": "#6fa8a0", "--s7": "#ff8c3a", "--s8": "#b8a47a",
+      "--q0": "#1f1505", "--q1": "#4a3109", "--q2": "#8a5a10", "--q3": "#d08a14", "--q4": "#ff5a3c"
+    }
+  },
+  "tags": ["skin", "effect", "terminal", "retro"]
+}

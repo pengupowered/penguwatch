@@ -3,7 +3,7 @@
 from penguwatch.drivers.simkl import mapper
 import pytest
 
-from penguwatch.models import HouseholdTag, MediaType, Priority, ShowStatus
+from penguwatch.models import MediaType, Priority, ShowStatus
 from tests.simkl_helpers import simkl_engine
 
 SHOW_ITEM = {
@@ -97,7 +97,7 @@ EXPECTED_SHOW = {'id': None,
  'service_manual': False,
  'status': ShowStatus.WATCHING,
  'priority': Priority.MEDIUM,
- 'household_tag': HouseholdTag.PERSON1,
+ 'household': [],
  'simkl_rating': 8.1,
  'imdb_rating': 8.5,
  'imdb_votes': 1200,
@@ -139,7 +139,7 @@ EXPECTED_ANIME = {'id': None,
  'service_manual': False,
  'status': ShowStatus.COMPLETED,
  'priority': Priority.MEDIUM,
- 'household_tag': HouseholdTag.PERSON1,
+ 'household': [],
  'simkl_rating': 7.0,
  'imdb_rating': 8.2,
  'imdb_votes': None,
@@ -181,7 +181,7 @@ EXPECTED_MOVIE = {'id': None,
  'service_manual': False,
  'status': ShowStatus.COMPLETED,
  'priority': Priority.MEDIUM,
- 'household_tag': HouseholdTag.PERSON1,
+ 'household': [],
  'simkl_rating': None,
  'imdb_rating': 7.7,
  'imdb_votes': 5,
@@ -223,7 +223,7 @@ EXPECTED_FLAT = {'id': None,
  'service_manual': False,
  'status': ShowStatus.PLANTOWATCH,
  'priority': Priority.MEDIUM,
- 'household_tag': HouseholdTag.PERSON1,
+ 'household': [],
  'simkl_rating': None,
  'imdb_rating': None,
  'imdb_votes': None,

@@ -42,5 +42,5 @@ fi
 
 [ -z "$seed_mount" ] || run_args+=(-v "$seed_mount")
 
-podman build -q -f "$ROOT/Dockerfile.test" -t "$IMAGE" "$ROOT" >/dev/null
+podman build -q --build-arg "APT_REFRESH=$(date -u +%Y-%m-%d)" -f "$ROOT/Dockerfile.test" -t "$IMAGE" "$ROOT" >/dev/null
 exec podman run "${run_args[@]}" "$IMAGE" "${cmd[@]}" "$@"

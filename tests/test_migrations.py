@@ -1,5 +1,7 @@
 """Tests for the numbered migration runner."""
 
+import json
+
 import aiosqlite
 import pytest
 
@@ -330,3 +332,115 @@ async def test_0017_moves_every_simkl_key_under_the_drivers_namespace(conn, monk
     assert state == {**{new: f"value of {old}" for old, new in renames.items()},
                      "sync_review_mode": "off", "schedule_last_sync": "t"}
     assert not [k for k in state if k.startswith("simkl_")]
+
+
+# --- 0020: who wants a title is a set of member ids (show_household) -------------------------------------------------
+
+# Every value 0010 left (person1, person2, both) and what a hand-edited or older database may still hold
+TAGS_0019 = [(1, "person1"), (2, "person2"), (3, "both"), (4, None), (5, ""), (6, "legacy"), (7, "both"), (8, "person2")]
+EXPECTED_0020 = {1: ["person1"], 2: ["person2"], 3: ["person1", "person2"], 4: ["person1"], 5: ["person1"],
+                 6: ["person1"], 7: ["person1", "person2"], 8: ["person2"]}
+
+
+async def _at_0019(conn, monkeypatch, members=None):
+    """A database made by the real migrations 1-19, with a title per value of TAGS_0019 and, when given, the stored
+    household.members of the settings store."""
+    await _at_version(conn, monkeypatch, 19)
+    await conn.executemany("INSERT INTO shows (id, title, household_tag) VALUES (?, ?, ?)",
+                           [(i, f"T{i}", tag) for i, tag in TAGS_0019])
+    if members is not None:
+        await conn.execute("INSERT INTO settings_values (key, value, updated) VALUES ('household.members', ?, 0)",
+                           (json.dumps(members),))
+    await conn.commit()
+
+
+async def _people(conn):
+    out = {}
+    for show_id, member in await (await conn.execute(
+            "SELECT show_id, member_id FROM show_household ORDER BY show_id, member_id")).fetchall():
+        out.setdefault(show_id, []).append(member)
+    return out
+
+
+async def _snapshot(conn):
+    rows = {}
+    for table in ("shows", "show_household", "settings_values", "app_state"):
+        rows[table] = [tuple(r) for r in await (await conn.execute(f"SELECT * FROM {table} ORDER BY 1, 2")).fetchall()]
+    return rows
+
+
+async def test_0020_maps_every_old_value_to_its_people_and_drops_the_column(conn, monkeypatch):
+    await _at_0019(conn, monkeypatch, ["Ann", "Bob"])
+    before = (await (await conn.execute("SELECT COUNT(*) FROM shows")).fetchone())[0]
+    assert await run_migrations(conn) == [v for v in VERSIONS if v >= 20]
+    assert await _people(conn) == EXPECTED_0020
+    assert (await (await conn.execute("SELECT COUNT(*) FROM shows")).fetchone())[0] == before == len(TAGS_0019)
+    assert "household_tag" not in await _columns(conn, "shows")
+    indexes = await _names(conn, "index")
+    assert "idx_shows_household" not in indexes and "idx_show_household_member" in indexes
+    stored = (await (await conn.execute(
+        "SELECT value FROM settings_values WHERE key = 'household.members'")).fetchone())[0]
+    assert json.loads(stored) == [{"id": "person1", "name": "Ann"}, {"id": "person2", "name": "Bob"}]
+    mark = (await (await conn.execute("SELECT value FROM app_state WHERE key = 'household.last_member'")).fetchone())[0]
+    assert mark == "2"
+
+
+async def test_0020_both_is_both_people(conn, monkeypatch):
+    """The mutation check of the `both` mapping: mapped to person1 alone, this fails."""
+    await _at_0019(conn, monkeypatch)
+    await run_migrations(conn)
+    people = await _people(conn)
+    assert people[3] == ["person1", "person2"] and people[7] == ["person1", "person2"]
+
+
+async def test_0020_without_stored_members_uses_the_default_two(conn, monkeypatch):
+    await _at_0019(conn, monkeypatch)
+    await run_migrations(conn)
+    assert await _people(conn) == EXPECTED_0020
+    assert (await (await conn.execute("SELECT COUNT(*) FROM settings_values")).fetchone())[0] == 0
+
+
+async def test_0020_a_household_of_one_gives_every_title_to_person1(conn, monkeypatch):
+    await _at_0019(conn, monkeypatch, ["Solo"])
+    await run_migrations(conn)
+    assert await _people(conn) == {i: ["person1"] for i, _ in TAGS_0019}
+    stored = (await (await conn.execute(
+        "SELECT value FROM settings_values WHERE key = 'household.members'")).fetchone())[0]
+    assert json.loads(stored) == [{"id": "person1", "name": "Solo"}]
+
+
+async def test_0020_running_twice_changes_nothing(conn, monkeypatch):
+    await _at_0019(conn, monkeypatch, ["Ann", "Bob"])
+    await run_migrations(conn)
+    after_once = await _snapshot(conn)
+    migrate = dict((v, fn) for v, _, fn in MIGRATIONS)[20]
+    await migrate(conn)
+    await conn.commit()
+    assert await _snapshot(conn) == after_once
+
+
+async def test_0020_never_drops_the_column_while_a_title_has_nobody(conn, monkeypatch):
+    """The migration checks every title has its people before it drops household_tag; when one has none (here a
+    trigger swallows the rows of title 2), it raises, and the runner rolls the whole migration back."""
+    await _at_0019(conn, monkeypatch, ["Ann", "Bob"])
+    await conn.execute("CREATE TABLE show_household (show_id INTEGER NOT NULL, member_id TEXT NOT NULL, "
+                       "PRIMARY KEY (show_id, member_id))")
+    await conn.execute("CREATE TRIGGER swallow BEFORE INSERT ON show_household WHEN NEW.show_id = 2 "
+                       "BEGIN SELECT RAISE(IGNORE); END")
+    await conn.commit()
+    with pytest.raises(RuntimeError, match="left with nobody"):
+        await run_migrations(conn)
+    assert "household_tag" in await _columns(conn, "shows")
+    assert 20 not in await _versions(conn)
+    stored = (await (await conn.execute(
+        "SELECT value FROM settings_values WHERE key = 'household.members'")).fetchone())[0]
+    assert json.loads(stored) == ["Ann", "Bob"]
+
+
+async def test_0020_a_titles_people_go_with_it(conn):
+    await run_migrations(conn)
+    await conn.execute("PRAGMA foreign_keys = ON")
+    await conn.execute("INSERT INTO shows (id, title) VALUES (1, 'A')")
+    await conn.execute("INSERT INTO show_household (show_id, member_id) VALUES (1, 'person1'), (1, 'person3')")
+    await conn.execute("DELETE FROM shows WHERE id = 1")
+    assert (await (await conn.execute("SELECT COUNT(*) FROM show_household")).fetchone())[0] == 0

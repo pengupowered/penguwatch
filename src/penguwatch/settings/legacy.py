@@ -23,6 +23,8 @@ _CORE_OLD_DEFAULTS: Dict[str, Any] = {
     "notify.hour": 9,                       # EnvOverrides.notify_hour default
     "notify.renewal_warning_days": 3,       # notify.RENEWAL_WARNING_DAYS
     "display.theme": "default",
+    # no theme had an effect then: "on" changes nothing for a browser that has none to run
+    "display.effects": True,
     "server.timezone": "",
     "mcp.enabled": False,
     "display.grafana_url": "",              # EnvOverrides.grafana_url default

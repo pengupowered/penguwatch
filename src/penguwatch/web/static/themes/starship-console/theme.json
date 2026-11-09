@@ -1,0 +1,26 @@
+{
+  "id": "starship-console",
+  "name": "Starship console",
+  "description": "A starship computer console: an elbow frame, a rail of rounded colour blocks and bracketed panels in teal, amber, steel blue and coral on black.",
+  "modes": ["dark"],
+  "tokens": {
+    "dark": {
+      "--bg": "#020304", "--surface-1": "#080b0e", "--surface-2": "#0e1317", "--surface-3": "#162029",
+      "--line": "#1c2731", "--line-strong": "#2d3b48", "--scrim": "rgba(1, 2, 3, .82)",
+      "--card-line": "#4f7398", "--card-line-hover": "#6f9bd1",
+      "--ink-1": "#eef5f4", "--ink-2": "#c9d7d9", "--ink-3": "#a0b3b8", "--ink-4": "#7d9198",
+      "--accent": "#52c8b6", "--accent-bg": "rgba(82, 200, 182, .15)", "--on-accent": "#021210", "--focus": "#f2c45a",
+      "--good": "#63d69c", "--good-bg": "rgba(99, 214, 156, .12)",
+      "--warn": "#efc04f", "--warn-bg": "rgba(239, 192, 79, .12)", "--warn-fill": "#efc04f",
+      "--serious": "#f2905f", "--serious-bg": "rgba(242, 144, 95, .13)",
+      "--crit": "#ff6b6e", "--crit-bg": "rgba(255, 107, 110, .14)",
+      "--busy": "#86ade3", "--busy-bg": "rgba(134, 173, 227, .14)",
+      "--unknown": "#a0b0bb", "--unknown-bg": "rgba(160, 176, 187, .13)",
+      "--nodata": "#121a21",
+      "--s1": "#52c8b6", "--s2": "#e7b04e", "--s3": "#6f9bd1", "--s4": "#ee7f6d",
+      "--s5": "#a9d8de", "--s6": "#9fce6a", "--s7": "#d7839f", "--s8": "#4a86c5",
+      "--q0": "#0f161c", "--q1": "#183a48", "--q2": "#1f6f78", "--q3": "#45b6a4", "--q4": "#ee7f6d"
+    }
+  },
+  "tags": ["skin", "effect", "sci-fi", "console"]
+}

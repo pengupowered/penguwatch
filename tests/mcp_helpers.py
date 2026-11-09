@@ -12,7 +12,7 @@ from penguwatch import clock
 from penguwatch.config import WebhookConfig
 from penguwatch.drivers.simkl import auth as simkl_auth
 from penguwatch.drivers.simkl.service import KEY_ACCESS, KEY_CLIENT_ID, KEY_REFRESH
-from penguwatch.models import HouseholdTag, MediaType, Priority, Show, ShowStatus
+from penguwatch.models import MediaType, Priority, Show, ShowStatus
 
 TOKEN = "CANARY-access-token-0001"
 SECRETS = {
@@ -72,7 +72,7 @@ async def seed(container, monkeypatch, tmp_path):
     today = clock.today()
 
     async def add(title, kind, status, who, prio, service, imdb, episodes, watched, **extra):
-        show = Show(title=title, year=2022, media_type=kind, status=status, household_tag=who, priority=prio,
+        show = Show(title=title, year=2022, media_type=kind, status=status, household=who, priority=prio,
                     service_id=service, imdb_rating=imdb, genres=["Drama"], overview=f"{title} is invented.", **extra)
         show_id = await repo.upsert_show(show)
         if episodes:
@@ -88,13 +88,13 @@ async def seed(container, monkeypatch, tmp_path):
         return show_id
 
     ids = {
-        "Severance": await add("Severance", MediaType.SHOW, ShowStatus.WATCHING, HouseholdTag.BOTH, Priority.HIGH,
+        "Severance": await add("Severance", MediaType.SHOW, ShowStatus.WATCHING, ["person1", "person2"], Priority.HIGH,
                                "apple_tv", 8.7, [-30, -23, -16, -9, 3], 2),
-        "Andor": await add("Andor", MediaType.SHOW, ShowStatus.WATCHING, HouseholdTag.PERSON1, Priority.MEDIUM,
+        "Andor": await add("Andor", MediaType.SHOW, ShowStatus.WATCHING, ["person1"], Priority.MEDIUM,
                            "netflix", 8.4, [-60, -53, -46], 1),
-        "Heat": await add("Heat", MediaType.MOVIE, ShowStatus.PLANTOWATCH, HouseholdTag.PERSON2, Priority.LOW,
+        "Heat": await add("Heat", MediaType.MOVIE, ShowStatus.PLANTOWATCH, ["person2"], Priority.LOW,
                           None, 8.3, [], 0, total_episodes=1),
-        "Old Show": await add("Old Show", MediaType.SHOW, ShowStatus.COMPLETED, HouseholdTag.PERSON1, Priority.LOW,
+        "Old Show": await add("Old Show", MediaType.SHOW, ShowStatus.COMPLETED, ["person1"], Priority.LOW,
                               "netflix", 7.0, [-300, -293], 2),
     }
     await repo.update_show_fields(ids["Severance"], {"user_rating": 9.0})

@@ -9,7 +9,7 @@ so that "rezero" finds "Re:Zero".
 import html
 import re
 import unicodedata
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 # Letters Unicode does not decompose into a base letter plus a mark.
 _EXTRA = {"ø": "o", "æ": "ae", "œ": "oe", "ß": "ss", "ł": "l", "đ": "d", "ð": "d", "þ": "th", "ı": "i"}
@@ -91,3 +91,36 @@ def strip_accents(text: str) -> str:
     return "".join(
         (_EXTRA[c.lower()].capitalize() if c.isupper() else _EXTRA[c]) if c.lower() in _EXTRA else c for c in plain
     )
+
+
+def title_names(title: object) -> List[str]:
+    """Every name a catalogue title (drivers.base.Title or anything with those attributes) goes by: the title, the
+    English title and the alternative names it carries."""
+    names = [getattr(title, "title", None), getattr(title, "en_title", None)]
+    return [n for n in [*names, *clean_alt_titles(getattr(title, "alt_titles", None))] if isinstance(n, str) and n]
+
+
+def rank_matches(query: str, items: Iterable, names=title_names, year=lambda item: getattr(item, "year", None)) -> list:
+    """`items` (catalogue results) with the best matches for `query` first; the one place that orders search results,
+    for every catalogue driver and for the answer of the search route.
+
+    Three groups, compared with `normalize` (case, accents, punctuation) and `compact` (spaces) on every name:
+    1. a name equals the query ("Saturday Night Live"); within it the earliest year first, since the original of a
+       title usually predates its remakes and foreign versions, and a missing year last;
+    2. a name starts with the query ("Saturday Night Live: Weekend Update");
+    3. the rest, which is the catalogue's own order.
+    The sort is stable, so ties keep the order they came in (the function can be applied again without a change)."""
+    wanted, wanted_compact = normalize(query), compact(query)
+    if not wanted:
+        return list(items)
+
+    def key(item: object) -> Tuple[int, int]:
+        seen = [(normalize(n), compact(n)) for n in names(item)]
+        if any(n == wanted or c == wanted_compact for n, c in seen):
+            y = year(item)
+            return 0, y if isinstance(y, int) and y > 0 else 10**6
+        if any(n.startswith(wanted) or c.startswith(wanted_compact) for n, c in seen):
+            return 1, 0
+        return 2, 0
+
+    return sorted(items, key=key)

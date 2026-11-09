@@ -620,3 +620,12 @@ async def test_schedule_that_gives_up_tries_the_same_titles_next_time(service, n
     no_network.get(path__regex=r"^/shows/\d+$").respond(500)
     await service.schedule.upcoming()
     assert await service.repository.get_state("driver.tvmaze.schedule_cursor") is None
+
+
+async def test_search_lists_an_exact_match_far_down_first(service, no_network):
+    hits = [{"score": 1 - i / 100, "show": {**load("show_44933.json"), "id": 1000 + i, "name": f"Severance Spinoff {i}"}}
+            for i in range(25)]
+    hits[20]["show"].update(id=44933, name="Severance")
+    no_network.get(f"{BASE_URL}/search/shows").respond(json=hits)
+    found = await service.catalog.search("Severance", ["show"])
+    assert found[0].ids["tvmaze"] == 44933 and len(found) == 25

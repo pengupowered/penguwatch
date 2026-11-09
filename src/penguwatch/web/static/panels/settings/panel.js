@@ -10,7 +10,7 @@ import { closeModal, onModalClose, openModal } from "../../js/modal.js";
 import { onTabActivated } from "../../js/tabs.js";
 import { state } from "../../js/state.js";
 import { esc, icon, showToast } from "../../js/util.js";
-import { choose, driverOp, edit, refreshRows, rowHtml } from "./fields.js";
+import { choose, driverOp, edit, personOp, refreshRows, rowHtml } from "./fields.js";
 import { loadEvents, mountWebhooks, syncProblems, webhookProblems, wireWebhooks } from "./lists/webhooks.js";
 import { refreshSlots, resetEditing, secretInput, slotHtml } from "./secrets.js";
 import {
@@ -419,6 +419,7 @@ registerAction("settings-reset", (el) => setValue(el.dataset.key, null));
 registerAction("settings-choice", (el) => choose(el.dataset.key, el.dataset.arg));
 registerAction("settings-goto", (el) => goto(el.dataset.arg));
 registerAction("settings-driver", (el) => driverOp(el.dataset.key, el.dataset.op, el.dataset.name));
+registerAction("settings-person", (el) => personOp(el.dataset.key, el.dataset.op, el.dataset.i));
 registerAction("settings-versions", () => openVersions());
 registerAction("settings-restore", (el) => restoreVersion(el.dataset.n));
 registerAction("settings-export", () => openExport());

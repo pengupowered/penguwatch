@@ -11,6 +11,7 @@ from penguwatch import clock
 from penguwatch.db.episodes import format_episode_code  # noqa: F401
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.db.services import EFFECTIVELY_ACTIVE_SQL
+from penguwatch.db.shows import household_tx
 from penguwatch.db.views import _air_window
 from penguwatch.models import Show, ShowStatus
 from tests.test_api import setup_test_app  # noqa: F401  (fixture)
@@ -27,7 +28,7 @@ async def legacy_schedule(repo, days_ahead):
         SELECT s.id as id, s.title as title, s.en_title as en_title, s.poster as poster, s.network as network,
                s.service_id as service_id, svc.name as service_name, {EFFECTIVELY_ACTIVE_SQL} as is_service_active,
                e.air_date as next_episode_air_date, e.season as next_episode_season, e.number as next_episode_number,
-               e.title as next_episode_title, s.priority as priority, s.household_tag as household_tag
+               e.title as next_episode_title, s.priority as priority
         FROM episodes e JOIN shows s ON e.show_id = s.id LEFT JOIN services svc ON s.service_id = svc.id
         WHERE e.air_date IS NOT NULL AND e.season > 0
           AND date(substr(e.air_date, 1, 10)) >= ? AND date(substr(e.air_date, 1, 10)) <= ?
@@ -38,7 +39,7 @@ async def legacy_schedule(repo, days_ahead):
     for fr in await (await db.execute(f"""
         SELECT s.id, s.title, s.en_title, s.poster, s.network, s.service_id, svc.name as service_name,
                {EFFECTIVELY_ACTIVE_SQL} as is_service_active, s.next_episode_air_date, s.next_episode_season,
-               s.next_episode_number, s.next_episode_title, s.priority, s.household_tag
+               s.next_episode_number, s.next_episode_title, s.priority
         FROM shows s LEFT JOIN services svc ON s.service_id = svc.id
         WHERE s.next_episode_air_date IS NOT NULL
           AND date(substr(s.next_episode_air_date, 1, 10)) >= ? AND date(substr(s.next_episode_air_date, 1, 10)) <= ?
@@ -50,7 +51,9 @@ async def legacy_schedule(repo, days_ahead):
             rows.append(d)
             seen.add(key)
     rows.sort(key=lambda r: (r["next_episode_air_date"] or ""))
+    people = await household_tx(db, {r["id"] for r in rows})  # who wants each title (0.17: show_household)
     for r in rows:
+        r["household"] = repo._household_of(people.get(r["id"]))
         if r.get("en_title") is None:
             r.pop("en_title", None)
     return rows

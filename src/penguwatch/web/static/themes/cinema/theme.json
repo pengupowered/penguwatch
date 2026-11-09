@@ -1,0 +1,26 @@
+{
+  "id": "cinema",
+  "name": "Cinema",
+  "description": "A grand movie palace at night: velvet curtains, a marquee sign in bulbs, ticket-stub tabs, letter-board titles and gilt poster-case cards, in red and gold. Dark.",
+  "modes": ["dark"],
+  "tokens": {
+    "dark": {
+      "--bg": "#120508", "--surface-1": "#1d0a10", "--surface-2": "#290f17", "--surface-3": "#38161f",
+      "--line": "#4a2230", "--line-strong": "#6e3445", "--scrim": "rgba(10, 2, 4, .78)",
+      "--card-line": "#9a7430", "--card-line-hover": "#d1a447",
+      "--ink-1": "#fff3de", "--ink-2": "#ecd8b8", "--ink-3": "#d0b592", "--ink-4": "#ad9170",
+      "--accent": "#f0bd4c", "--accent-bg": "rgba(240, 189, 76, .15)", "--on-accent": "#1c0a04", "--focus": "#ffe08f",
+      "--good": "#62d79c", "--good-bg": "rgba(98, 215, 156, .12)",
+      "--warn": "#ffd447", "--warn-bg": "rgba(255, 212, 71, .12)", "--warn-fill": "#ffd447",
+      "--serious": "#ff9a5c", "--serious-bg": "rgba(255, 154, 92, .13)",
+      "--crit": "#ff6b80", "--crit-bg": "rgba(255, 107, 128, .14)",
+      "--busy": "#8fb2ff", "--busy-bg": "rgba(143, 178, 255, .14)",
+      "--unknown": "#bfa994", "--unknown-bg": "rgba(191, 169, 148, .13)",
+      "--nodata": "#33151d",
+      "--s1": "#f0bd4c", "--s2": "#ff6b80", "--s3": "#5fc9c0", "--s4": "#a98bff",
+      "--s5": "#3f9f5a", "--s6": "#ffb98a", "--s7": "#6aa5ff", "--s8": "#e58fd0",
+      "--q0": "#2a1017", "--q1": "#4a1a24", "--q2": "#7e2430", "--q3": "#b8402f", "--q4": "#f08a3c"
+    }
+  },
+  "tags": ["skin", "effect", "gold", "velvet"]
+}

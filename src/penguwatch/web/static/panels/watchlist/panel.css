@@ -19,9 +19,12 @@
 .show-poster { position: absolute; inset: 0; height: 100%; aspect-ratio: auto; border-radius: 0; object-position: center top; transition: transform var(--t-med) var(--ease); }
 .show-card:hover .show-poster { transform: scale(1.02); }
 .show-poster-fallback { position: absolute; inset: 0; height: 100%; aspect-ratio: auto; }
-.poster-top-badges { position: absolute; top: var(--sp-2); left: var(--sp-2); right: var(--sp-2); display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sp-2); }
+/* The service chip and the rating badges share the poster's top edge; when both do not fit at their full width the
+   badges move to a second line, at the right, so the service's name is never cut. (A name wider than the whole card
+   still ends in an ellipsis.) */
+.poster-top-badges { position: absolute; top: var(--sp-2); left: var(--sp-2); right: var(--sp-2); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--sp-1) var(--sp-2); }
 .poster-top-badges .service-tag { min-width: 0; }
-.on-image-ratings { justify-content: flex-end; flex: none; }
+.on-image-ratings { justify-content: flex-end; flex: none; margin-left: auto; }
 .on-image-ratings .rating { color: var(--on-image); background: var(--on-image-bg); border: 1px solid var(--on-image-line); }
 .on-image-ratings .rating b { color: var(--on-image); opacity: .7; }
 .binge-floating-tag { position: absolute; left: var(--sp-2); bottom: var(--sp-2); color: var(--on-image); }
@@ -72,6 +75,11 @@
 .chip-btn .chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chip-btn .chip-caret { width: 12px; height: 12px; color: var(--ink-4); margin-left: auto; }
 .chip-grow { flex: 1 1 auto; }
+/* Who wants to watch: the chip in the tags row, and its editor in place of the card's "who" button (cards.js) */
+.who-chip { max-width: 100%; min-width: 0; }
+.who-chip-t { overflow: hidden; text-overflow: ellipsis; }
+.who-editor { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; max-width: 100%; }
+.who-editor .who-done { color: var(--accent); }
 .card-remove { color: var(--ink-3); }
 .card-remove:hover { color: var(--crit); background: var(--crit-bg); }
 .shows-sentinel { grid-column: 1 / -1; text-align: center; padding: var(--sp-4) 0; }

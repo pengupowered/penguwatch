@@ -6,13 +6,18 @@ import { register, registerAction } from "../../js/dispatch.js";
 import { syncsTo } from "../../js/drivers.js";
 import { state } from "../../js/state.js";
 import { onTabActivated } from "../../js/tabs.js";
-import { PLACEHOLDER_POSTER, displayTitle, esc, householdLabel, householdShared, icon, setWidths, showToast, statusOptionsFor, subtitleHtml } from "../../js/util.js";
+import {
+  HOUSEHOLD, PLACEHOLDER_POSTER, displayTitle, esc, householdShared, householdText, icon, setWidths, sharedLabel, showToast, statusOptionsFor,
+  subtitleHtml,
+} from "../../js/util.js";
 
 const TAB = "upnext-tab";
 
-// Filter chips: "active" asks the server for titles on the services you have now, the other two filter the returned
-// list in the browser (`extra`).
-const CHIPS = [["all", "All"], ["active", "On your services"], ["today", "Aired today"], ...(householdShared ? [["both", "Both want"]] : [])];
+// Filter chips: "active" asks the server for titles on the services you have now, the others filter the returned list
+// in the browser (`extra`): aired today, one chip per person ("m:<id>": the titles that person wants alone) and the shared
+// titles (two or more people; "Both want" with two; its key is still "both", as before 0.17).
+const CHIPS = [["all", "All"], ["active", "On your services"], ["today", "Aired today"],
+  ...(householdShared ? [...HOUSEHOLD.map((m) => [`m:${m.id}`, m.name]), ["both", sharedLabel()]] : [])];
 let extra = "";
 let onlyActive = false;
 let counts = {};
@@ -21,7 +26,7 @@ let statsStale = false;
 const localToday = () => new Date().toLocaleDateString("en-CA");
 
 function setChip(name) {
-  extra = name === "today" || name === "both" ? name : "";
+  extra = name === "today" || name === "both" || name.startsWith("m:") ? name : "";
   onlyActive = name === "active";
   fetchUpNext();
 }
@@ -31,14 +36,25 @@ function airsToday(s) {
   return Boolean(nxt && s.episodes_left > 0 && nxt.air_date && String(nxt.air_date).slice(0, 10) === localToday());
 }
 
+const wantedBy = (s) => s.household || [];
+// The titles a browser-side chip keeps
+function chipFilter(name) {
+  if (name === "today") return airsToday;
+  if (name === "both") return (s) => wantedBy(s).length >= 2;
+  if (name.startsWith("m:")) return (s) => wantedBy(s).length === 1 && wantedBy(s)[0] === name.slice(2);
+  return () => true;
+}
+
 function renderChips(items) {
   const box = document.getElementById("upnext-chips");
   if (!box) return;
   if (onlyActive) counts.active = items.length;
-  else counts = { all: items.length, active: items.filter((s) => s.service_active).length,
-    today: items.filter(airsToday).length, both: items.filter((s) => s.household_tag === "both").length };
+  else {
+    counts = { all: items.length, active: items.filter((s) => s.service_active).length };
+    for (const [key] of CHIPS.slice(2)) counts[key] = items.filter(chipFilter(key)).length;
+  }
   const current = extra || (onlyActive ? "active" : "all");
-  box.innerHTML = CHIPS.map(([key, label]) => `<button type="button" class="chip upnext-chip" data-action="upnext-chip" data-chip="${key}" aria-pressed="${key === current}">${label}${counts[key] != null ? ` <span class="chip-count num">${counts[key]}</span>` : ""}</button>`).join("");
+  box.innerHTML = CHIPS.map(([key, label]) => `<button type="button" class="chip upnext-chip" data-action="upnext-chip" data-chip="${esc(key)}" aria-pressed="${key === current}"><span class="chip-l">${esc(label)}</span>${counts[key] != null ? ` <span class="chip-count num">${counts[key]}</span>` : ""}</button>`).join("");
 }
 
 async function fetchUpNext() {
@@ -48,7 +64,7 @@ async function fetchUpNext() {
   try {
     const items = await api(`/api/up-next${onlyActive ? "?only_active_services=true" : ""}`);
     renderChips(items);
-    renderUpNext(extra === "today" ? items.filter(airsToday) : extra === "both" ? items.filter((s) => s.household_tag === "both") : items, items.length);
+    renderUpNext(extra ? items.filter(chipFilter(extra)) : items, items.length);
   } catch (err) {
     container.innerHTML = `<div class="empty st st-crit">${icon("warn")}<span>${esc(err.message)}</span></div>`;
   }
@@ -78,7 +94,7 @@ function card(s) {
           ${subtitleHtml(s)}
           <div class="upnext-ep">${epLine}</div>
           <div class="progress"><i data-w="${pct}"></i></div>
-          <div class="upnext-meta num">${s.watched_episodes}/${s.aired_episodes || "?"} watched · ${s.episodes_left} left${householdShared ? ` · ${esc(householdLabel(s.household_tag))}` : ""}</div>
+          <div class="upnext-meta num">${s.watched_episodes}/${s.aired_episodes || "?"} watched · ${s.episodes_left} left${householdShared ? ` · ${esc(householdText(s.household))}` : ""}</div>
         </div>
         <div class="upnext-actions">
           ${caughtUp ? "" : `<button class="btn outline watched-btn" data-call="markNext" data-args='[${s.id}]' title="Mark ${code} watched" aria-label="Mark ${code} watched">${icon("check")}<span class="watched-lbl">Watched</span></button>`}

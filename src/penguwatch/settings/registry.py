@@ -142,8 +142,11 @@ def field_constraints(info: FieldInfo) -> Dict[str, Any]:
 
 
 def field_default(info: FieldInfo) -> Any:
-    """The field's default as JSON-ready data (a model default is dumped)."""
+    """The field's default as JSON-ready data (a model default is dumped, and so is each model in a list: the
+    household's members)."""
     value = info.get_default(call_default_factory=True)
+    if isinstance(value, list):
+        return [v.model_dump(mode="json") if isinstance(v, BaseModel) else v for v in value]
     return value.model_dump() if isinstance(value, BaseModel) else value
 
 
@@ -226,14 +229,16 @@ def _driver_rows(section: str) -> List[Setting]:
 SETTINGS: Tuple[Setting, ...] = tuple(
     _entries("household", [
         _s("household.members", "Who watches",
-           "One or two names. Two add \"Both\" and the \"who wants to watch\" control on every title."),
+           "1 to 20 people. With two or more, every title says who wants to watch it, and the filters, Tonight's "
+           "Pick and the optimizer use it."),
     ])
     + _entries("sync", _driver_rows("sync"))
     + _entries("optimizer", [
         _s("optimizer.max_active_services", "Services kept at once",
            "How many streaming services the plan keeps active at the same time."),
-        _s("optimizer.household_priority_boost", "Weight of titles both want",
-           "How much a title everyone wants to watch pulls its service up the plan."),
+        _s("optimizer.household_priority_boost", "Weight of shared titles",
+           "How much a title more than one person wants pulls its service up the plan, for each person beyond the "
+           "first."),
         _s("optimizer.ready_to_binge_boost", "Weight of complete seasons",
            "How much a title whose season has finished airing pulls its service up the plan."),
     ])
@@ -250,6 +255,9 @@ SETTINGS: Tuple[Setting, ...] = tuple(
     + _entries("display", [
         _s("display.theme", "Theme for new browsers",
            "What a browser shows until its person picks a theme in the header menu."),
+        _s("display.effects", "Theme animation",
+           "A theme's subtle background animation, in browsers that have not turned it on or off in the header menu. "
+           "It never runs when the system asks for reduced motion."),
         _s("server.timezone", "Time zone",
            "The household's day: renewal countdowns, what airs today, the digest hour, History's charts.",
            env="PENGUWATCH_TZ", empty="the server's zone (TZ, else UTC)"),

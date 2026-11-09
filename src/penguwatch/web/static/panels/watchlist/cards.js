@@ -1,9 +1,10 @@
 // Library card markup. The card shows the current status / stream / rating / audience / priority as small
 // buttons; the real selector is built only when one is activated (data-action="edit-field") and removed again
-// when it is used, left, or dismissed with Escape. This keeps a card at ~40 DOM nodes instead of ~80.
+// when it is used, left, or dismissed with Escape. This keeps a card at ~40 DOM nodes instead of ~80. "Who wants to
+// watch" is a set of people: its editor is a row of toggles, applied when it closes (Done, or focus leaving it).
 import { registerAction } from "../../js/dispatch.js";
 import {
-  changeShowHouseholdTag,
+  changeShowHousehold,
   changeShowPriority,
   changeShowRating,
   changeShowService,
@@ -11,7 +12,10 @@ import {
 } from "../../js/showchanges.js";
 import { state } from "../../js/state.js";
 import { syncsTo, syncsToLibrary } from "../../js/drivers.js";
-import { STATUS_LABELS, displayTitle, esc, householdLabel, householdOptions, householdShared, icon, customRatingBadges, mediaIcon, ratingBadges, subtitleHtml } from "../../js/util.js";
+import {
+  STATUS_LABELS, customRatingBadges, displayTitle, esc, householdIcon, householdIds, householdShared, householdText, icon, keepOneTicked,
+  mediaIcon, ratingBadges, subtitleHtml, tickedWho, whoToggles,
+} from "../../js/util.js";
 
 const RATINGS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 const PRIORITY = [["high", "High"], ["medium", "Normal"], ["low", "Low"]];
@@ -34,8 +38,8 @@ const FIELDS = {
     chip: (s) => labelOf(statusOptions(s), s.status), icon: () => "",
   },
   household: {
-    name: "Who wants to watch", value: (s) => s.household_tag, options: householdOptions, apply: changeShowHouseholdTag,
-    chip: (s) => householdLabel(s.household_tag), icon: (s) => (s.household_tag === "both" ? "users" : "user"),
+    name: "Who wants to watch", value: (s) => householdIds(s.household), multi: true, apply: changeShowHousehold,
+    chip: (s) => householdText(s.household), icon: (s) => householdIcon(s.household),
   },
   priority: {
     name: "Priority", value: (s) => s.priority, options: () => PRIORITY, apply: changeShowPriority,
@@ -121,7 +125,7 @@ function cardHtml(show) {
           ${subtitleHtml(show)}
         </div>
         <div class="show-tags-row">
-          ${householdShared ? `<span class="chip tag-${esc(show.household_tag)}">${icon(show.household_tag === "both" ? "users" : "user")}${esc(householdLabel(show.household_tag))}</span>` : ""}
+          ${householdShared ? `<span class="chip who-chip" title="${esc(householdText(show.household, 200))}">${icon(householdIcon(show.household))}<span class="who-chip-t">${esc(householdText(show.household))}</span></span>` : ""}
           <span class="chip prio-${esc(show.priority)}">${show.priority === "high" ? icon("fire") : ""}${esc(labelOf(PRIORITY, show.priority))}</span>
           <span class="chip">${esc(STATUS_LABELS[show.status] || show.status)}</span>
           ${interestBadge(show)}
@@ -172,10 +176,39 @@ export function fillCard(card, show) {
 
 // --- On-demand editor ---
 
+// Who wants to watch: a toggle per person in place of the chip; the set is saved when the editor closes (Done, Enter, or
+// focus leaving it), not per toggle, so choosing three people is one change. Escape closes without saving.
+function openWhoEditor(btn, def, show) {
+  const box = document.createElement("span");
+  box.className = "who-editor";
+  box.innerHTML = `${whoToggles(def.value(show), { name: `who-${show.id}`, label: `${def.name} for ${displayTitle(show)}` })}<button type="button" class="btn icon sm who-done" aria-label="Done">${icon("check", "sm")}</button>`;
+  const group = box.querySelector(".who-toggles");
+  let closed = false;
+  const close = (save, refocus) => {
+    if (closed) return;
+    closed = true;
+    const ids = tickedWho(group);
+    box.replaceWith(btn);
+    if (refocus) btn.focus();
+    if (save && ids.length && ids.join() !== def.value(show).join()) def.apply(show.id, ids);
+  };
+  group.addEventListener("change", (ev) => keepOneTicked(ev.target));
+  box.querySelector(".who-done").addEventListener("click", () => close(true, true));
+  box.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") { ev.preventDefault(); close(false, true); }
+    if (ev.key === "Enter") { ev.preventDefault(); close(true, true); }
+  });
+  // Deferred: focus moves between the toggles through the body on some browsers
+  box.addEventListener("focusout", () => setTimeout(() => { if (!box.contains(document.activeElement)) close(true, false); }, 200));
+  btn.replaceWith(box);
+  group.querySelector("input")?.focus();
+}
+
 function openEditor(btn) {
   const def = FIELDS[btn.dataset.field];
   const show = state.shows.find((s) => s.id === Number(btn.dataset.id));
   if (!def || !show) return;
+  if (def.multi) { openWhoEditor(btn, def, show); return; }
   const select = document.createElement("select");
   select.className = "input sm chip-editor";
   select.setAttribute("aria-label", `${def.name} for ${displayTitle(show)}`);

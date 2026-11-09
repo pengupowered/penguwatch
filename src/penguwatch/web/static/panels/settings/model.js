@@ -19,13 +19,14 @@ export const isNumeric = (spec) => spec.type === "number" || spec.type === "inte
 const tidy = (n) => Number(n.toPrecision(12));
 const clock = (h) => `${String(h).padStart(2, "0")}:00`;
 
-// "30 min", "0.5 h", "on"/"off", "09:00", "Me, Partner", "none": the words a row's default line uses.
+// "30 min", "0.5 h", "on"/"off", "09:00", "Me, Partner", "none": the words a row's default line uses (people by name).
 export function fmt(spec, v, driverLabel = (n) => n) {
   if (v === null || v === undefined || v === "" || (Array.isArray(v) && !v.length)) return spec.empty || "none";
   if (spec.type === "boolean") return v ? "on" : "off";
   if (spec.type === "hour") return clock(v);
   if (spec.type === "choice" || spec.type === "theme") return (spec.choice_labels && spec.choice_labels[v]) || String(v);
   if (spec.type === "driver") return driverLabel(v);
+  if (spec.type === "names" && Array.isArray(v)) return v.map((p) => (p && typeof p === "object" ? p.name : p)).join(", ");
   if (Array.isArray(v)) return v.map((x) => (spec.type === "drivers" ? driverLabel(x) : x)).join(", ");
   if (isNumeric(spec)) return spec.unit ? `${tidy(v)} ${spec.unit}` : String(tidy(v));
   return String(v);
@@ -66,14 +67,20 @@ export function parse(spec, text) {
   return spec.type === "number" || spec.type === "integer" ? Number(value) : value;
 }
 
-// The person names (household.members): 1 to 2 names of 1 to 40 characters each.
-export function namesProblem(spec, names) {
-  const list = names.map((n) => String(n).trim());
+// The household's people (household.members, [{id, name}]; a new person has no id yet: the server gives one): 1 to
+// max_length people, each name 1 to 40 characters, no two alike (whatever the case).
+export function namesProblem(spec, people) {
+  const list = people.map((p) => String(p && typeof p === "object" ? p.name ?? "" : p ?? "").trim());
   const min = spec.min_length || 1;
-  const max = spec.max_length || 2;
+  const max = spec.max_length || 20;
   if (list.length < min || list.length > max) return `Give ${min === max ? min : `${min} to ${max}`} name${max === 1 ? "" : "s"}.`;
-  const bad = list.findIndex((n) => n.length < 1 || n.length > 40);
-  return bad >= 0 ? "Each name is 1 to 40 characters." : "";
+  if (list.some((n) => n.length < 1 || n.length > 40)) return "Each name is 1 to 40 characters.";
+  const seen = new Set();
+  for (const n of list) {
+    if (seen.has(n.toLowerCase())) return "Each person needs a different name.";
+    seen.add(n.toLowerCase());
+  }
+  return "";
 }
 
 // An id for a new webhook from its name (config.webhook_id): lower case, a-z 0-9 - _, at most 40, "-2", "-3" when taken.

@@ -272,7 +272,8 @@ def test_every_named_import_exists():
 
 def test_every_module_is_loaded():
     """A module nothing loads never runs: every shell module is reached from main.js, every folder module from its
-    folder's entry (panel.js / dialog.js), which main.js loads from the page's data-modules."""
+    folder's entry (panel.js / dialog.js), which main.js loads from the page's data-modules, and every theme's effect.js
+    from the page's theme list (<html data-looks>), which js/themes.js imports while that theme is in use."""
     entries = [JS / "main.js", *[STATIC / m for m in ui.modules() if m.endswith(("/panel.js", "/dialog.js"))]]
     seen: set[Path] = set()
     todo = list(entries)
@@ -283,6 +284,10 @@ def test_every_module_is_loaded():
         seen.add(path)
         for imported in re.findall(r"""(?:from|import) ["'](\.{1,2}/[\w./-]+\.js)["']""", text(path)):
             todo.append(path.parent / imported)
+    from penguwatch.web import themes
+    assert "await import(url)" in text(JS / "themes.js") and (JS / "themes.js").resolve() in seen
+    seen |= {(STATIC / e["effect"].split(f"/{ASSET_VERSION}/", 1)[1]).resolve()
+             for e in themes.page_list(ASSET_VERSION) if "effect" in e}
     modules = {p.resolve() for p in all_js() if p.name not in ("sw.js", "theme.js")}
     assert modules - seen == set()
 

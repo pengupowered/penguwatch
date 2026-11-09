@@ -6,7 +6,8 @@ import aiosqlite
 
 from penguwatch.drivers.base import normal_ids
 from penguwatch.events import title_ref
-from penguwatch.models import Show, ShowStatus, Priority, HouseholdTag, MediaType
+from penguwatch.config import member_number
+from penguwatch.models import Show, ShowStatus, Priority, MediaType
 from penguwatch.db._common import _utcnow
 from penguwatch.db.services import EFFECTIVELY_ACTIVE_SQL
 from penguwatch.ratings import BUILTIN_COLUMNS
@@ -18,7 +19,7 @@ from penguwatch.textsearch import clean_alt_titles, clean_en_title
 UPDATABLE_SHOW_COLUMNS = {
     "media_type", "title", "year", "poster", "banner",
     "overview", "genres_json", "network", "service_id", "service_manual", "status", "priority",
-    "household_tag", "simkl_rating", "imdb_rating", "imdb_votes", "user_rating", "total_episodes", "watched_episodes",
+    "simkl_rating", "imdb_rating", "imdb_votes", "user_rating", "total_episodes", "watched_episodes",
     "aired_episodes", "runtime_minutes", "next_episode_air_date", "next_episode_season",
     "next_episode_number", "next_episode_title", "is_ended", "last_watched", "next_to_watch", "notes",
     "last_watched_at", "episodes_synced_at", "enriched_at", "sequels_json", "en_title", "alt_titles_json",
@@ -86,7 +87,6 @@ SHOW_WRITE_COLUMNS: Tuple[ShowColumn, ...] = (
     _col("service_manual", _flag("service_manual")),
     _col("status", _enum("status"), _ALWAYS),
     _col("priority", _enum("priority")),
-    _col("household_tag", _enum("household_tag")),
     _col("simkl_rating", update_sql=_KEEP_IF_NULL),
     _col("imdb_rating", update_sql=_KEEP_IF_NULL),
     _col("imdb_votes", update_sql=_KEEP_IF_NULL),
@@ -140,6 +140,53 @@ async def title_ids_tx(db, show_ids: Optional[Iterable[int]] = None) -> Dict[int
     return out
 
 
+async def household_tx(db, show_ids: Optional[Iterable[int]] = None) -> Dict[int, List[str]]:
+    """{show id: [member ids]} as stored (show_household), for the given titles (all when None), on any connection.
+    Unfiltered: ShowsMixin._household_of keeps the current members."""
+    if show_ids is None:
+        rows = await (await db.execute("SELECT show_id, member_id FROM show_household")).fetchall()
+    else:
+        ids = list(dict.fromkeys(show_ids))
+        rows = []
+        for start in range(0, len(ids), _MAX_IN_PARAMS):
+            chunk = ids[start:start + _MAX_IN_PARAMS]
+            cursor = await db.execute(
+                f"SELECT show_id, member_id FROM show_household WHERE show_id IN ({', '.join('?' for _ in chunk)})",
+                chunk)
+            rows.extend(await cursor.fetchall())
+    out: Dict[int, List[str]] = {}
+    for r in rows:
+        out.setdefault(r[0], []).append(r[1])
+    return out
+
+
+async def write_household_tx(db, show_id: int, member_ids: Iterable[str]) -> None:
+    """Replaces who wants a title with `member_ids` (the caller checks them)."""
+    await db.execute("DELETE FROM show_household WHERE show_id = ?", (show_id,))
+    await db.executemany("INSERT OR IGNORE INTO show_household (show_id, member_id) VALUES (?, ?)",
+                         [(show_id, m) for m in dict.fromkeys(member_ids)])
+
+
+LAST_MEMBER_KEY = "household.last_member"  # app_state: the highest N of person<N> ever given (never reused)
+
+
+async def members_changed_tx(db, kept: List[str], before: Iterable[str] = ()) -> None:
+    """After the household's members change (inside the settings save's transaction): the rows of every id that is
+    no longer a member go, a title left with nobody gets the first member, and the highest id given so far (before or
+    after the change) is recorded. `kept`: the member ids after the change, in order (at least one); `before`: the
+    ids before it."""
+    marks = ", ".join("?" for _ in kept)
+    await db.execute(f"DELETE FROM show_household WHERE member_id NOT IN ({marks})", kept)
+    await db.execute(
+        "INSERT OR IGNORE INTO show_household (show_id, member_id) SELECT s.id, ? FROM shows s "
+        "WHERE NOT EXISTS (SELECT 1 FROM show_household h WHERE h.show_id = s.id)", (kept[0],))
+    top = max(member_number(m) for m in [*kept, *before])
+    await db.execute(
+        "INSERT INTO app_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET "
+        "value = CASE WHEN CAST(app_state.value AS INTEGER) < CAST(excluded.value AS INTEGER) "
+        "THEN excluded.value ELSE app_state.value END", (LAST_MEMBER_KEY, str(top)))
+
+
 async def title_ref_tx(db, show_id: int) -> Optional[Dict[str, Any]]:
     """events.title_ref for a stored title, read on `db` (a write transaction sees its own rows)."""
     row = await (await db.execute("SELECT id, title, year, media_type FROM shows WHERE id = ?", (show_id,))).fetchone()
@@ -163,11 +210,67 @@ class ShowsMixin:
     # The providers whose id identifies a title in this library (the library driver's): a title written without its
     # local id is the stored title with the same id from one of these. Set from config at start-up.
     key_providers: Tuple[str, ...] = ()
+    # The household's member ids in order (settings household.members; set at start-up and after each save by
+    # set_household_members). A title shows and scores only the current members among its stored ids; one left with
+    # none counts as the first member's. None: no household known (tests), every stored id counts.
+    household_members: Optional[Tuple[str, ...]] = None
 
-    def _row_to_show(self, r: aiosqlite.Row, ids: Optional[Dict[str, Any]] = None, trusted: bool = False) -> Show:
+    def set_household_members(self, member_ids: Iterable[str]) -> None:
+        """The current members (in order); cached parses made with the previous ones are dropped."""
+        self.household_members = tuple(member_ids)
+        self._derived.clear()
+
+    def first_member(self) -> str:
+        return self.household_members[0] if self.household_members else "person1"
+
+    def _household_of(self, stored: Optional[Iterable[str]]) -> List[str]:
+        """A title's people as shown and scored: the current members among `stored`, in the members' order; the first
+        member when none is left."""
+        stored = list(stored or ())
+        if self.household_members is None:
+            return sorted(set(stored), key=member_number) or ["person1"]
+        wanted = set(stored)
+        return [m for m in self.household_members if m in wanted] or [self.first_member()]
+
+    def _new_household(self, requested: Iterable[str]) -> List[str]:
+        """What a new title stores: the current members it names, else the first member."""
+        return self._household_of(requested) if list(requested or ()) else [self.first_member()]
+
+    async def last_member_number(self) -> int:
+        """The highest N of person<N> given so far (the stored mark, and any id a title still carries): a new member
+        gets a higher one."""
+        db = await self.read_connection()
+        row = await (await db.execute("SELECT value FROM app_state WHERE key = ?", (LAST_MEMBER_KEY,))).fetchone()
+        mark = int(row[0]) if row and str(row[0]).isdigit() else 0
+        ids = await (await db.execute("SELECT DISTINCT member_id FROM show_household")).fetchall()
+        return max([mark, *(member_number(r[0]) for r in ids)])
+
+    async def household_removal(self, removed: List[str], kept: List[str]) -> Tuple[int, int]:
+        """(titles some of the `removed` ids want, titles among them no one in `kept` wants): what removing those
+        people would change."""
+        if not removed:
+            return 0, 0
+        db = await self.read_connection()
+        gone = ", ".join("?" for _ in removed)
+        stay = ", ".join("?" for _ in kept) or "NULL"
+        row = await (await db.execute(
+            f"SELECT COUNT(*), COALESCE(SUM(CASE WHEN NOT EXISTS (SELECT 1 FROM show_household k WHERE "
+            f"k.show_id = t.show_id AND k.member_id IN ({stay})) THEN 1 ELSE 0 END), 0) "
+            f"FROM (SELECT DISTINCT show_id FROM show_household WHERE member_id IN ({gone})) t",
+            [*kept, *removed])).fetchone()
+        return int(row[0]), int(row[1])
+
+    def _current_member_sql(self) -> Tuple[str, List[Any]]:
+        """(" AND h.member_id IN (...)" restricting to the current members, its params); empty when none are known."""
+        if self.household_members is None:
+            return "", []
+        return f" AND h.member_id IN ({', '.join('?' for _ in self.household_members)})", list(self.household_members)
+
+    def _row_to_show(self, r: aiosqlite.Row, ids: Optional[Dict[str, Any]] = None, trusted: bool = False,
+                     household: Optional[Iterable[str]] = None) -> Show:
         """The stored title as a Show. `trusted` skips pydantic's validation (the cached whole-library parse, where
         every value is a stored, already validated one and the enums are converted below); the ids are normalised
-        first, as the model's validator would."""
+        first, as the model's validator would. `household`: its stored member ids (household_tx)."""
         keys = set(r.keys())
 
         def col(name, default=None):
@@ -197,7 +300,7 @@ class ShowsMixin:
             service_manual=bool(col("service_manual", 0)),
             status=ShowStatus(r["status"]) if r["status"] else ShowStatus.PLANTOWATCH,
             priority=Priority(r["priority"]) if r["priority"] else Priority.MEDIUM,
-            household_tag=HouseholdTag(r["household_tag"]) if r["household_tag"] else HouseholdTag.BOTH,
+            household=self._household_of(household),
             simkl_rating=r["simkl_rating"],
             imdb_rating=r["imdb_rating"],
             imdb_votes=r["imdb_votes"],
@@ -228,7 +331,8 @@ class ShowsMixin:
         only_active_services: bool = False,
         status: Optional[ShowStatus] = None,
         priority: Optional[Priority] = None,
-        household_tag: Optional[HouseholdTag] = None,
+        members: Iterable[str] = (),  # titles any of these member ids want
+        shared: Optional[bool] = None,  # True: two or more (current) people want it; False: one person alone
         search_query: Optional[str] = None,
         sort_by: str = "priority",  # priority, <built-in source id>, title, next_air, recent, my_rating, rating:<source id>
         media_type: Optional[MediaType] = None,
@@ -255,9 +359,17 @@ class ShowsMixin:
         if priority:
             conditions.append("s.priority = ?")
             params.append(priority.value)
-        if household_tag:
-            conditions.append("s.household_tag = ?")
-            params.append(household_tag.value)
+        members = list(dict.fromkeys(members or ()))
+        if members:
+            only, only_params = self._current_member_sql()
+            conditions.append(f"EXISTS (SELECT 1 FROM show_household h WHERE h.show_id = s.id AND h.member_id IN "
+                              f"({', '.join('?' for _ in members)}){only})")
+            params.extend(members + only_params)
+        if shared is not None:
+            only, only_params = self._current_member_sql()
+            conditions.append(f"(SELECT COUNT(*) FROM show_household h WHERE h.show_id = s.id{only}) "
+                              + (">= 2" if shared else "<= 1"))
+            params.extend(only_params)
         if media_type:
             conditions.append("COALESCE(s.media_type, 'show') = ?")
             params.append(media_type.value)
@@ -320,7 +432,8 @@ class ShowsMixin:
         cursor = await db.execute(query, params)  # a write landed meanwhile: parse this result directly
         rows = await cursor.fetchall()
         all_ids = await title_ids_tx(db)
-        shows = [self._row_to_show(r, all_ids.get(r["id"])) for r in rows]
+        people = await household_tx(db)
+        shows = [self._row_to_show(r, all_ids.get(r["id"]), household=people.get(r["id"])) for r in rows]
         ratings = await self._all_title_ratings()
         for show in shows:
             show.ratings = ratings.get(show.id, {})
@@ -331,7 +444,9 @@ class ShowsMixin:
         cursor = await db.execute("SELECT * FROM shows")
         ratings = await self._all_title_ratings()
         all_ids = await title_ids_tx(db)
-        parsed = {r["id"]: self._row_to_show(r, all_ids.get(r["id"]), trusted=True) for r in await cursor.fetchall()}
+        people = await household_tx(db)
+        parsed = {r["id"]: self._row_to_show(r, all_ids.get(r["id"]), trusted=True, household=people.get(r["id"]))
+                  for r in await cursor.fetchall()}
         for show_id, show in parsed.items():
             show.ratings = ratings.get(show_id, {})
         return parsed
@@ -342,7 +457,8 @@ class ShowsMixin:
         row = await cursor.fetchone()
         if not row:
             return None
-        show = self._row_to_show(row, (await title_ids_tx(db, [show_id])).get(show_id))
+        show = self._row_to_show(row, (await title_ids_tx(db, [show_id])).get(show_id),
+                                 household=(await household_tx(db, [show_id])).get(show_id))
         show.ratings = await self.get_title_ratings(show_id)
         return show
 
@@ -372,7 +488,10 @@ class ShowsMixin:
         """get_show_by_id on the write transaction's own connection (sees the rows it has written)."""
         cursor = await db.execute("SELECT * FROM shows WHERE id = ?", (show_id,))
         row = await cursor.fetchone()
-        return self._row_to_show(row, (await title_ids_tx(db, [show_id])).get(show_id)) if row else None
+        if not row:
+            return None
+        return self._row_to_show(row, (await title_ids_tx(db, [show_id])).get(show_id),
+                                 household=(await household_tx(db, [show_id])).get(show_id))
 
     async def shows_by_external_ids_tx(self, db: aiosqlite.Connection, provider: str,
                                        external_ids: Iterable[Any]) -> Dict[Any, Show]:
@@ -388,9 +507,11 @@ class ShowsMixin:
                 [provider, *chunk])
             rows = await cursor.fetchall()
             all_ids = await title_ids_tx(db, [r["id"] for r in rows])
+            people = await household_tx(db, [r["id"] for r in rows])
             for row in rows:
                 if row["external_id"] not in found:
-                    found[row["external_id"]] = self._row_to_show(row, all_ids.get(row["id"]))
+                    found[row["external_id"]] = self._row_to_show(row, all_ids.get(row["id"]),
+                                                                  household=people.get(row["id"]))
         return found
 
     async def get_external_ids(self, provider: str, media_type: Optional[MediaType] = None) -> Dict[Any, int]:
@@ -407,8 +528,9 @@ class ShowsMixin:
     async def upsert_show(self, show: Show) -> int:
         """Inserts a new show, or refreshes catalogue data of an existing one.
 
-        Household-only fields (priority, household tag, notes, manual service pick)
-        are never overwritten for existing rows; change them with update_show_metadata().
+        Household-only fields (priority, who wants it, notes, manual service pick)
+        are never overwritten for existing rows; change them with update_show_metadata(). A new title is for the
+        current members its `household` names, else for the first member.
         """
         if not show.service_id:
             show.service_id = await self.match_service_by_network(show.network, title=show.title)
@@ -453,6 +575,7 @@ class ShowsMixin:
 
         cursor = await db.execute(_SHOW_INSERT_SQL, tuple(col.insert_value(show, now) for col in SHOW_WRITE_COLUMNS))
         show_id = cursor.lastrowid
+        await write_household_tx(db, show_id, self._new_household(show.household))
         await write_title_ids_tx(db, show_id, show.ids)
         await refresh_search_text(db, show_id)
         self.queue_event("title.added", {"title": title_ref({
@@ -558,7 +681,7 @@ class ShowsMixin:
         show_id: int,
         status: Optional[ShowStatus] = None,
         priority: Optional[Priority] = None,
-        household_tag: Optional[HouseholdTag] = None,
+        household: Optional[Iterable[str]] = None,
         service_id: Optional[str] = None,
         network: Optional[str] = None,
         user_rating: Optional[float] = None,
@@ -574,9 +697,7 @@ class ShowsMixin:
         if priority is not None:
             updates.append("priority = ?")
             params.append(priority.value)
-        if household_tag is not None:
-            updates.append("household_tag = ?")
-            params.append(household_tag.value)
+        household = list(household) if household is not None else None
         if service_id is not None:
             # Empty string = "unassigned"; either way it's now a manual choice
             updates.append("service_id = ?")
@@ -601,6 +722,8 @@ class ShowsMixin:
                 before = await (await db.execute(
                     "SELECT status, user_rating FROM shows WHERE id = ?", (show_id,))).fetchone()
             await db.execute(f"UPDATE shows SET {', '.join(updates)} WHERE id = ?", params)
+            if household:  # the caller checked the ids (current members, at least one)
+                await write_household_tx(db, show_id, household)
             if network is not None:
                 await refresh_search_text(db, show_id)
             if before is not None:

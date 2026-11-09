@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-looks='{{ looks|tojson }}' data-look-default="{{ look_default }}">
+<html lang="en" data-looks='{{ looks|tojson }}' data-look-default="{{ look_default }}" data-effects-default="{{ 'on' if effects else 'off' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/static/v/{{ version }}/components.css">
   <link rel="stylesheet" href="/static/v/{{ version }}/page.css">
   <link rel="stylesheet" href="/static/v/{{ version }}/style.css">
-  <!-- after the shared stylesheets: it applies this browser's theme and writes the link to that theme's stylesheet here -->
+  <!-- after the shared stylesheets: it applies this browser's theme and writes the links to that theme's stylesheet and skin here -->
   <script src="/static/v/{{ version }}/theme.js"></script>
   {%- for css in ui.css %}
   <link rel="stylesheet" href="/static/v/{{ version }}/{{ css }}">
@@ -24,6 +24,8 @@
   <link rel="apple-touch-icon" href="/static/icons/app-180.png">
 </head>
 <body data-modules='{{ ui.modules|tojson }}'>
+  <!-- The layer a theme's effect draws in (js/themes.js, docs/themes.md "Effects"): fixed, behind everything, never hit -->
+  <div class="fx-layer" id="fx-layer" aria-hidden="true"></div>
   <a class="skip" href="#main">Skip to content</a>
 
   <!-- Header: brand, the library driver's sync state (js/header.js), spending, actions; then the tabs the server found -->

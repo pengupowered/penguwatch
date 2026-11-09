@@ -26,7 +26,7 @@ def rec_for(s, hours=0.0, verdict=None, renew_in=None, **kw):
     base = dict(
         service_id=s.id, service_name=s.name, is_active=s.is_active, monthly_cost=s.monthly_cost,
         binge_score=10.0, hours_backlog=5.0, episodes_backlog=5, shows_count=1, ready_to_binge_count=1,
-        both_want_count=0, recommendation_reason="", action="keep_active", plannable_hours=5.0,
+        shared_count=0, recommendation_reason="", action="keep_active", plannable_hours=5.0,
         hours_watched_window=hours, verdict=verdict, next_renewal=renewal, renewal_in_days=renew_in,
         is_free=not s.monthly_cost and not s.is_bundle,
     )

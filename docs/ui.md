@@ -6,9 +6,10 @@ The dashboard is one page served by the FastAPI app: plain HTML, CSS and ES modu
 ## Theming
 
 Dark first. `static/tokens.css` holds every colour and size as a CSS variable; the light values apply under
-`prefers-color-scheme: light` and again under `[data-theme="light"]`. That is the standard theme; six more palettes
-(Nord, Dracula, Solarized, E-ink, High contrast, Blueprint) are folders of `static/themes/<id>/theme.json`, turned into
-token blocks scoped to `[data-look="<id>"]` ([Themes](themes.md)). The header's theme menu (`js/themes.js`) picks a theme
+`prefers-color-scheme: light` and again under `[data-theme="light"]`. That is the standard theme; eleven more palettes
+(Blueprint, Catppuccin, Dracula, E-ink, Gruvbox, High contrast, Nord, One Dark, Rosé Pine, Solarized, Tokyo Night) and five
+skins (Amber CRT, Cinema, Starship console, Synthwave, Video store) are folders of `static/themes/<id>/theme.json`, turned into
+token blocks scoped to `[data-look="<id>"]`; a skin's folder also has a `skin.css` and an `effect.js` ([Themes](themes.md)). The header's theme menu (`js/themes.js`) picks a theme
 and light, dark or the system's; both picks are kept in `localStorage` (`penguwatch.look`, `penguwatch.mode`), and
 the Settings tab's "Theme for new browsers" (`display.theme`) is the theme a browser starts with. `static/theme.js`, a small classic script in `<head>`,
 applies the picks before the page is painted and links the theme's stylesheet (only our own `/static/v/<version>/themes/`
@@ -59,7 +60,9 @@ A tab is one folder, `static/panels/<id>/`; no shared file names it. Files:
   other tabs are in the More sheet).
 - `panel.html`: exactly one `<section id="<id>-tab" class="tab-pane" data-panel="<id>" role="tabpanel"
   aria-labelledby="tab-<id>">`, starting with a `.page-h` title row and holding `.panel` cards. It is a Jinja
-  template (the page's context: `household`, `grafana_links`). Any other `*.html` in the folder is a dialog the tab
+  template (the page's context: `household`, the members as `household.members` of `{id, name}` and `household.shared`
+  for two or more, and `grafana_links`; scripts read the members from the `penguwatch-household` meta tag through
+  `js/util.js`'s `HOUSEHOLD`). Any other `*.html` in the folder is a dialog the tab
   owns, included outside `<main>`.
 - `panel.js`: default-exports `{ id: "<id>", mount() }`; `mount` runs once when the page starts. Register a refresh
   for when the tab opens with `onTabActivated("<id>-tab", fn)` (tabs.js), a first load with `registerLoader(fn)`

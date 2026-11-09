@@ -62,7 +62,8 @@ async def test_resetting_a_key_and_the_household_reload(store):
     assert res.status_code == 200 and body["reload"] is True
     assert "Services kept at once reset" in body["summary"]
     assert "optimizer.max_active_services" not in store.document.values
-    assert app.state.container.config.household.members == ["Ann"]
+    # the old shape (a list of names) still saves: Ann keeps her id
+    assert app.state.container.config.household.page_members() == [{"id": "person1", "name": "Ann"}]
 
 
 async def test_refused_values_are_placed_and_never_echoed(store):

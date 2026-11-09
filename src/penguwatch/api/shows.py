@@ -16,7 +16,6 @@ from penguwatch.models import (
     Show,
     ShowStatus,
     Priority,
-    HouseholdTag,
     MediaType,
     ShowCreateRequest,
     ShowUpdateRequest,
@@ -24,7 +23,7 @@ from penguwatch.models import (
     EpisodeToggleRequest,
     SeasonToggleRequest,
 )
-from penguwatch.api.deps import AppContainer, _show_or_404, unprocessable, get_container, get_repo, get_sync
+from penguwatch.api.deps import AppContainer, _show_or_404, household_ids, unprocessable, get_container, get_repo, get_sync
 from penguwatch.db.ratings import UnknownRatingSource
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.ratings import parse_min_rating
@@ -40,7 +39,7 @@ router = APIRouter(tags=["Library"])
 # timestamps, sequels and the next-episode fields are left out: they made up most of the payload.
 CARD_FIELDS = frozenset({
     "id", "ids", "media_type", "title", "en_title", "year", "poster", "network", "service_id", "service_manual",
-    "status", "priority", "household_tag", "simkl_rating", "imdb_rating",
+    "status", "priority", "household", "simkl_rating", "imdb_rating",
     "user_rating", "total_episodes", "watched_episodes", "aired_episodes", "next_to_watch", "last_watched",
     "ratings", "interest_score", "interest_reasons", "episodes_left", "is_caught_up", "is_ready_to_binge",
 })
@@ -74,7 +73,10 @@ async def list_shows(
     only_active_services: bool = Query(False),
     status: Optional[ShowStatus] = Query(None),
     priority: Optional[Priority] = Query(None),
-    household_tag: Optional[HouseholdTag] = Query(None),
+    member: List[str] = Query([], description="a household member's id (person1, ...): titles that person wants; "
+                              "repeat for any of several people"),
+    shared: Optional[bool] = Query(None, description="true: only titles two or more people want; false: only titles "
+                                   "one person wants alone (with member: that person's own)"),
     media_type: Optional[MediaType] = Query(None),
     search: Optional[str] = Query(None),
     sort_by: str = Query("priority", description="priority, a built-in rating source's id (imdb, ...), my_rating, "
@@ -82,7 +84,9 @@ async def list_shows(
     min_rating: List[str] = Query([], description="<source id>:<lowest value>, e.g. letterboxd:3.5; repeat to combine"),
     view: Optional[str] = Query(None, pattern="^card$", description="card = only the fields the library cards use"),
     repo: DatabaseRepository = Depends(get_repo),
+    c: AppContainer = Depends(get_container),
 ):
+    members = household_ids(c.config, member, ["query", "member"])
     try:
         minimums = [parse_min_rating(m) for m in min_rating]
     except ValueError as e:
@@ -93,7 +97,8 @@ async def list_shows(
             only_active_services=only_active_services,
             status=status,
             priority=priority,
-            household_tag=household_tag,
+            members=members,
+            shared=shared,
             search_query=search,
             sort_by=sort_by,
             media_type=media_type,
@@ -102,7 +107,7 @@ async def list_shows(
     except UnknownRatingSource as e:
         raise unprocessable(["query", "sort_by" if sort_by.startswith("rating:") else "min_rating"], str(e))
     if sort_by == "interest":
-        shows = await _rank_by_interest(repo, shows)
+        shows = await _rank_by_interest(repo, shows, len(c.config.household.members))
     if view == "card":
         on_cards = {s.id for s in await repo.get_rating_sources() if s.show_on_cards and not s.builtin}
         # only the sources marked "show on cards"; the full shape carries them all
@@ -110,11 +115,11 @@ async def list_shows(
     return shows
 
 
-async def _rank_by_interest(repo: DatabaseRepository, shows: List[Show]) -> List[Show]:
+async def _rank_by_interest(repo: DatabaseRepository, shows: List[Show], household_size: int) -> List[Show]:
     """Attach the likely-interest score (profile built from the whole library) and order by it."""
     profile = await repo.taste_profile()
     for show in shows:
-        show.interest_score, show.interest_reasons = score(show, profile)
+        show.interest_score, show.interest_reasons = score(show, profile, household_size)
     return sorted(shows, key=lambda s: (-(s.interest_score or 0), -(s.imdb_rating or 0.0), s.title))
 
 
@@ -131,7 +136,9 @@ async def create_show(
     sync: SyncEngine = Depends(get_sync),
     c: AppContainer = Depends(get_container),
 ):
-    """Adds a show/movie (from a catalogue search or by hand) and puts it on the library's list."""
+    """Adds a show/movie (from a catalogue search or by hand) and puts it on the library's list. `household`: who
+    wants it (member ids); none named: the first member."""
+    payload.household = household_ids(c.config, payload.household, ["body", "household"])
     return await _create_title(payload, repo, sync, c.background)
 
 
@@ -141,7 +148,13 @@ async def update_show(
     payload: ShowUpdateRequest,
     repo: DatabaseRepository = Depends(get_repo),
     sync: SyncEngine = Depends(get_sync),
+    c: AppContainer = Depends(get_container),
 ):
+    household = None
+    if payload.household is not None:
+        household = household_ids(c.config, payload.household, ["body", "household"])
+        if not household:
+            raise unprocessable(["body", "household"], "At least one person wants a title")
     show = await _show_or_404(repo, show_id)
     if payload.status and payload.status != show.status:
         await sync.update_show_status(show_id, payload.status)
@@ -155,7 +168,7 @@ async def update_show(
     updated = await repo.update_show_metadata(
         show_id=show_id,
         priority=payload.priority,
-        household_tag=payload.household_tag,
+        household=household,
         service_id=payload.service_id,
         network=payload.network,
         notes=payload.notes,

@@ -1,7 +1,10 @@
 /* Up Next tab: filter chips and stats, the tidy-up note, one card per show in progress. Tokens only. */
 .upnext-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; }
-.upnext-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100%; }
+/* The filter chips wrap onto a second line on a narrow screen: all four stay in view, none is cut at the edge. */
+.upnext-chips { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
 .upnext-chip { flex: 0 0 auto; min-height: 32px; padding: 0 12px; font-size: var(--fs-sm); border: 1px solid var(--line); background: var(--surface-1); }
+.upnext-chip { max-width: 100%; }
+.upnext-chip .chip-l { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .upnext-chip .chip-count { color: var(--ink-3); font-weight: var(--fw-bold); }
 .upnext-chip[aria-pressed="true"] .chip-count { color: var(--accent); }
 .stats-strip { display: flex; gap: var(--sp-2) var(--sp-4); flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-3); }

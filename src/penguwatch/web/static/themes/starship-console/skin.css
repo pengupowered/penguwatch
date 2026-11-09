@@ -1,0 +1,333 @@
+/* Starship console: a starship computer console (docs/themes.md, "Skins"). An elbow frame holds the page: a solid
+   block in the top-left corner joins, through a large rounded inner corner, a thick bar along the top and a rail down
+   the left side, where the tabs stack as solid colour blocks with rounded right ends. Panels, cards and dialogs are framed
+   by coloured bars and brackets on black; buttons and chips are flat rounded-end blocks; headings are condensed capitals.
+   Every colour is a token of this theme's theme.json (the frame's colours are its series --s1..--s8), and every rule is
+   under this theme's data-look, so nothing here reaches another theme. The page hooks it styles are the ones
+   docs/themes.md lists. The tab labels keep the page's font and size (the tab strip measures them), only their case and
+   spacing change. The slow sweep behind the header is effect.js; two blocks at the foot of the rail brighten in turn
+   only while that effect runs (the #fx-layer gate below); without it the console is the same, still. */
+
+:root[data-look="starship-console"] {
+  /* the frame's colours */
+  --sc-teal: var(--s1);
+  --sc-amber: var(--s2);
+  --sc-steel: var(--s3);
+  --sc-coral: var(--s4);
+  --sc-ice: var(--s5);
+  --sc-deep: var(--s8);
+  --sc-elbow: var(--sc-steel);
+  /* condensed capitals: Bahnschrift on Windows, Avenir Next Condensed on macOS, a condensed sans where Linux has one */
+  --sc-cond: "Bahnschrift SemiCondensed", "Bahnschrift", "Avenir Next Condensed", "Roboto Condensed", "Ubuntu Condensed",
+    "DejaVu Sans Condensed", "Liberation Sans Narrow", "Arial Narrow", sans-serif-condensed, sans-serif;
+  /* the frame's measures, px: phone values below */
+  --sc-edge: 8px;      /* the frame's distance from the window's top and left edges */
+  --sc-rail: 208px;    /* the rail's width (and the corner block's) */
+  --sc-hh: 74px;       /* the header's height, its bar included */
+  --sc-bar: 14px;      /* the top bar's thickness */
+  --sc-stub: 30px;     /* how far the corner block reaches below the header before the rail's first block */
+  --sc-gap: 5px;       /* the black gap between the frame's blocks */
+  --sc-fil: 24px;      /* the inner corner's radius */
+  --sc-outer: 44px;    /* the outer corner's radius */
+  --sc-inset: 16px;    /* how much shorter a tab's block is than the open one's */
+  /* the header band effect.js sweeps behind: the header's height */
+  --sc-band: 74px;
+}
+@media (max-width: 720px) {
+  :root[data-look="starship-console"] {
+    --sc-edge: 4px; --sc-rail: 48px; --sc-hh: 62px; --sc-bar: 10px; --sc-stub: 0px; --sc-fil: 14px; --sc-outer: 24px;
+    --sc-band: 62px;
+  }
+}
+
+/* ---------- the page: black, the effect's canvas on a layer of its own ---------- */
+:root[data-look="starship-console"] body { background: var(--bg); }
+:root[data-look="starship-console"] .fx-layer canvas { position: absolute; left: 0; top: 0; will-change: transform; }
+
+/* ---------- the header: the elbow's corner block and top bar, the header's tools on black beside them ---------- */
+:root[data-look="starship-console"] .topbar::before {
+  background: color-mix(in srgb, var(--bg) 80%, transparent); border-bottom: 0;
+}
+:root[data-look="starship-console"] .tb-inner {
+  max-width: none; height: var(--sc-hh); box-sizing: border-box;
+  padding: calc(var(--sc-edge) + 2px) 24px calc(var(--sc-bar) + 8px) calc(var(--sc-edge) + var(--sc-rail) + 20px);
+}
+/* the corner block, reaching a little below the header */
+:root[data-look="starship-console"] .tb-inner::before {
+  content: ""; position: absolute; left: var(--sc-edge); top: var(--sc-edge); width: var(--sc-rail);
+  bottom: calc(-1 * var(--sc-stub)); background: var(--sc-elbow); border-top-left-radius: var(--sc-outer);
+}
+/* the top bar along the header's foot: the elbow's colour, then two shorter segments, a rounded right end */
+:root[data-look="starship-console"] .tb-inner::after {
+  content: ""; position: absolute; left: calc(var(--sc-edge) + var(--sc-rail) - 1px); right: 16px; bottom: 0; height: var(--sc-bar);
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  background: linear-gradient(to right, var(--sc-elbow) 0 48%, transparent 48% calc(48% + var(--sc-gap)),
+    var(--sc-amber) calc(48% + var(--sc-gap)) 61%, transparent 61% calc(61% + var(--sc-gap)), var(--sc-teal) calc(61% + var(--sc-gap)));
+}
+/* the large inner corner where the bar turns down into the corner block (below the header, beside the rail) */
+:root[data-look="starship-console"] .topbar::after {
+  content: ""; position: absolute; pointer-events: none; top: 100%; left: calc(var(--sc-edge) + var(--sc-rail) - 1px);
+  width: var(--sc-fil); height: var(--sc-fil);
+  background: radial-gradient(circle at 100% 100%, transparent calc(var(--sc-fil) - .5px), var(--sc-elbow) var(--sc-fil));
+}
+/* the brand sits in the corner block: the mark in the corner, the name in dark capitals at the block's foot */
+:root[data-look="starship-console"] .brand {
+  position: absolute; z-index: 1; left: var(--sc-edge); top: var(--sc-edge); bottom: 0; width: var(--sc-rail);
+  display: flex; align-items: flex-end; justify-content: flex-end; padding: 0 16px 5px; color: var(--bg);
+}
+:root[data-look="starship-console"] .brand .brand-mark { position: absolute; left: 18px; top: 12px; width: 26px; height: 26px; }
+:root[data-look="starship-console"] .brand-name {
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .16em;
+  font-size: 15px; font-weight: var(--fw-bold); line-height: 1; color: var(--bg);
+}
+:root[data-look="starship-console"] .status-pill {
+  border: 0; border-left: 10px solid var(--st); border-radius: 10px var(--r-xs) var(--r-xs) 10px;
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .08em;
+}
+:root[data-look="starship-console"] .tb-actions { gap: 6px; }
+:root[data-look="starship-console"] .tb-actions .btn.outline { background: var(--sc-amber); color: var(--bg); }
+:root[data-look="starship-console"] .tb-actions .btn.outline:hover { background: color-mix(in srgb, var(--sc-amber) 82%, var(--ink-1)); }
+
+/* ---------- the tab bar: from 721 px the rail down the left side, one solid block per tab ---------- */
+@media (min-width: 721px) {
+  :root[data-look="starship-console"] .tabs {
+    position: fixed; left: var(--sc-edge); top: calc(var(--sc-hh) + var(--sc-stub) + var(--sc-gap)); bottom: var(--sc-edge);
+    width: var(--sc-rail); max-width: none; margin: 0; padding: 0;
+    display: flex; flex-direction: column; gap: var(--sc-gap); overflow-x: hidden; overflow-y: auto;
+  }
+  :root[data-look="starship-console"] .tabs-inner { display: flex; flex-direction: column; gap: var(--sc-gap); }
+  :root[data-look="starship-console"] .nav-btn {
+    --sc-c: var(--sc-steel);
+    flex: none; width: calc(100% - var(--sc-inset)); height: var(--tabs-h); padding: 0 18px 6px 12px;
+    justify-content: flex-end; align-items: flex-end; border-radius: 0 var(--r-pill) var(--r-pill) 0;
+    background: var(--sc-c); color: var(--bg); text-transform: uppercase; letter-spacing: .05em;
+  }
+  :root[data-look="starship-console"] .nav-btn svg.i { position: absolute; left: 12px; top: 8px; color: currentColor; }
+  :root[data-look="starship-console"] .nav-btn:hover { background: color-mix(in srgb, var(--sc-c) 78%, var(--ink-1)); color: var(--bg); }
+  :root[data-look="starship-console"] .nav-btn.active { width: 100%; background: var(--ink-1); color: var(--bg); }
+  :root[data-look="starship-console"] .nav-btn.active svg.i { color: var(--bg); }
+  /* the open tab's mark: a dark slot at the left of its block */
+  :root[data-look="starship-console"] .nav-btn.active::after {
+    left: 0; right: auto; top: 0; bottom: 0; width: 10px; height: auto; border-radius: 0; background: var(--sc-amber);
+  }
+  :root[data-look="starship-console"] .nav-btn:focus-visible { outline: 2px solid var(--bg); outline-offset: -5px; }
+  /* each block its own colour, in an uneven run */
+  :root[data-look="starship-console"] .nav-btn:nth-child(1) { --sc-c: var(--sc-amber); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(2) { --sc-c: var(--sc-steel); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(3) { --sc-c: var(--sc-teal); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(4) { --sc-c: var(--sc-ice); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(5) { --sc-c: var(--sc-coral); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(6) { --sc-c: var(--sc-amber); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(7) { --sc-c: var(--sc-steel); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(8) { --sc-c: var(--sc-teal); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(9) { --sc-c: var(--sc-amber); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(10) { --sc-c: var(--sc-coral); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(11) { --sc-c: var(--sc-ice); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(12) { --sc-c: var(--sc-steel); }
+  /* the rail's foot: a short block after the tabs, then a long one down to the bottom corner */
+  :root[data-look="starship-console"] .tabs-inner::after {
+    content: ""; flex: none; height: 30px; width: calc(100% - var(--sc-inset)); background: var(--sc-deep); opacity: .7;
+  }
+  :root[data-look="starship-console"] .tabs::after {
+    content: ""; flex: 1 0 28px; background: var(--sc-elbow); opacity: .7; border-bottom-left-radius: var(--sc-outer);
+  }
+
+  /* the page sits to the right of the rail, centred in what is left */
+  :root[data-look="starship-console"] .app-main,
+  :root[data-look="starship-console"] .auth-banner {
+    margin-left: calc(var(--sc-edge) + var(--sc-rail) + 8px + max(0px, (100% - var(--sc-edge) - var(--sc-rail) - 8px - var(--page-max)) / 2));
+    margin-right: auto;
+  }
+  :root[data-look="starship-console"] .app-main { padding-top: calc(var(--sc-stub) - 4px); }
+  :root[data-look="starship-console"] .auth-banner { width: auto; margin-right: 24px; }
+}
+
+/* ---------- the phone: the elbow is the corner and the top bar; the bottom bar is a row of rounded-end blocks ---------- */
+@media (max-width: 720px) {
+  :root[data-look="starship-console"] .tb-inner { padding: calc(var(--sc-edge) + 3px) 10px calc(var(--sc-bar) + 6px) calc(var(--sc-edge) + var(--sc-rail) + 10px); }
+  :root[data-look="starship-console"] .brand { justify-content: center; align-items: center; padding: 0 0 var(--sc-bar); }
+  :root[data-look="starship-console"] .brand .brand-mark { position: static; }
+  /* the inner corner sits above the bar here: the corner block comes down into it */
+  :root[data-look="starship-console"] .topbar::after {
+    top: calc(100% - var(--sc-bar) - var(--sc-fil));
+    background: radial-gradient(circle at 100% 0, transparent calc(var(--sc-fil) - .5px), var(--sc-elbow) var(--sc-fil));
+  }
+  :root[data-look="starship-console"] .status-pill { text-transform: none; letter-spacing: 0; border-left-width: 8px; border-radius: 8px var(--r-xs) var(--r-xs) 8px; padding-left: 8px; }
+  :root[data-look="starship-console"] .chip { letter-spacing: .04em; }
+  /* the header's line is short here: its chip in plain case, so the sync state beside it is not cut */
+  :root[data-look="starship-console"] .tb-inner .chip { text-transform: none; letter-spacing: 0; }
+  :root[data-look="starship-console"] .tabs {
+    background: var(--bg); border-top: 0; gap: 4px;
+    padding: 6px max(6px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-left, 0px));
+  }
+  :root[data-look="starship-console"] .nav-btn,
+  :root[data-look="starship-console"] .nav-more {
+    --sc-c: var(--sc-steel);
+    align-items: flex-end; justify-content: space-between; gap: 2px; padding: 5px 9px 5px 6px;
+    background: var(--sc-c); color: var(--bg); border-radius: var(--r-xs);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  :root[data-look="starship-console"] .nav-btn svg.i,
+  :root[data-look="starship-console"] .nav-more svg.i { width: 20px; height: 20px; align-self: flex-start; }
+  :root[data-look="starship-console"] .nav-btn:nth-child(5n+1) { --sc-c: var(--sc-amber); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(5n+2) { --sc-c: var(--sc-teal); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(5n+3) { --sc-c: var(--sc-steel); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(5n+4) { --sc-c: var(--sc-coral); }
+  :root[data-look="starship-console"] .nav-btn:nth-child(5n) { --sc-c: var(--sc-ice); }
+  :root[data-look="starship-console"] .nav-btn:first-child { border-radius: var(--r-pill) var(--r-xs) var(--r-xs) var(--r-pill); padding-left: 14px; }
+  :root[data-look="starship-console"] .nav-more { --sc-c: var(--sc-deep); border-radius: var(--r-xs) var(--r-pill) var(--r-pill) var(--r-xs); padding-right: 14px; }
+  :root[data-look="starship-console"] .nav-btn.active,
+  :root[data-look="starship-console"] .nav-more.active,
+  :root[data-look="starship-console"] .nav-more[aria-expanded="true"] { background: var(--ink-1); color: var(--bg); }
+  :root[data-look="starship-console"] .nav-btn.active::before,
+  :root[data-look="starship-console"] .nav-more.active::before {
+    top: auto; bottom: 0; left: 0; right: 0; width: auto; height: 4px; border-radius: 0; background: var(--sc-amber);
+  }
+  :root[data-look="starship-console"] .nav-btn:focus-visible,
+  :root[data-look="starship-console"] .nav-more:focus-visible { outline: 2px solid var(--bg); outline-offset: -4px; }
+}
+
+/* ---------- page titles: a rounded cap, condensed capitals, then a bar with a rounded end ---------- */
+:root[data-look="starship-console"] .page-h::before {
+  content: ""; order: -1; flex: none; width: 46px; height: 30px; background: var(--sc-amber);
+  border-radius: var(--r-pill) 0 0 var(--r-pill);
+}
+:root[data-look="starship-console"] .page-h > svg.i { display: none; }
+:root[data-look="starship-console"] .page-t {
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .12em;
+  font-size: var(--fs-2xl); font-weight: var(--fw-semi); line-height: 1; color: var(--sc-ice);
+}
+:root[data-look="starship-console"] .page-h::after {
+  content: ""; order: 1; flex: 1 1 48px; min-width: 32px; height: 14px; background: var(--sc-steel);
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+}
+:root[data-look="starship-console"] .page-m {
+  order: 2; flex: 0 1 auto; font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .08em;
+}
+:root[data-look="starship-console"] .page-tools { order: 3; }
+@media (max-width: 720px) {
+  :root[data-look="starship-console"] .page-h::before { width: 30px; height: 24px; }
+  :root[data-look="starship-console"] .page-t { font-size: var(--fs-xl); }
+  :root[data-look="starship-console"] .page-h::after { height: 10px; }
+  :root[data-look="starship-console"] .page-m { order: 5; flex: 1 1 100%; }
+  :root[data-look="starship-console"] .panel { border-width: 6px 0 0 10px; border-radius: 22px 6px var(--r-xs) 10px; }
+}
+
+/* ---------- panels: a top bar and a left rail joined by a rounded corner, the title in the frame's colour ---------- */
+:root[data-look="starship-console"] .panel {
+  --sc-pc: var(--sc-steel);
+  background: var(--surface-1); border: 0 solid var(--sc-pc); border-width: 8px 0 0 16px;
+  border-radius: 30px 8px var(--r-xs) 16px;
+}
+:root[data-look="starship-console"] .panel:nth-child(3n+2) { --sc-pc: var(--sc-teal); }
+:root[data-look="starship-console"] .panel:nth-child(3n) { --sc-pc: var(--sc-amber); }
+:root[data-look="starship-console"] .panel-h { border-bottom: 0; }
+:root[data-look="starship-console"] .panel-t {
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .12em;
+  font-size: var(--fs-md); font-weight: var(--fw-bold); color: var(--sc-pc);
+}
+:root[data-look="starship-console"] .panel-f { border-top: 2px solid color-mix(in srgb, var(--sc-pc) 30%, transparent); }
+
+/* ---------- cards: a bracket at each side on black ---------- */
+:root[data-look="starship-console"] .upnext-card,
+:root[data-look="starship-console"] .show-card,
+:root[data-look="starship-console"] .discover-card,
+:root[data-look="starship-console"] .timeline-card {
+  --sc-cc: var(--sc-steel);
+  background: var(--surface-1); box-shadow: none;
+  border: 0 solid var(--sc-cc); border-width: 0 8px; border-radius: 22px;
+}
+:root[data-look="starship-console"] .upnext-card:nth-child(4n+2),
+:root[data-look="starship-console"] .show-card:nth-child(4n+2),
+:root[data-look="starship-console"] .discover-card:nth-child(4n+2) { --sc-cc: var(--sc-teal); }
+:root[data-look="starship-console"] .upnext-card:nth-child(4n+3),
+:root[data-look="starship-console"] .show-card:nth-child(4n+3),
+:root[data-look="starship-console"] .discover-card:nth-child(4n+3) { --sc-cc: var(--sc-amber); }
+:root[data-look="starship-console"] .upnext-card:nth-child(4n),
+:root[data-look="starship-console"] .show-card:nth-child(4n),
+:root[data-look="starship-console"] .discover-card:nth-child(4n) { --sc-cc: var(--sc-coral); }
+:root[data-look="starship-console"] .show-card:hover,
+:root[data-look="starship-console"] .timeline-card:hover { border-color: var(--ink-1); background: var(--surface-1); }
+
+/* ---------- buttons: flat blocks with a rounded end, condensed capitals at the other end ---------- */
+:root[data-look="starship-console"] .btn {
+  border: 0; border-radius: var(--r-pill) var(--r-xs) var(--r-xs) var(--r-pill); justify-content: flex-end; padding: 0 12px 0 14px;
+  background: color-mix(in srgb, var(--sc-steel) 22%, var(--surface-1));
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .08em;
+}
+:root[data-look="starship-console"] .btn:hover { background: color-mix(in srgb, var(--sc-steel) 40%, var(--surface-1)); }
+:root[data-look="starship-console"] .btn.outline { background: color-mix(in srgb, var(--sc-steel) 32%, var(--bg)); }
+:root[data-look="starship-console"] .btn.primary { background: var(--accent); border-radius: var(--r-pill); }
+:root[data-look="starship-console"] .btn.primary:hover { background: color-mix(in srgb, var(--accent) 84%, var(--ink-1)); }
+:root[data-look="starship-console"] .btn.danger { background: color-mix(in srgb, var(--crit) 16%, var(--surface-1)); }
+:root[data-look="starship-console"] .btn.icon { justify-content: center; padding: 0; border-radius: var(--r-pill); }
+:root[data-look="starship-console"] .btn.sm { padding: 0 10px 0 12px; }
+
+/* ---------- chips: small blocks with a rounded left end; a filter chip has a solid cap, amber when on ---------- */
+:root[data-look="starship-console"] .chip {
+  border: 0; border-radius: var(--r-pill) var(--r-xs) var(--r-xs) var(--r-pill); padding-left: 10px;
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .07em;
+}
+:root[data-look="starship-console"] button.chip:not(.st) {
+  border-left: 12px solid color-mix(in srgb, var(--sc-steel) 55%, var(--surface-1)); border-radius: 12px var(--r-xs) var(--r-xs) 12px;
+  background: color-mix(in srgb, var(--sc-steel) 18%, var(--surface-1));
+}
+:root[data-look="starship-console"] button.chip[aria-pressed="true"] {
+  border-left-color: var(--sc-amber); background: color-mix(in srgb, var(--sc-amber) 24%, var(--bg)); color: var(--ink-1);
+}
+:root[data-look="starship-console"] .seg { background: transparent; border: 0; padding: 0; gap: 3px; }
+:root[data-look="starship-console"] .seg button {
+  border-radius: var(--r-xs); background: color-mix(in srgb, var(--sc-steel) 20%, var(--surface-1));
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .07em;
+}
+:root[data-look="starship-console"] .seg button:first-child { border-radius: var(--r-pill) var(--r-xs) var(--r-xs) var(--r-pill); padding-left: 12px; }
+:root[data-look="starship-console"] .seg button:last-child { border-radius: var(--r-xs) var(--r-pill) var(--r-pill) var(--r-xs); padding-right: 12px; }
+:root[data-look="starship-console"] .seg button[aria-pressed="true"] { background: var(--sc-amber); color: var(--bg); box-shadow: none; }
+
+/* ---------- inputs: a dark field behind a rounded cap ---------- */
+:root[data-look="starship-console"] .input {
+  border: 0; border-left: 10px solid var(--sc-steel); border-radius: 10px var(--r-xs) var(--r-xs) 10px; background: var(--surface-2);
+}
+
+/* ---------- dialogs: a bracket of bars, the title in condensed capitals ---------- */
+:root[data-look="starship-console"] .modal-content {
+  background: var(--bg); border: 0 solid var(--sc-elbow); border-width: 10px 0 10px 18px;
+  border-radius: 36px var(--r-sm) var(--r-sm) 36px; box-shadow: var(--shadow-pop);
+}
+:root[data-look="starship-console"] .modal-h { border-bottom: 0; }
+:root[data-look="starship-console"] .modal-t {
+  font-family: var(--sc-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .12em; color: var(--sc-amber);
+}
+:root[data-look="starship-console"] .modal-f { border-top: 2px solid color-mix(in srgb, var(--sc-elbow) 30%, transparent); }
+@media (max-width: 720px) {
+  :root[data-look="starship-console"] .modal-content { border-width: 10px 0 0; border-radius: 26px 26px 0 0; }
+}
+
+/* ---------- the header's menus: a block with a rounded left end ---------- */
+:root[data-look="starship-console"] .menu {
+  background: var(--bg); border-left: 10px solid var(--sc-amber); border-radius: 22px var(--r-sm) var(--r-sm) 22px;
+  box-shadow: var(--shadow-pop), 0 0 0 1px var(--line-strong);
+}
+:root[data-look="starship-console"] .menu button,
+:root[data-look="starship-console"] .menu a { border-radius: var(--r-pill) var(--r-xs) var(--r-xs) var(--r-pill); }
+
+/* ---------- Settings: rows ruled faintly in the frame's colour ---------- */
+:root[data-look="starship-console"] .set-row { border-top-color: color-mix(in srgb, var(--sc-steel) 18%, var(--line)); }
+:root[data-look="starship-console"] .set-card { border: 0; border-left: 6px solid var(--sc-teal); border-radius: 16px var(--r-xs) var(--r-xs) 16px; }
+
+/* ---------- History's charts: dotted grid lines ---------- */
+:root[data-look="starship-console"] .hc-grid { stroke-dasharray: 1 4; }
+
+/* ---------- the effect's companion: two blocks at the rail's foot brighten in turn, only while the effect runs ---------- */
+@keyframes starship-console-glow {
+  0%, 100% { opacity: .7; }
+  50% { opacity: 1; }
+}
+@media (min-width: 721px) {
+  :root[data-look="starship-console"] #fx-layer[data-state="running"] ~ .topbar .tabs-inner::after {
+    will-change: opacity; animation: starship-console-glow 10s ease-in-out infinite;
+  }
+  :root[data-look="starship-console"] #fx-layer[data-state="running"] ~ .topbar .tabs::after {
+    will-change: opacity; animation: starship-console-glow 10s ease-in-out -5s infinite;
+  }
+}

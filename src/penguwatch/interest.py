@@ -6,7 +6,7 @@ Pure module: no I/O, no database, no web framework.
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from penguwatch.models import HouseholdTag, Priority, Show, ShowStatus
+from penguwatch.models import Priority, Show, ShowStatus
 
 PRIOR = 3  # pseudo-titles of neutral affinity added to every genre
 NEUTRAL = 0.5
@@ -30,7 +30,7 @@ SIGNAL_DROPPED = 0.15
 
 BONUS_HIGH_PRIORITY = 0.5
 BONUS_MEDIUM_PRIORITY = 0.2
-BONUS_BOTH = 0.5
+BONUS_BOTH = 0.5  # per person beyond the first who wants the title (with two people: when both do)
 
 
 @dataclass(frozen=True)
@@ -106,8 +106,7 @@ def _signals(show: Show) -> float:
         h += BONUS_HIGH_PRIORITY
     elif show.priority == Priority.MEDIUM:
         h += BONUS_MEDIUM_PRIORITY
-    if show.household_tag == HouseholdTag.BOTH:
-        h += BONUS_BOTH
+    h += BONUS_BOTH * max(len(show.household) - 1, 0)
     return _clamp(h)
 
 
@@ -143,8 +142,19 @@ def _taste_reason(affinity: Dict[str, float]) -> Optional[str]:
     return "You usually finish: " + ", ".join(g for _, g in liked[:MAX_TASTE_GENRES])
 
 
-def score(show: Show, profile: TasteProfile) -> Tuple[int, List[str]]:
-    """0-100 and up to 4 short reason strings."""
+def _shared_reason(show: Show, household_size: int) -> Optional[str]:
+    """"Both want it" (two people), "Everyone wants it" (all of three or more), "Shared by k" (k of them, k >= 2)."""
+    k = len(show.household)
+    if k < 2:
+        return None
+    if household_size <= 2:
+        return "Both want it"
+    return "Everyone wants it" if k >= household_size else f"Shared by {k}"
+
+
+def score(show: Show, profile: TasteProfile, household_size: int = 2) -> Tuple[int, List[str]]:
+    """0-100 and up to 4 short reason strings. `household_size`: how many people the household has (the words of the
+    "shared" reason)."""
     affinity = _affinities(show, profile)
     taste = sum(affinity.values()) / len(affinity) if affinity else NEUTRAL
     quality, rated = _quality(show)
@@ -153,7 +163,7 @@ def score(show: Show, profile: TasteProfile) -> Tuple[int, List[str]]:
     for text in (
         _quality_reason(show),
         _taste_reason(affinity),
-        "Both want it" if show.household_tag == HouseholdTag.BOTH else None,
+        _shared_reason(show, household_size),
         "High priority" if show.priority == Priority.HIGH else None,
         None if rated else "Little rating data",
     ):

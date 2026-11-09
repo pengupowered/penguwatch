@@ -1,7 +1,7 @@
 // Tonight's pick (decision roulette).
 import { api } from "../../js/api.js";
 import { changeShowStatus } from "../../js/showchanges.js";
-import { PLACEHOLDER_POSTER, displayTitle, householdLabel, ratingBadges, showToast } from "../../js/util.js";
+import { PLACEHOLDER_POSTER, displayTitle, householdText, ratingBadges, showToast } from "../../js/util.js";
 
 // --- Tonight's Pick ---
 
@@ -19,7 +19,8 @@ function setupDecisionRoulette() {
       ready_to_binge_only: document.getElementById("decide-ready-binge").checked,
     };
     const audience = document.getElementById("decide-audience").value;
-    if (audience !== "all") payload.household_tag = audience;
+    if (audience === "shared") payload.shared = true;   // two or more people want it
+    else if (audience !== "all") { payload.member = audience; payload.shared = false; }   // that person's own pick
     const media = document.getElementById("decide-media").value;
     if (media) payload.media_type = media;
 
@@ -36,7 +37,7 @@ function setupDecisionRoulette() {
       document.getElementById("result-year").textContent = show.year ? `(${show.year})` : "";
       document.getElementById("result-ratings-wrap").innerHTML = ratingBadges(show);
       document.getElementById("result-network").textContent = show.network || "Stream";
-      document.getElementById("result-household").textContent = householdLabel(show.household_tag);
+      document.getElementById("result-household").textContent = householdText(show.household);
       document.getElementById("result-binge").hidden = !(show.is_ready_to_binge && !isMovie);
       document.getElementById("result-overview").textContent = show.overview || "No overview available.";
       document.getElementById("result-progress-text").textContent = isMovie

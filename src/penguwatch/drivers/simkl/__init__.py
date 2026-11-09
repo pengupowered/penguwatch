@@ -32,6 +32,7 @@ class SimklDriver:
     # a title's page on SIMKL, by media type
     title_urls: ClassVar[Dict[str, str]] = {"show": "https://simkl.com/tv/{id}", "anime": "https://simkl.com/anime/{id}",
                                             "movie": "https://simkl.com/movies/{id}"}
+    takes_links: ClassVar[bool] = True  # Add title takes a pasted link to a title on SIMKL (SimklCatalog.parse_link)
     home_url: ClassVar[str] = "https://simkl.com"  # credited on the Services & Sync tab
     health_url: ClassVar[str] = "https://api.simkl.com/"  # what `penguwatch doctor` checks is reachable
     # The Settings tab (group "SIMKL"): the intervals under Sync, the User-Agent name under Advanced

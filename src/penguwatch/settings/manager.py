@@ -28,7 +28,7 @@ from urllib.parse import urlsplit
 import yaml
 
 from penguwatch import telemetry
-from penguwatch.config import BOOTSTRAP_KEYS, AppConfig, EnvOverrides, apply_env, env_pins
+from penguwatch.config import BOOTSTRAP_KEYS, AppConfig, EnvOverrides, apply_env, env_pins, normal_members
 from penguwatch.db.settings import SettingsConflict
 from penguwatch.secrets import SECRETS_FILE_DAMAGED, SecretsFileUnusable, SecretStore, read_secret_file, slot_path
 from penguwatch.settings import lenient, registry
@@ -275,13 +275,6 @@ class SettingsManager:
     def differing_keys(self) -> List[str]:
         return list(self._differing)
 
-    async def titles_for_others(self) -> int:
-        """Titles tagged for the second person or both (the household warning)."""
-        db = await self.repository.read_connection()
-        cursor = await db.execute("SELECT COUNT(*) FROM shows WHERE household_tag IN ('person2', 'both')")
-        row = await cursor.fetchone()
-        return int(row[0]) if row else 0
-
     # --- the effective config ------------------------------------------------------------------------------------------
 
     def candidate(self, document: SettingsDocument, secret: Callable[[str], Optional[str]],
@@ -452,10 +445,20 @@ class SettingsManager:
             document = checked.document
             change_values = {k: document.values.get(k) for k in values}
             change_lists = {n: document.lists.get(n) for n in lists}
+            also = None
+            if "household.members" in values:
+                # the titles follow in the same transaction: a removed person's rows go, a title left with nobody
+                # is the first member's (db/shows.members_changed_tx)
+                from penguwatch.db.shows import members_changed_tx
+                kept = self.effective(document).household.ids
+                before = [m.get("id") for m in self.effective_value("household.members") or [] if isinstance(m, dict)]
+
+                async def also(db) -> None:
+                    await members_changed_tx(db, kept, before)
             try:
                 revision, _, _, summary = await self.repository.save_settings(
                     base_revision, change_values, change_lists, source,
-                    lambda before, after: checked.summary, slots=checked.slots)
+                    lambda before, after: checked.summary, slots=checked.slots, also=also)
             except BaseException as e:
                 if previous is not None:
                     self._restore_secrets(previous)
@@ -518,6 +521,8 @@ class SettingsManager:
             return None
         values: Dict[str, Any] = {k: None for k in self.document.values}
         values.update({k: v for k, v in document.values.items() if k in registry.BY_KEY})
+        if values.get("household.members") is not None:  # a version kept before 0.17 holds a list of names
+            values["household.members"] = normal_members(values["household.members"])
         for key in self.pinned():
             values.pop(key, None)
         lists = {name: document.lists.get(name) for name in registry.LISTS}

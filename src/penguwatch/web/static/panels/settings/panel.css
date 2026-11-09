@@ -44,7 +44,13 @@
 .set-lnk:hover { color: var(--ink-1); }
 .set-input input[readonly], .set-input select[disabled] { cursor: not-allowed; }
 .seg button:disabled { opacity: .55; cursor: not-allowed; }
-.set-names { display: grid; gap: var(--sp-2); width: 100%; }
+/* ---- the household's people: a row each (name, Remove), then "Add person" (fields.js peopleHtml) ---- */
+.set-people { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); width: 100%; min-width: 0; }
+.set-people-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sp-2); width: 100%; min-width: 0; }
+.set-person { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+.set-person .input { flex: 1 1 auto; min-width: 0; width: 100%; }
+.set-person .btn { flex: none; }
+.set-people-n { color: var(--ink-3); margin-top: 0; }
 
 /* ---- ordered pickers (driver roles) ---- */
 .set-picker { display: grid; gap: var(--sp-2); width: 100%; }

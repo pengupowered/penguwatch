@@ -1,4 +1,5 @@
-// The page as a whole: header and tabs, every tab at desktop and phone width, the theme menu and every theme, the icons.
+// The page as a whole: header and tabs, every tab at desktop and phone width, the theme menu and every theme, every skin
+// and its effect within the engine's limits, the icons.
 export const subject = "core";
 export const variants = ["demo", "token"];
 
@@ -97,6 +98,46 @@ const checkLooks = async ({ THEMES, eq, goTab, ok, page, pageReady, pickLook, pi
   await pageReady();
 };
 
+// ---- skins and effects (docs/themes.md, "Skins" and "Effects"): every theme of SKINS (lib.mjs), within the engine's limits ----
+// waits until the effect layer shows `id`'s effect in `state` ("" and "": no effect at all)
+const fxIs = (until, id, state) => until((i, st) => { const l = document.getElementById("fx-layer"); return (l.dataset.fx ?? "") === i && (l.dataset.state ?? "") === st; }, id, state);
+// the skin <link>s on the page: [[theme id, href]]; and whether every rule of the linked skin is scoped to it (the loader
+// refuses a skin that is not; this checks the sheet the browser really has)
+const skinLinks = (page) => page.$$eval("link[data-look-skin]", (ls) => ls.map((l) => [l.dataset.lookSkin, l.getAttribute("href")]));
+const skinScoped = (page, id) => page.evaluate((i) => {
+  const sheet = [...document.styleSheets].find((s) => s.ownerNode?.dataset?.lookSkin === i);
+  if (!sheet) return "no sheet";
+  const scope = `:root[data-look="${i}"]`;
+  const bad = [];
+  const walk = (rules) => { for (const r of rules) { if (r.selectorText !== undefined) { r.selectorText.split(/,(?![^(]*\))/).forEach((sel) => { if (!sel.trim().startsWith(scope)) bad.push(sel.trim()); }); } else if (r.cssRules) walk(r.cssRules); } };
+  walk(sheet.cssRules);
+  return sheet.cssRules.length ? bad.join(" | ") : "empty";
+}, id);
+// Hit-tests the centre of every poster and every chip over a poster in view on the open tab, with the effect layer and
+// everything in it made hittable on purpose (pointer-events: auto): were the layer above one of them, elementFromPoint
+// would answer the layer. Returns { pe, kidsPe, hits, bad } with the layer's own pointer-events and its children's.
+const posterHits = (page) => page.evaluate(() => {
+  const layer = document.getElementById("fx-layer");
+  const all = [layer, ...layer.querySelectorAll("*")];
+  const out = { pe: getComputedStyle(layer).pointerEvents, kidsPe: [...new Set([...layer.querySelectorAll("*")].map((e) => getComputedStyle(e).pointerEvents))].join(), hits: 0, bad: [] };
+  all.forEach((e) => e.style.setProperty("pointer-events", "auto", "important"));
+  try {
+    for (const el of document.querySelectorAll(".tab-pane.active :is(.poster, .poster-fallback, .on-image)")) {
+      const b = el.getBoundingClientRect();
+      if (!b.width || !b.height || getComputedStyle(el).display === "none") continue;
+      const x = b.left + b.width / 2;
+      const y = b.top + b.height / 2;
+      if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+      out.hits++;
+      const top = document.elementFromPoint(x, y);
+      if (!top || layer.contains(top)) out.bad.push(`${el.className} at ${Math.round(x)},${Math.round(y)}: ${top ? top.tagName.toLowerCase() : "nothing"}`);
+    }
+  } finally {
+    all.forEach((e) => e.style.removeProperty("pointer-events"));
+  }
+  return out;
+});
+
 export const steps = [
   ["the page loads: brand, header actions, a tab per panel; not a secure context", async ({ base, eq, ok, outDir, page, pageReady, panelOrder, path, tabsOf }) => {
     await page.goto(base + "/", { waitUntil: "load" });
@@ -137,7 +178,7 @@ export const steps = [
     eq("tabs", await visitTabs({ page, ...ctx }), "");
   }],
 
-  ["desktop tab strip: at 1024 to 1920 px every tab is fully inside the strip, unscrolled; full labels only when they fit (default and high-contrast themes)", async ({ eq, layoutSettled, ok, page, pageReady, pickLook, sleep }) => {
+  ["desktop tab strip: at 1024 to 1920 px every tab is fully inside the strip, unscrolled; full labels only when they fit (every theme)", async ({ THEMES, eq, layoutSettled, ok, page, pageReady, pickLook, sleep }) => {
     const measure = () => page.evaluate(() => {
       const bar = document.getElementById("tabs").getBoundingClientRect();
       const out = [...document.querySelectorAll(".nav-btn")].filter((b) => b.offsetParent).map((b) => { const r = b.getBoundingClientRect(); return { id: b.id, out: r.left < bar.left - 0.5 || r.right > bar.right + 0.5 }; });
@@ -145,7 +186,7 @@ export const steps = [
       const full = document.querySelector(".nav-full");
       return { bad, shown: out.length, scrolled: document.getElementById("tabs").scrollLeft, compact: document.getElementById("tabs").classList.contains("tabs-compact"), icons: document.getElementById("tabs").classList.contains("tabs-icons"), scrollable: document.getElementById("tabs").classList.contains("tabs-scroll"), fullShown: getComputedStyle(full).display !== "none" };
     });
-    for (const look of ["", "high-contrast"]) {
+    for (const look of ["", ...THEMES.map(([id]) => id).filter((id) => id !== "default")]) {
       await pickLook(look);
       const seen = [];
       for (const width of [1024, 1180, 1280, 1366, 1440, 1920]) {
@@ -193,7 +234,7 @@ export const steps = [
     });
   }],
 
-  ["theme menu: opens from the header button with the keyboard, shows the choice, and closes on Escape, an outside click and a pick", async ({ click, eq, menuOpen, ok, page, pickLook, readMenu, until }) => {
+  ["theme menu: opens from the header button with the keyboard, shows the choice, and closes on Escape, an outside click and a pick", async ({ THEMES, THEME_NAMES, click, eq, menuOpen, ok, page, pickLook, readMenu, until }) => {
     eq("closed at the start", await menuOpen(), false);
     eq("the button says it opens a menu", await page.$eval("#btn-theme", (b) => [b.getAttribute("aria-haspopup"), b.getAttribute("aria-expanded"), b.getAttribute("aria-controls")].join()), "menu,false,theme-menu");
     await page.$eval("#btn-theme", (b) => b.focus());
@@ -213,10 +254,10 @@ export const steps = [
     eq("an outside click closes it", await menuOpen(), false);
     // the choice it shows: with nothing picked, "Use the default" and "Like the system"
     const items = await readMenu();
-    eq("a radio per theme, the default, and light, dark, system", items.map((i) => i.action).join(), ["pick-look", ...Array(7).fill("pick-look"), "pick-mode", "pick-mode", "pick-mode"].join());
+    eq("a radio per theme, the default, and light, dark, system", items.map((i) => i.action).join(), ["pick-look", ...Array(THEMES.length).fill("pick-look"), "pick-mode", "pick-mode", "pick-mode"].join());
     eq("the checked items", items.filter((i) => i.checked).map((i) => `${i.action}:${i.arg}`).join(), "pick-look:,pick-mode:");
-    ok("every theme is listed by name", ["PenguWatch", "Nord", "Dracula", "Solarized", "E-ink", "High contrast", "Blueprint"].every((n) => items.some((i) => i.text.startsWith(n))));
-    ok("one-mode themes say so", items.filter((i) => / only$/.test(i.text)).map((i) => i.arg).sort().join() === "blueprint,dracula,e-ink");
+    ok("every theme is listed by name", Object.values(THEME_NAMES).every((n) => items.some((i) => i.text.startsWith(n))));
+    eq("one-mode themes say so", items.filter((i) => / only$/.test(i.text)).map((i) => i.arg).sort().join(), THEMES.filter(([, modes]) => modes.length === 1).map(([id]) => id).sort().join());
     // a pick with the keyboard
     await click("#btn-theme");
     await until(() => !document.getElementById("theme-menu").hidden);
@@ -231,18 +272,48 @@ export const steps = [
     eq("back to the default", await page.evaluate(() => [document.documentElement.dataset.look, localStorage.getItem("penguwatch.look")].join()), "default,");
   }],
 
-  ["theme menu on a phone (390 px): the header still fits and the menu is inside the window", async ({ click, eq, ok, page, phone, sticksOut, until }) => {
+  ["theme menu at 390 and 1440 px: the header still fits, the menu is inside the window and scrolls when taller than it, its items are in keyboard order under Palettes and Skins, and the Animation item is reachable", async ({ DESKTOP, PHONE, SKINS, THEMES, click, eq, ok, page, pageReady, phone, sticksOut, until }) => {
+    const skins = SKINS.map(([id]) => id);
+    const check = async (what) => {
+      await click("#btn-theme");
+      await until(() => !document.getElementById("theme-menu").hidden);
+      const r = await page.$eval("#theme-menu", (m) => { const b = m.getBoundingClientRect(); return { left: Math.round(b.left), right: Math.round(b.right), top: Math.round(b.top), bottom: Math.round(b.bottom), w: innerWidth, h: innerHeight, tall: m.scrollHeight > m.clientHeight + 1, overflow: getComputedStyle(m).overflowY }; });
+      ok(`${what}: the menu is inside the window (${r.left}..${r.right} of ${r.w}, ${r.top}..${r.bottom} of ${r.h})`, r.left >= 0 && r.right <= r.w && r.top >= 0 && r.bottom <= r.h);
+      eq(`${what}: it scrolls`, r.overflow, "auto");
+      // the groups: a heading, then its themes; the skins after "Skins"
+      const order = await page.$$eval("#theme-menu .tm-h, #theme-menu .tm-sub, #theme-menu button", (els) => els.map((e) => (e.tagName === "BUTTON" ? `${e.dataset.action}:${e.dataset.arg}` : `# ${e.textContent.trim()}`)));
+      const at = (x) => order.indexOf(x);
+      ok(`${what}: Palettes, then Skins, then Light or dark (${order.filter((x) => x.startsWith("#")).join(", ")})`, at("# Palettes") > at("pick-look:") && at("# Skins") > at("# Palettes") && at("# Light or dark") > at("# Skins"));
+      eq(`${what}: the themes under Skins`, order.slice(at("# Skins") + 1, at("# Light or dark")).filter((x) => x.startsWith("pick-look:")).map((x) => x.slice(10)).join(), skins.join());
+      eq(`${what}: the themes under Palettes`, order.slice(at("# Palettes") + 1, at("# Skins")).map((x) => x.slice(10)).join(), THEMES.map(([id]) => id).filter((id) => !skins.includes(id)).join());
+      // keyboard order: Tab from the first item visits every item in the order shown, the Animation item last
+      const buttons = order.filter((x) => !x.startsWith("#"));
+      const visited = [await page.evaluate(() => `${document.activeElement.dataset.action}:${document.activeElement.dataset.arg}`)];
+      for (let i = 1; i < buttons.length; i++) {
+        await page.keyboard.press("Tab");
+        visited.push(await page.evaluate(() => `${document.activeElement.dataset.action}:${document.activeElement.dataset.arg}`));
+      }
+      eq(`${what}: Tab order`, visited.join(" "), buttons.join(" "));
+      ok(`${what}: the last item is Animation`, /^toggle-effects:/.test(visited.at(-1) ?? ""));
+      const anim = await page.$eval("#theme-menu [data-action=toggle-effects]", (b) => { const m = b.closest("#theme-menu").getBoundingClientRect(), r = b.getBoundingClientRect(); return { text: b.textContent.trim(), shown: r.height > 0 && r.top >= m.top - 0.5 && r.bottom <= m.bottom + 0.5 && r.bottom <= innerHeight }; });
+      ok(`${what}: with the focus on it, the Animation item is in view (${anim.text})`, anim.shown && /^Animation: (on|off)$/.test(anim.text));
+      if (r.tall) ok(`${what}: taller than the window allows, it scrolled to the focused item`, await page.$eval("#theme-menu", (m) => m.scrollTop > 0));
+      await page.keyboard.press("Escape");
+      await until(() => document.getElementById("theme-menu").hidden);
+      return r.tall;
+    };
     await phone(async () => {
       eq("header fits", (await sticksOut()).join("; "), "");
       ok("the theme button is shown", await page.$eval("#btn-theme", (b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; }));
-      await click("#btn-theme");
-      await until(() => !document.getElementById("theme-menu").hidden);
-      const r = await page.$eval("#theme-menu", (m) => { const b = m.getBoundingClientRect(); return { left: Math.round(b.left), right: Math.round(b.right), top: Math.round(b.top), bottom: Math.round(b.bottom), w: innerWidth, h: innerHeight }; });
-      ok(`the menu is inside the window (${r.left}..${r.right} of ${r.w}, ${r.top}..${r.bottom} of ${r.h})`, r.left >= 0 && r.right <= r.w && r.top >= 0 && r.bottom <= r.h);
-      ok("and every item can be reached by scrolling it", await page.$eval("#theme-menu", (m) => getComputedStyle(m).overflowY === "auto"));
-      await page.keyboard.press("Escape");
-      await until(() => document.getElementById("theme-menu").hidden);
+      await check(`${PHONE.width} px`);
     });
+    await check(`${DESKTOP.width}x${DESKTOP.height}`);
+    // a short window: the menu must scroll
+    await page.setViewport({ width: DESKTOP.width, height: 600 });
+    await pageReady();
+    ok("in a 600 px high window the menu is taller than it, and scrolls", await check(`${DESKTOP.width}x600`));
+    await page.setViewport(DESKTOP);
+    await pageReady();
   }],
 
   ["theme: light, dark or the system's are picked in the menu, kept in localStorage and across a reload", async ({ MODE_KEY, eq, flipMode, ok, page, pageReady, pickMode, storedMode, themeNow }) => {
@@ -385,4 +456,227 @@ export const steps = [
     await page.reload({ waitUntil: "load" });
     await pageReady();
   }, { variants: ["themed"] }],
+
+  ["skins: picking a skinned theme links its skin.css (every rule scoped) and starts its effect behind the page; picking another unlinks the skin and stops the effect", async ({ SKINS, eq, fxNow, ok, page, pickLook, sleep, until }) => {
+    eq("no effect with the standard theme", (await fxNow()).fx, "");
+    for (const [id, { effect }] of SKINS) {
+      await pickLook(id);
+      const links = await skinLinks(page);
+      eq(`${id}: one skin linked`, links.map(([i]) => i).join(), id);
+      ok(`${id}: the skin is ours (${links[0][1]})`, new RegExp(`^/static/v/[\\w-]+/themes/${id}/skin\\.css$`).test(links[0][1]));
+      eq(`${id}: every rule of the skin the browser has is under its data-look`, await skinScoped(page, id), "");
+      if (!effect) continue;
+      await fxIs(until, id, "running");
+      const first = await fxNow();
+      await sleep(1500);
+      const later = await fxNow();
+      ok(`${id}: the effect draws (${first.frames} then ${later.frames} frames)`, later.frames > first.frames && later.kids > 0);
+      ok(`${id}: at most 12 frames a second (${later.fps})`, later.fps > 0 && later.fps <= 12 && later.frames - first.frames <= 12 * 1.5 + 2);
+      await pickLook("nord");
+      await fxIs(until, "", "");
+      const after = await fxNow();
+      eq(`${id} -> nord: the skin is gone, the layer is empty`, [(await skinLinks(page)).length, after.kids].join(), "0,0");
+      await sleep(800);
+      eq(`${id} -> nord: no frame after the stop`, (await fxNow()).frames, after.frames);
+    }
+    await pickLook("");
+  }, { variants: ["demo"] }],
+
+  ["skins: the effect never starts while the system asks for reduced motion, starts when it stops asking, and stops when it asks again", async ({ SKINS, eq, fxNow, ok, page, pageReady, pickLook, sleep, until }) => {
+    for (const [id] of SKINS.filter(([, o]) => o.effect)) {
+      await pickLook(id);
+      await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+      await page.reload({ waitUntil: "load" });
+      await pageReady();
+      await sleep(1000);
+      const still = await fxNow();
+      eq(`${id}, reduced motion from the start: nothing runs, nothing drawn`, [still.fx, still.state, still.frames, still.kids].join(), ",,0,0");
+      eq(`${id}: the skin still applies`, (await skinLinks(page)).map(([i]) => i).join(), id);
+      await page.click("#btn-theme");
+      await until(() => !document.getElementById("theme-menu").hidden);
+      ok("the menu says why", await page.$eval("#theme-menu", (m) => /reduced motion/.test(m.textContent)));
+      await page.keyboard.press("Escape");
+      await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
+      await fxIs(until, id, "running");
+      await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+      await fxIs(until, "", "");
+      const stopped = await fxNow();
+      await sleep(800);
+      eq(`${id}: stopped at once when reduced motion is asked for`, [(await fxNow()).frames, stopped.kids].join(), `${stopped.frames},0`);
+      await page.emulateMediaFeatures([]);
+      await pickLook("");
+    }
+  }, { variants: ["demo"], chromiumOnly: "page.emulateMediaFeatures is CDP only" }],
+
+  ["skins: the effect is paused while the tab is hidden and resumes when it is shown", async ({ SKINS, eq, fxNow, ok, page, pickLook, sleep, until }) => {
+    for (const [id] of SKINS.filter(([, o]) => o.effect)) {
+      await pickLook(id);
+      await fxIs(until, id, "running");
+      await sleep(600);
+      await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await fxIs(until, id, "paused");
+      const paused = await fxNow();
+      await sleep(1500);
+      eq(`${id}: no frame while hidden`, (await fxNow()).frames, paused.frames);
+      await page.evaluate(() => { delete document.hidden; document.dispatchEvent(new Event("visibilitychange")); });
+      await fxIs(until, id, "running");
+      await sleep(1500);
+      ok(`${id}: drawing again once shown`, (await fxNow()).frames > paused.frames);
+      await pickLook("");
+    }
+  }, { variants: ["demo"] }],
+
+  ["skins: an effect whose frames run long is slowed down, then stopped (the frame budget)", async ({ SKINS, eq, fxNow, ok, page, pageReady, pickLook, until }) => {
+    for (const [id] of SKINS.filter(([, o]) => o.effect)) {
+      await pickLook(id);
+      await fxIs(until, id, "running");
+      const start = (await fxNow()).fps;
+      // every clearRect now takes 9 ms: an effect clears its canvas each frame, so each frame is over the 4 ms budget
+      await page.evaluate(() => {
+        const clear = CanvasRenderingContext2D.prototype.clearRect;
+        CanvasRenderingContext2D.prototype.clearRect = function (...a) { const t = performance.now() + 9; while (performance.now() < t); return clear.apply(this, a); };
+      });
+      await page.waitForFunction((f) => Number(document.getElementById("fx-layer").dataset.fps) < f, { timeout: 15000 }, start);
+      await page.waitForFunction(() => document.getElementById("fx-layer").dataset.state === "over-budget", { timeout: 30000 });
+      const stopped = await fxNow();
+      eq(`${id}: given up, the layer emptied`, [stopped.fx, stopped.kids].join(), ",0");
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 1200)));
+      eq(`${id}: no frame after giving up`, (await fxNow()).frames, stopped.frames);
+      await page.reload({ waitUntil: "load" });
+      await pageReady();
+      await fxIs(until, id, "running");
+      ok(`${id}: a new page starts it again at its own rate`, (await fxNow()).fps === start);
+      await pickLook("");
+    }
+  }, { variants: ["demo"] }],
+
+  ["skins: the menu's Animation item turns the effect off and on, kept in this browser and across a reload", async ({ FX_KEY, SKINS, eq, fxNow, page, pageReady, pickInMenu, pickLook, stored, until }) => {
+    const animation = () => page.evaluate(() => { const b = document.querySelector("#theme-menu [data-action=toggle-effects]"); return b ? `${b.getAttribute("role")}|${b.getAttribute("aria-checked")}|${b.textContent.trim()}|${b.nextElementSibling?.textContent ?? ""}` : ""; });
+    const openRead = async () => { await page.click("#btn-theme"); await until(() => !document.getElementById("theme-menu").hidden); const got = await animation(); await page.keyboard.press("Escape"); await until(() => document.getElementById("theme-menu").hidden); return got; };
+    eq("with the standard theme the item is there, on, and says the theme has none", await openRead(), "menuitemcheckbox|true|Animation: on|PenguWatch has no animation.");
+    for (const [id] of SKINS.filter(([, o]) => o.effect)) {
+      await pickLook(id);
+      await fxIs(until, id, "running");
+      await pickInMenu("toggle-effects", "off");
+      await fxIs(until, "", "");
+      eq(`${id}: off, kept`, [await stored(FX_KEY), (await fxNow()).kids].join(), "off,0");
+      eq("the menu shows it off", await openRead(), "menuitemcheckbox|false|Animation: off|");
+      await page.reload({ waitUntil: "load" });
+      await pageReady();
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 800)));
+      eq(`${id}: still off after a reload`, (await fxNow()).fx, "");
+      await pickInMenu("toggle-effects", "on");
+      await fxIs(until, id, "running");
+      eq(`${id}: on again, kept`, await stored(FX_KEY), "on");
+    }
+    await page.evaluate((k) => localStorage.removeItem(k), FX_KEY);
+    await pickLook("");
+  }, { variants: ["demo"] }],
+
+  ["skins: no part of an effect is ever above a poster or a chip over one (hit-tested at their centres, layer made hittable), and the layer is never hit (pointer-events: none), at 1440 and 390 px", async ({ SKINS, eq, fxNow, goTab, ok, page, phone, pickLook, sleep, until, waitSome }) => {
+    const check = async (id, width) => {
+      for (const route of ["library", "upnext"]) {
+        await goTab(route);
+        await waitSome(".tab-pane.active :is(.poster, .poster-fallback)");
+        await sleep(400);
+        const r = await posterHits(page);
+        eq(`${id} at ${width}, ${route}: the layer is never hit`, r.pe, "none");
+        ok(`${id} at ${width}, ${route}: nor is anything in it (${r.kidsPe})`, r.kidsPe === "" || r.kidsPe === "none");
+        ok(`${id} at ${width}, ${route}: posters hit-tested (${r.hits})`, r.hits > 0);
+        eq(`${id} at ${width}, ${route}: the effect above a poster or chip`, r.bad.join("; "), "");
+      }
+    };
+    for (const [id, { effect }] of SKINS) {
+      await pickLook(id);
+      if (effect) await fxIs(until, id, "running");
+      ok(`${id}: the effect draws in its layer`, !effect || (await fxNow()).kids > 0);
+      await check(id, 1440);
+      await phone(async () => {
+        if (effect) await fxIs(until, id, "running");
+        await check(id, 390);
+      });
+    }
+    await pickLook("");
+  }, { variants: ["demo"] }],
+
+  ["skins: every tab at 1440 and 390 px with each skin opens without errors and nothing sticks out sideways", async ({ DESKTOP, SKINS, click, eq, layoutSettled, page, pageReady, phone, pickLook, problems, sleep, sticksOut, tabsOf, until, ...ctx }) => {
+    for (const [id] of SKINS) {
+      await page.setViewport(DESKTOP);
+      await pageReady();
+      await pickLook(id);
+      eq(`${id} at 1440: tabs`, await visitTabs({ page, problems, sleep, sticksOut, tabsOf, ...ctx }), "");
+      await phone(async () => {
+        const wrong = [];
+        for (const t of await tabsOf()) {
+          const before = problems.length;
+          if (await page.$eval(`#tab-${t.id}`, (b) => "bar" in b.dataset)) await click(`#tab-${t.id}`);
+          else {
+            await click("#nav-more");
+            await until(() => !document.getElementById("more-sheet").hidden);
+            await click(`#more-list [data-more-tab="${t.tab}"]`);
+          }
+          await until((r) => document.querySelector(`.nav-btn.active[data-route="${r}"]`), t.route);
+          await layoutSettled();
+          await sleep(250);
+          const out = await sticksOut();
+          if (out.length) wrong.push(`${t.id}: sticks out: ${out.join("; ")}`);
+          if (problems.length > before) wrong.push(`${t.id}: ${problems.slice(before).join("; ")}`);
+        }
+        eq(`${id} at 390: tabs`, wrong.join(" | "), "");
+      });
+    }
+    await pickLook("");
+  }, { variants: ["demo"] }],
+
+  // the "themed" run: config.yaml display.effects: false (tests/test_ui_smoke.py)
+  ["display.effects off: a browser with no choice of its own runs no effect, and its own choice in the menu wins", async ({ FX_KEY, SKINS, eq, fxNow, page, pageReady, pickInMenu, pickLook, sleep, stored, until }) => {
+    eq("the server's choice is on <html>", await page.evaluate(() => document.documentElement.dataset.effectsDefault), "off");
+    for (const [id] of SKINS.filter(([, o]) => o.effect)) {
+      await page.evaluate((k) => localStorage.removeItem(k), FX_KEY); // the last skin's loop ended with its own "off"
+      await pickLook(id);
+      await sleep(1000);
+      eq(`${id}: no effect, nothing stored`, [(await fxNow()).fx, await stored(FX_KEY)].join(), ",");
+      await pickInMenu("toggle-effects", "on");
+      await fxIs(until, id, "running");
+      await page.reload({ waitUntil: "load" });
+      await pageReady();
+      await fxIs(until, id, "running");
+      await pickInMenu("toggle-effects", "off");
+      await fxIs(until, "", "");
+    }
+    await page.evaluate(() => localStorage.clear());
+    await page.reload({ waitUntil: "load" });
+    await pageReady();
+  }, { variants: ["themed"] }],
+
+  // `solo` variant (test_ui_smoke.py): the demo library with one person (scripts/demo_library.py --people 1)
+  ["one person: every who control is hidden (Library, Up Next, Tonight's Pick, Add title, details, plan)", async ({ click, eq, goTab, ok, page, until, waitSome }) => {
+    eq("the page knows one person", (await page.$eval('meta[name="penguwatch-household"]', (m) => JSON.parse(m.content))).map((p) => p.name).join(), "Me");
+    await goTab("library");
+    await waitSome(".show-card");
+    eq("no Audience filter", await page.$("#filter-household-select"), null);
+    eq("no who chip or who button on the cards", await page.$$eval('.show-card .who-chip, .show-card [data-field="household"]', (e) => e.length), 0);
+    await goTab("upnext");
+    await waitSome("#upnext-container .upnext-card");
+    eq("Up Next: no person or shared chip", await page.$$eval("#upnext-chips .upnext-chip", (els) => els.map((e) => e.dataset.chip).join()), "all,active,today");
+    ok("no name on the cards", await page.$$eval("#upnext-container .upnext-meta", (els) => els.every((e) => !/ · Me$/.test(e.textContent.trim()))));
+    await page.evaluate(() => document.querySelector('#upnext-container [data-call="openShow"]').click());
+    await until(() => document.querySelector("#episodes-modal.active #show-detail .detail-controls"));
+    eq("details: no who toggles", await page.$(".detail-who"), null);
+    await page.keyboard.press("Escape");
+    await until(() => !document.getElementById("episodes-modal").classList.contains("active"));
+    await goTab("pick");
+    ok("Tonight's Pick: the Audience field is hidden", await page.$eval("#decide-audience", (s) => s.closest(".field").hidden && s.offsetParent === null));
+    await click("#btn-header-add");
+    await until(() => document.getElementById("add-show-modal").classList.contains("active"));
+    ok("Add title: who wants to watch is hidden", await page.$eval("#m-household", (g) => g.closest(".field").hidden && g.offsetParent === null));
+    await click("#btn-close-add-modal");
+    await until(() => !document.getElementById("add-show-modal").classList.contains("active"));
+    await goTab("optimizer");
+    await waitSome("#optimizer-tab .service-metrics .stat");
+    ok("the plan card has no shared stat", await page.$$eval(".stat .lbl", (els) => els.every((e) => !/^(Both want|Shared)$/.test(e.textContent.trim()))));
+  }, { variants: ["solo"] }],
 ];

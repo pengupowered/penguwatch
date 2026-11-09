@@ -15,9 +15,10 @@
           <option value="anime">Anime</option>
           <option value="movie">Movies</option>
         </select>
-        <input type="search" id="catalog-search-input" class="input" data-first-focus aria-label="Search" placeholder="Search (e.g. Severance, Slow Horses, Dune)..." data-tpl-aria="Search {catalog}" data-tpl-placeholder="Search {catalog} (e.g. Severance, Slow Horses, Dune)...">
+        <input type="search" id="catalog-search-input" class="input" data-first-focus aria-label="Search" aria-describedby="catalog-search-hint" placeholder="Search (e.g. Severance, Slow Horses, Dune)..." data-tpl-aria="Search {catalog}" data-tpl-placeholder="Search {catalog} (e.g. Severance, Slow Horses, Dune)...">
         <button class="btn primary" id="btn-catalog-search" type="button"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Search</button>
       </div>
+      <p class="search-hint" id="catalog-search-hint" data-tpl="Or paste a link ({catalog-links}IMDb or TMDB) or an IMDb id (tt…).">Or paste a link (IMDb or TMDB) or an IMDb id (tt…).</p>
       <div class="catalog-search-results" id="catalog-search-results">
         <!-- Search results loaded here -->
       </div>
@@ -58,15 +59,13 @@
               <option value="completed">Completed</option>
             </select>
           </div>
-          <div class="field"{% if not household.shared %} hidden{% endif %}>
-            <label for="m-household">Who wants to watch</label>
-            <select id="m-household" class="input">
-              <option value="person1" selected>{{ household.members[0] }}</option>
-              {%- if household.shared %}
-              <option value="both">Both want to watch</option>
-              <option value="person2">{{ household.members[1] }}</option>
-              {%- endif %}
-            </select>
+          <div class="field field-who"{% if not household.shared %} hidden{% endif %}>
+            <span class="field-l" id="m-household-l">Who wants to watch</span>
+            <span id="m-household" class="who-toggles" role="group" aria-labelledby="m-household-l">
+              {%- for member in household.members %}
+              <label class="who-toggle"><input type="checkbox" name="m-household" value="{{ member.id }}"{% if loop.first %} checked{% endif %}><span>{{ member.name }}</span></label>
+              {%- endfor %}
+            </span>
           </div>
           <div class="field">
             <label for="m-priority">Priority</label>

@@ -45,10 +45,10 @@ optional parameter, a new field in an answer, a new value of an open-ended strin
 | Method | Path | What it does |
 |---|---|---|
 | `GET` | `/api/health` | Liveness: `{"status": "ok"}`. Open without the token, like the few others listed under Authentication. |
-| `GET` | `/api/shows` | List titles. Filters `status`, `priority`, `household_tag`, `media_type`, `service_id`, `search`; `sort_by`; `min_rating`; `view=card` for the short shape. |
+| `GET` | `/api/shows` | List titles. Filters `status`, `priority`, `member` (a household member's id, repeatable), `shared`, `media_type`, `service_id`, `search`; `sort_by`; `min_rating`; `view=card` for the short shape. |
 | `POST` | `/api/shows` | Add a title: give its `ids` (from a catalogue search), or a `title` to look it up by name. |
 | `GET` | `/api/shows/{show_id}` | One title, in the full shape. |
-| `PATCH` | `/api/shows/{show_id}` | Change status, priority, household tag, service, notes, your rating (`user_rating`, `clear_user_rating`) or progress (`watched_episodes`). |
+| `PATCH` | `/api/shows/{show_id}` | Change status, priority, who wants it (`household`), service, notes, your rating (`user_rating`, `clear_user_rating`) or progress (`watched_episodes`). |
 | `DELETE` | `/api/shows/{show_id}` | Remove a title (`remove_from_library=false` keeps it in the library driver's account). |
 | `POST` | `/api/shows/{show_id}/increment` | Mark the next episode watched. |
 | `POST` | `/api/shows/{show_id}/progress` | Set progress by count, by episodes or by seasons. |
@@ -79,7 +79,7 @@ optional parameter, a new field in an answer, a new value of an open-ended strin
 {
   "id": 42, "ids": {"simkl": 1234567, "imdb": "tt0113277", "tmdb": 949},
   "media_type": "movie", "title": "Heat", "en_title": null, "year": 1995,
-  "status": "completed", "priority": "medium", "household_tag": "both", "service_id": "netflix",
+  "status": "completed", "priority": "medium", "household": ["person1", "person2"], "service_id": "netflix",
   "simkl_rating": 8.0, "imdb_rating": 8.3, "imdb_votes": 640000, "user_rating": 9.0,
   "ratings": {"letterboxd": {"value": 4.5, "votes": 1200, "url": "https://example.org/heat", "updated_at": "2026-11-01T10:00:00+00:00"}},
   "total_episodes": 1, "watched_episodes": 1, "aired_episodes": 1,
@@ -90,6 +90,14 @@ optional parameter, a new field in an answer, a new value of an open-ended strin
 ```
 
 * `status` is `watching`, `plantowatch`, `hold`, `completed` or `dropped`; `media_type` is `show`, `anime` or `movie`.
+* `household` is who wants to watch the title: the ids of household members (`person1`, `person2`, ...; the Settings
+  tab's `household.members` gives each id its name), in the members' order. An id stays with its person when they are
+  renamed and is never given to anyone else. Adding a title (`POST /api/shows`, `POST /api/discover/add`) without
+  `household` makes it the first member's; `PATCH` replaces the whole set and needs at least one id; an id that is not a
+  member is refused (422). Before 0.17 this was `household_tag` (`person1`, `person2` or `both`).
+* The household filters of `GET /api/shows`: `member=<id>` keeps the titles that person wants (repeat it for any of
+  several people); `shared=true` keeps the titles two or more people want, `shared=false` those one person wants alone
+  (with `member`: that person's own). `POST /api/decide/pick` (Tonight's Pick) takes the same `member` and `shared`.
 * `simkl_rating` and `imdb_rating` are the built-in ratings the default (SIMKL) driver provides (the IMDb field holds the
   MyAnimeList score for anime). `user_rating` is **your** rating, which PenguWatch keeps in step with your library
   service's account. `ratings` holds the
@@ -213,7 +221,7 @@ rule and the body cap.
 
 Everything not in the table above is for the page that ships with the app: the drivers (`/api/drivers`: the driver of each role, what each offers, `remote`, the changes waiting for an inactive driver; and the library
 driver's status, connect steps, sync, disconnect and diagnostics under `/api/drivers/{driver}/...`), the catalogue
-search (`/api/catalog/search`), the outbox and review, discover, the optimizer and planner, insights, history (`/api/history?days=7|30|365&include_bulk=false`: totals for the last `days` local days and the `days` before, series, top shows, hours and cost per hour by service, genres, weekday and hour-of-day counts; any other `days` is a 422), tidy, the System tab, the themes (`GET /api/themes`: the palettes the page can show and the server's default, see [Themes](themes.md)), and the page's helpers. Those routes may
+search (`/api/catalog/search?q=&type=`: up to 40 titles, an exact title match first, then titles starting with the query, then the catalogue's own order, and for a pasted SIMKL, TMDB or IMDb link or `tt` id the one title it stands for), the outbox and review, discover, the optimizer and planner, insights, history (`/api/history?days=7|30|365&include_bulk=false`: totals for the last `days` local days and the `days` before, series, top shows, hours and cost per hour by service, genres, weekday and hour-of-day counts; any other `days` is a 422), tidy, the System tab, the themes (`GET /api/themes`: the themes the page can show with their stylesheet, skin and effect URLs, the server's default and whether effects are on, see [Themes](themes.md)), and the page's helpers. Those routes may
 change shape or disappear in any release, including a patch release. If you need something from them, ask for it to
 become stable.
 

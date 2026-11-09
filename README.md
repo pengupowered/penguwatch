@@ -32,6 +32,22 @@
 </p>
 
 <p align="center">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-catppuccin.png" width="168" alt="Up Next in the Catppuccin theme">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-gruvbox.png" width="168" alt="Up Next in the Gruvbox theme">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-tokyo-night.png" width="168" alt="Up Next in the Tokyo Night theme">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-rose-pine.png" width="168" alt="Up Next in the Rosé Pine theme">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-one-dark.png" width="168" alt="Up Next in the One Dark theme">
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-amber-crt.png" width="168" alt="Up Next in the Amber CRT skin">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-cinema.png" width="168" alt="Up Next in the Cinema skin">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-starship-console.png" width="168" alt="Up Next in the Starship console skin">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-synthwave.png" width="168" alt="Up Next in the Synthwave skin">
+  <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/theme-video-store.png" width="168" alt="Up Next in the Video store skin">
+</p>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/history-30d-dark.png" width="420" alt="History: hours, episodes and titles of the last 30 days, with a chart per day">
   <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/settings-dark.png" width="420" alt="The Settings tab: household names, sync schedule and more, changed in the app">
   <img src="https://raw.githubusercontent.com/pengupowered/penguwatch/main/docs/images/phone-history.png" width="150" alt="History on a phone">
@@ -74,8 +90,8 @@ any browser on your network, including as an installable phone app.
   which of your services carries them.
 - **English titles and forgiving search:** anime stored under romaji titles show their English name first; search
   ignores accents, case, punctuation and long vowels ("shogun" finds *Shōgun*).
-- **Household:** optionally two people, each title tagged with who wants to watch it; "both want it" titles count
-  more in the plan. Names come from your configuration.
+- **Household:** one person or several, each title tagged with who wants to watch it; a title counts more in the
+  plan the more people want it. Names are set on the Settings tab.
 - **Tonight's Pick, air schedule and an iCal feed** for your calendar app, including renewal and "cancel by"
   reminders.
 - **History:** what you watched over the last 7 days, 30 days or 12 months, compared with the period before: hours,
@@ -94,7 +110,7 @@ any browser on your network, including as an installable phone app.
   [docs/extending.md](https://github.com/pengupowered/penguwatch/blob/main/docs/extending.md).
 - **Ask an AI assistant:** an optional, read-only MCP endpoint lets Claude answer "what's up next?", "what should we watch
   tonight?", "which service should I cancel?" and "what did we watch this month?" from your library ([docs/mcp.md](https://github.com/pengupowered/penguwatch/blob/main/docs/mcp.md)); off by default.
-- **Light and dark, and seven themes** (Nord, Dracula, Solarized, E-ink, High contrast, Blueprint and the standard look): pick one per browser in the header, or set the default for new browsers on the Settings tab. Light and dark follow your system until you pick one ([themes](https://github.com/pengupowered/penguwatch/blob/main/docs/themes.md)).
+- **Light and dark, and seventeen themes**: twelve palettes (the standard look, Blueprint, Catppuccin, Dracula, E-ink, Gruvbox, High contrast, Nord, One Dark, Rosé Pine, Solarized and Tokyo Night) and five skins that restyle the page's shapes and run a subtle animation behind the page (Amber CRT, Cinema, Starship console, Synthwave and Video store; the animation can be turned off and never runs when the system asks for reduced motion). Pick one per browser in the header, or set the default for new browsers on the Settings tab. Light and dark follow your system until you pick one ([themes](https://github.com/pengupowered/penguwatch/blob/main/docs/themes.md)).
 - **Built for a home network:** optional access token, DNS-rebinding and cross-site protection, a strict CSP, a
   non-root read-only container, Prometheus metrics and optional OpenTelemetry export.
 

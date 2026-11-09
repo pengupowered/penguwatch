@@ -16,6 +16,7 @@ SIMKL_DATA_URL = "https://data.simkl.in"
 # SIMKL media "types" as used in /sync/all-items/{type}
 SYNC_TYPES = ("shows", "anime", "movies")
 # Without media:write SIMKL issues a read-only token and every push fails with 403 insufficient_scope
+SEARCH_LIMIT = 30  # results asked of each kind per search (SIMKL's default is 10: the US "Saturday Night Live" is 11th)
 OAUTH_SCOPE = "media:read media:write"
 # Assumed token lifetime when SIMKL issues a refresh token without saying when the access token expires
 DEFAULT_TTL = 7 * 86400
@@ -551,8 +552,12 @@ class SimklClient:
             return []
         return data if isinstance(data, list) else []
 
-    async def search(self, query: str, kinds=("tv", "anime", "movie"), limit: int = 10, enrich: int = 8) -> List[Dict[str, Any]]:
-        """Searches the SIMKL catalogue. Each result gets SIMKL's id in 'ids' and 'media_type' (show/anime/movie)."""
+    async def search(self, query: str, kinds=("tv", "anime", "movie"), limit: int = SEARCH_LIMIT, enrich: int = 8,
+                     order=None) -> List[Dict[str, Any]]:
+        """Searches the SIMKL catalogue. Each result gets SIMKL's id in 'ids' and 'media_type' (show/anime/movie).
+        `limit` is the page size of each kind's request (one request per kind either way). `order`, if given, sorts
+        the merged results before the first `enrich` of them get their details, so the best matches are the ones
+        that come back with poster and network."""
         kind_media = {"tv": "show", "anime": "anime", "movie": "movie"}
         results: List[Dict[str, Any]] = []
         seen = set()
@@ -580,6 +585,8 @@ class SimklClient:
                     item["is_anime"] = True
                 results.append(item)
 
+        if order:
+            results = order(results)
         detail_media = {"show": "tv", "anime": "anime", "movie": "movies"}
 
         async def enrich_item(it: Dict[str, Any]):

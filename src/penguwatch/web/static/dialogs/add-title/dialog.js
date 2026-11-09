@@ -5,7 +5,7 @@ import { refreshAfterChange } from "../../js/data.js";
 import { register } from "../../js/dispatch.js";
 import { catalogLabel, hasAccount, libraryLabel, syncsToLibrary } from "../../js/drivers.js";
 import { closeModal, openModal } from "../../js/modal.js";
-import { displayTitle, esc, icon, mediaIcon, showToast, subtitleHtml } from "../../js/util.js";
+import { displayTitle, esc, icon, keepOneTicked, mediaIcon, showToast, subtitleHtml, tickedWho } from "../../js/util.js";
 
 let searchResults = [];
 
@@ -21,7 +21,7 @@ function setupModalListeners() {
       media_type: document.getElementById("m-media").value,
       imdb_rating: parseFloat(document.getElementById("m-rating").value) || null,
       status: document.getElementById("m-status").value,
-      household_tag: document.getElementById("m-household").value,
+      household: tickedWho(document.getElementById("m-household")),
       priority: document.getElementById("m-priority").value,
     };
     try {
@@ -35,6 +35,7 @@ function setupModalListeners() {
     }
   });
 
+  document.getElementById("m-household").addEventListener("change", (ev) => keepOneTicked(ev.target));
   document.getElementById("btn-catalog-search").addEventListener("click", performCatalogSearch);
   document.getElementById("catalog-search-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter") performCatalogSearch();

@@ -9,7 +9,7 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from penguwatch.models import HouseholdTag, NormalIds, ShowStatus
+from penguwatch.models import Household, NormalIds, ShowStatus
 
 IdList = List[int]
 
@@ -66,7 +66,7 @@ class DiscoverAddRequest(BaseModel):
     ids: NormalIds = Field(default_factory=dict)  # as the discovered item gave them
     media_type: Literal["show", "anime", "movie"] = "show"
     status: ShowStatus = ShowStatus.PLANTOWATCH
-    household_tag: HouseholdTag = HouseholdTag.BOTH
+    household: Household = Field(default_factory=list)  # member ids; empty: the first member
     poster: Optional[str] = Field(default=None, max_length=1000)
     overview: Optional[str] = Field(default=None, max_length=4000)
 

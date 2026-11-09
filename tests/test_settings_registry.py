@@ -11,14 +11,14 @@ from penguwatch.settings import env as settings_env
 from penguwatch.settings import registry
 from penguwatch.settings.registry import LISTS, NOT_ON_PAGE, SECRET_SLOTS, SECTION_IDS, SETTINGS, Setting
 
-# The 27 settings by section, in page order
+# The 28 settings by section, in page order
 EXPECTED = {
     "household": ["household.members"],
     "sync": ["simkl.auto_sync_interval_minutes", "simkl.idle_after_hours", "simkl.idle_sync_interval_minutes"],
     "optimizer": ["optimizer.max_active_services", "optimizer.household_priority_boost",
                   "optimizer.ready_to_binge_boost"],
     "notifications": ["notify.kind", "notify.hour", "notify.renewal_warning_days"],
-    "display": ["display.theme", "server.timezone"],
+    "display": ["display.theme", "display.effects", "server.timezone"],
     "integrations": ["mcp.enabled", "display.grafana_url"],
     "sources": ["drivers.library", "drivers.catalog", "drivers.schedule", "drivers.discovery"],
     "advanced": ["optimizer.value_window_days", "optimizer.unused_hours", "history.bulk_min", "server.log_level",
@@ -38,7 +38,7 @@ RESTART = {"drivers.library", "drivers.catalog", "drivers.schedule", "drivers.di
 def test_the_sections_hold_the_designed_settings_in_page_order():
     assert [s.id for s in registry.SECTIONS] == list(EXPECTED)
     assert {section: [s.key for s in registry.in_section(section)] for section in SECTION_IDS} == EXPECTED
-    assert len(SETTINGS) == 27
+    assert len(SETTINGS) == 28
 
 
 def test_every_registry_key_resolves_to_a_field():
@@ -169,7 +169,7 @@ def test_constraints_and_defaults_come_from_the_fields():
     assert registry.get("server.timezone").constraints()["type"] == "timezone"
     assert registry.get("display.theme").constraints()["type"] == "theme"
     members = registry.get("household.members").constraints()
-    assert (members["type"], members["min_length"], members["max_length"]) == ("names", 1, 2)
+    assert (members["type"], members["min_length"], members["max_length"]) == ("names", 1, 20)
     assert registry.get("drivers.library").constraints()["type"] == "driver"
     assert registry.get("drivers.schedule").constraints()["type"] == "drivers"
     assert registry.get("drivers.catalog").default() == ["simkl"]

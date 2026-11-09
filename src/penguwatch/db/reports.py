@@ -167,6 +167,7 @@ class ReportsMixin:
 
     async def get_dashboard_stats(self) -> Dict[str, Any]:
         db = await self.read_connection()
+        only, only_params = self._current_member_sql()
         cursor = await db.execute(
             """
             SELECT
@@ -175,12 +176,13 @@ class ReportsMixin:
                 COALESCE(SUM(CASE WHEN status = 'plantowatch' THEN 1 ELSE 0 END), 0) as plantowatch_count,
                 COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as completed_count,
                 COALESCE(SUM(CASE WHEN COALESCE(media_type,'show') = 'movie' THEN 1 ELSE 0 END), 0) as movies_count,
-                COALESCE(SUM(CASE WHEN household_tag = 'both' THEN 1 ELSE 0 END), 0) as both_want_count,
+                COALESCE(SUM(CASE WHEN (SELECT COUNT(*) FROM show_household h WHERE h.show_id = shows.id{only}) >= 2
+                                  THEN 1 ELSE 0 END), 0) as shared_count,
                 COALESCE(SUM(CASE WHEN status NOT IN ('completed', 'dropped') AND aired_episodes > watched_episodes THEN (aired_episodes - watched_episodes) ELSE 0 END), 0) as total_unwatched_episodes,
                 COALESCE(SUM(CASE WHEN status NOT IN ('completed', 'dropped') AND aired_episodes > watched_episodes THEN (aired_episodes - watched_episodes) * runtime_minutes ELSE 0 END) / 60.0, 0.0) as total_backlog_hours,
                 COALESCE(SUM(watched_episodes * runtime_minutes) / 60.0, 0.0) as total_watched_hours
             FROM shows
-            """
+            """.replace("{only}", only), only_params,
         )
         show_stats = dict(await cursor.fetchone() or {})
 

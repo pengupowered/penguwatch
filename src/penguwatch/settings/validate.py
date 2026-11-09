@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 
 from pydantic import ValidationError
 
-from penguwatch.config import AppConfig, WebhookItem, webhook_id
+from penguwatch.config import AppConfig, WebhookItem, member_number, normal_members, webhook_id
 from penguwatch.secrets import slot_path
 from penguwatch.settings import lenient, registry
 from penguwatch.settings.document import SettingsDocument
@@ -64,7 +64,8 @@ def _shown(setting: registry.Setting, value: Any) -> str:
         text = f"{round(value, 4):g}"
         return f"{text} {setting.unit}" if setting.unit else text
     if isinstance(value, list):
-        return ", ".join(str(v) for v in value) or "none"
+        # the household's people are {id, name}: shown by name
+        return ", ".join(str(v.get("name", v)) if isinstance(v, dict) else str(v) for v in value) or "none"
     text = str(value)
     return text if len(text) <= 40 else text[:39] + "…"
 
@@ -294,6 +295,35 @@ def _normalize_webhooks(items: List[dict], stored: List[dict], out: Validation) 
     return normalized
 
 
+def member_ids(value: Any, current: Iterable[str], floor: int) -> Any:
+    """The household members a save sends, with their ids: a person who is a member now keeps their id (a rename keeps
+    every title with them); anyone else is new and gets the next unused one, above `floor` (the highest id given so
+    far, so an id is never reused). The old shape (a list of names) maps to person1, person2, ... in order first."""
+    if not isinstance(value, list):
+        return value
+    if value and all(isinstance(i, str) for i in value):
+        value = normal_members(value)
+    current = set(current)
+    floor = max([floor, *(member_number(i) for i in current)])
+    items: List[Any] = []
+    for item in value:
+        if isinstance(item, str):
+            item = {"name": item}
+        elif isinstance(item, dict):
+            item = {k: item[k] for k in ("id", "name") if k in item}
+            if item.get("id") not in current:
+                item.pop("id", None)
+        items.append(item)
+    return normal_members(items, floor)
+
+
+def _names(members: List[Any], ids: Iterable[str]) -> str:
+    """"Ann", "Ann or Bob", "Ann, Bob or Cid": the names of `ids`."""
+    by_id = {m.get("id"): str(m.get("name")) for m in members if isinstance(m, dict)}
+    names = [by_id.get(i, i) for i in ids]
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " or " + names[-1]
+
+
 async def _warnings(manager: "SettingsManager", values: Mapping[str, Any], document: SettingsDocument,
                     out: Validation) -> None:
     def value(key):
@@ -302,12 +332,21 @@ async def _warnings(manager: "SettingsManager", values: Mapping[str, Any], docum
     if "household.members" in values:
         before = manager.effective_value("household.members")
         after = value("household.members")
-        if isinstance(before, list) and isinstance(after, list) and len(before) == 2 and len(after) == 1:
-            tagged = await manager.titles_for_others()
-            if tagged:
-                out.warnings.append({"where": "values.household.members", "message":
-                                     f"{tagged} title{'s are' if tagged != 1 else ' is'} for {before[1]} or Both; "
-                                     "they keep that tag but the page won't show it with one person."})
+        if isinstance(before, list) and isinstance(after, list):
+            kept = [m.get("id") for m in after if isinstance(m, dict)]
+            removed = [m.get("id") for m in before if isinstance(m, dict) and m.get("id") not in kept]
+            tagged, alone = await manager.repository.household_removal(removed, kept)
+            if tagged and kept:
+                first = next((str(m.get("name")) for m in after if isinstance(m, dict)), "")
+                who = _names(before, removed)
+                text = (f"{tagged} title{'s are' if tagged != 1 else ' is'} for {who}; saving takes "
+                        f"{'them' if len(removed) != 1 else 'that person'} off {'it' if tagged == 1 else 'them'}.")
+                if alone == tagged == 1:
+                    text += f" It is for no one else and moves to {first}."
+                elif alone:
+                    text += (f" {alone} of them {'are' if alone != 1 else 'is'} for no one else and "
+                             f"move{'' if alone != 1 else 's'} to {first}.")
+                out.warnings.append({"where": "values.household.members", "message": text})
     if "mcp.enabled" in values and value("mcp.enabled") is True and not manager.token_set():
         out.warnings.append({"where": "values.mcp.enabled", "message":
                              "No access token is set: anyone who can reach this port can use the MCP endpoint."})
@@ -331,6 +370,10 @@ async def validate(manager: "SettingsManager", values: Mapping[str, Any], lists:
             continue
         if value is None:
             new_values.pop(key, None)
+        elif key == "household.members":
+            current = [m.get("id") for m in manager.effective_value(key) or [] if isinstance(m, dict)]
+            new_values[key] = member_ids(copy.deepcopy(value), current,
+                                         await manager.repository.last_member_number())
         else:
             new_values[key] = copy.deepcopy(value)
     new_lists = dict(manager.document.lists)

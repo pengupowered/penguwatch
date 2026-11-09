@@ -174,8 +174,9 @@ async def serve_dashboard(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html",
         context={"version": ASSET_VERSION, "modules": JS_MODULES, "ui": page_ui.ui(), "grafana_links": grafana.links(),
-                 "household": household, "household_json": json.dumps(household.labels()),
-                 "looks": themes.page_list(ASSET_VERSION), "look_default": themes.resolve_default(display.theme)},
+                 "household": household, "household_json": json.dumps(household.page_members()),
+                 "looks": themes.page_list(ASSET_VERSION), "look_default": themes.resolve_default(display.theme),
+                 "effects": display.effects},
     )
 
 

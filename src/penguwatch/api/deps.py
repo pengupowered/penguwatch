@@ -72,3 +72,13 @@ async def _show_or_404(repo: DatabaseRepository, show_id: int) -> Show:
     if not show:
         raise HTTPException(status_code=404, detail="Show not found")
     return show
+
+
+def household_ids(config: AppConfig, ids, loc) -> list:
+    """The member ids a request names, checked against the household (each a current member; none twice), in the
+    members' order. A 422 names the first unknown one."""
+    members = config.household.ids
+    for member_id in ids or ():
+        if member_id not in members:
+            raise unprocessable(loc, f"No household member has the id {member_id!r}")
+    return config.household.current(ids or ())

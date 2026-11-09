@@ -7,10 +7,10 @@ import { afterShowChange, scheduleSideRefresh } from "./data.js";
 import { libraryLabel } from "./drivers.js";
 import { register, registerAction } from "./dispatch.js";
 import { state } from "./state.js";
-import { displayTitle, householdLabel, showToast } from "./util.js";
+import { displayTitle, householdText, showToast } from "./util.js";
 
 register({
-  changeShowStatus, changeShowHouseholdTag, changeShowPriority, changeShowService, changeShowRating, toggleMovieWatched, updateShowProgress,
+  changeShowStatus, changeShowHousehold, changeShowPriority, changeShowService, changeShowRating, toggleMovieWatched, updateShowProgress,
 });
 registerAction("delete-show", (el, ev) => {
   const d = el.dataset;
@@ -44,8 +44,10 @@ export function changeShowStatus(showId, newStatus) {
   return patchShow(showId, { status: newStatus }, `Status set to ${newStatus}`);
 }
 
-export function changeShowHouseholdTag(showId, newTag) {
-  return patchShow(showId, { household_tag: newTag }, `Audience: ${householdLabel(newTag)}`);
+// Who wants to watch a title: the ids of the people (at least one). Every "who" control (a Library card, the details
+// dialog) sets it through here.
+export function changeShowHousehold(showId, ids) {
+  return patchShow(showId, { household: ids }, `Who wants it: ${householdText(ids, 60)}`);
 }
 
 export function changeShowPriority(showId, priority) {

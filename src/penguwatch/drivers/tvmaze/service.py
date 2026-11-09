@@ -13,11 +13,13 @@ from penguwatch.drivers.base import Episode, RelatedTitle, ScheduledEpisode, Tit
 from penguwatch.drivers.tvmaze import mapper
 from penguwatch.drivers.tvmaze.client import TvmazeClient, TvmazeError
 from penguwatch.models import MediaType
+from penguwatch.textsearch import rank_matches
 
 logger = logging.getLogger("penguwatch.drivers.tvmaze")
 
 NAME = mapper.NAME
 TV_TYPES = ("show", "anime")
+SEARCH_LIMIT = 30
 KEY_CURSOR = state_key(NAME, "schedule_cursor")  # the id of the last title the schedule checked
 
 
@@ -56,8 +58,8 @@ class TvmazeCatalog:
     async def ready(self) -> bool:
         return True  # no key or login to wait for
 
-    async def search(self, query: str, media_types: Sequence[str], limit: int = 10, detailed: int = 0) -> List[Title]:
-        """Shows matching `query`, best first; empty when only movies are wanted. (`detailed` is for the other
+    async def search(self, query: str, media_types: Sequence[str], limit: int = SEARCH_LIMIT, detailed: int = 0) -> List[Title]:
+        """Shows matching `query`, best match first (textsearch.rank_matches, over everything TVmaze returned); empty when only movies are wanted. (`detailed` is for the other
         catalogues: a TVmaze search result already carries the details.)"""
         wanted = [m for m in media_types if m in TV_TYPES]
         if not wanted:
@@ -68,7 +70,7 @@ class TvmazeCatalog:
             title = mapper.show_title(hit.get("show") or {}) if isinstance(hit, dict) else None
             if title and title.media_type in wanted:
                 out.append(title)
-        return out[:limit]
+        return rank_matches(query, out)[:limit]
 
     async def title(self, media_type: Optional[str], ids: Mapping[str, Any]) -> Optional[Title]:
         """Details by TVmaze id; None when TVmaze has no such show or the type asked for is a movie."""

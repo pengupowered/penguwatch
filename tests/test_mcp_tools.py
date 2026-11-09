@@ -53,7 +53,7 @@ async def test_up_next_lists_the_shows_in_progress_with_their_next_episode(libra
     assert severance["next_to_watch"]["air_date"] < today_iso()
     assert severance["next_new_episode"]["code"] == "S01E05" and severance["next_new_episode"]["air_date"] > today_iso()
     assert "next_episode" not in severance and "next_air" not in severance
-    assert severance["for"] == "Both" and severance["service"] == "Apple TV+" and severance["service_active"] is True
+    assert severance["for"] == ["Me", "Partner"] and severance["service"] == "Apple TV+" and severance["service_active"] is True
     assert (await data(library, "up_next", {"limit": 1}))["shown"] == 1
     active = await data(library, "up_next", {"only_active_services": True})
     assert [s["title"] for s in active["up_next"]] == ["Severance"]  # Netflix is off in the fixture

@@ -96,7 +96,7 @@ Switching deletes no title, episode, watch or rating. What is kept, and what you
 The page names no service (`tests/test_web_driver_neutral.py`). `GET /api/drivers` describes every driver: `label`,
 `offers`, `running`, `key_provider`, `remote` (library drivers), `connect_kind` (how the account connects; `null`:
 nothing to connect), `extras` (`credentials`: an app id and token form; `diagnose`), `title_urls` (a title's page on the
-service, per media type, `{id}` for its id), `home_url` (credited on the Services & Sync tab) and `rating_sources`. A
+service, per media type, `{id}` for its id), `takes_links` (Add title takes a pasted link to a title there), `home_url` (credited on the Services & Sync tab) and `rating_sources`. A
 driver declares them as class attributes next to `name` and `label` (`Driver` in drivers/base.py); all are optional.
 
 ## tvmaze
@@ -214,6 +214,7 @@ driver is built.
 | `connect_kind` | no | How an account connects (`"device_code"`); absent when there is nothing to connect. The page renders the connect flow generically from the `ConnectStep`s. |
 | `extras` | no | Extra controls: `"credentials"` (an app id and token form; needs `set_credentials` on the library) and `"diagnose"` (a connection check; needs `diagnose` on the library). |
 | `title_urls` | no | `{media type: URL template}` for a title's page on the service, `{id}` for its id; the page links to it from the details dialog when the title has the driver's id. |
+| `takes_links` | no | `True` when the catalogue takes a pasted link to a title on the service (its catalogue has `parse_link`); Add title's hint then names the service. |
 | `home_url` | no | The service's home page, credited on the Services & Sync tab. |
 
 ### `build()`

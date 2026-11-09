@@ -20,6 +20,10 @@
 .detail-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: var(--sp-3); margin: var(--sp-4) 0; }
 .detail-controls label { display: flex; flex-direction: column; gap: 5px; font-size: var(--fs-sm); color: var(--ink-2); font-weight: var(--fw-medium); }
 .detail-controls .detail-notes { grid-column: 1 / -1; }
+/* Who's watching: a toggle per person, across the whole row (any number of people) */
+.detail-who { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.detail-who-l { font-size: var(--fs-sm); color: var(--ink-2); font-weight: var(--fw-medium); }
+.detail-controls .who-toggle { flex-direction: row; gap: 0; color: inherit; font-weight: inherit; }
 .detail-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-4); }
 .episodes-summary { display: flex; align-items: center; gap: var(--sp-2) var(--sp-3); flex-wrap: wrap; padding: var(--sp-3) 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
 .episodes-summary:empty { display: none; }

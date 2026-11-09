@@ -89,11 +89,18 @@ without one.
 
 ## Themes
 
-The same page, Up Next, in six of the seven themes ([Themes](themes.md)): PenguWatch (the default), Nord, Dracula, E-ink (a
-light-only theme), High contrast and Blueprint (with its grid-paper background). Solarized is the seventh. Every theme but
-the one-mode ones also has a light and a dark palette.
+The same page, Up Next, in sixteen of the seventeen themes ([Themes](themes.md)), each in its dark mode where it has one.
 
-The header's theme menu, open: the theme for this browser, and light, dark or like the system.
+The palettes change the colours only: PenguWatch (the default), Nord, Dracula, E-ink (a light-only theme), High contrast,
+Blueprint (with its grid-paper background), Catppuccin, Gruvbox, Tokyo Night, Rosé Pine and One Dark. Solarized is the
+twelfth. Every palette but the one-mode ones also has a light and a dark version.
+
+The skins also restyle the page's shapes (header, tabs, titles, cards, buttons) and run a subtle animation behind the page (off with the menu's Animation
+item, and never while the system asks for reduced motion): Amber CRT, Cinema, Starship console, Synthwave and Video store
+(in its light mode; it also has an "after hours" dark one).
+
+The header's theme menu, open: the theme for this browser in two groups, palettes and skins, then light, dark or like the
+system, and the Animation item further down.
 
 ![The theme menu](images/theme-menu.png)
 
@@ -103,6 +110,16 @@ The header's theme menu, open: the theme for this browser, and light, dark or li
 ![Up Next in E-ink](images/theme-e-ink.png)
 ![Up Next in High contrast](images/theme-high-contrast.png)
 ![Up Next in Blueprint](images/theme-blueprint.png)
+![Up Next in Catppuccin](images/theme-catppuccin.png)
+![Up Next in Gruvbox](images/theme-gruvbox.png)
+![Up Next in Tokyo Night](images/theme-tokyo-night.png)
+![Up Next in Rosé Pine](images/theme-rose-pine.png)
+![Up Next in One Dark](images/theme-one-dark.png)
+![Up Next in the Amber CRT skin](images/theme-amber-crt.png)
+![Up Next in the Cinema skin](images/theme-cinema.png)
+![Up Next in the Starship console skin](images/theme-starship-console.png)
+![Up Next in the Synthwave skin](images/theme-synthwave.png)
+![Up Next in the Video store skin](images/theme-video-store.png)
 
 ## How they were made
 

@@ -9,14 +9,23 @@ import path from "node:path";
 
 export const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true };
 export const DESKTOP = { width: 1440, height: 1000 };
-// localStorage keys (static/theme.js, js/themes.js): the theme id, the light/dark pick, and the key the header button kept
-// the light/dark pick in before themes (theme.js reads it once and removes it)
+// localStorage keys (static/theme.js, js/themes.js): the theme id, the light/dark pick, the animation pick, and the key the
+// header button kept the light/dark pick in before themes (theme.js reads it once and removes it)
 export const LOOK_KEY = "penguwatch.look";
 export const MODE_KEY = "penguwatch.mode";
+export const FX_KEY = "penguwatch.effects";
 export const OLD_THEME_KEY = "penguwatch.theme";
-// The themes of static/themes/ and the modes each has; the page lists the same (<html data-looks>), a step checks it
-export const THEMES = [["default", ["dark", "light"]], ["nord", ["dark", "light"]], ["dracula", ["dark"]], ["solarized", ["dark", "light"]],
-  ["e-ink", ["light"]], ["high-contrast", ["dark", "light"]], ["blueprint", ["dark"]]];
+// The themes of static/themes/ and the modes each has, read from the theme folders themselves (a new folder is tested without
+// a line here); the page lists the same (<html data-looks>), a step checks it. Order: the default, then by name, as the page.
+const THEMES_DIR = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "..", "src", "penguwatch", "web", "static", "themes");
+export const THEME_NAMES = {};
+export const THEMES = [["default", ["dark", "light"]], ...fs.readdirSync(THEMES_DIR).filter((id) => id !== "default")
+  .map((id) => { const j = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, "theme.json"), "utf8")); THEME_NAMES[id] = j.name; return [id, ["dark", "light"].filter((m) => j.modes.includes(m)), j.name]; })
+  .sort((a, b) => a[2].localeCompare(b[2]))];
+THEME_NAMES.default = "PenguWatch";
+// The themes with a skin (skin.css), and whether each also has an effect (effect.js): core.mjs's skin steps run every one
+// (docs/themes.md, "The contract for a skin author"). A new skin adds its id here.
+export const SKINS = [["amber-crt", { effect: true }], ["cinema", { effect: true }], ["starship-console", { effect: true }], ["synthwave", { effect: true }], ["video-store", { effect: true }]];
 // The host name the browser opens the app by (test_ui_smoke.py BROWSER_HOST), mapped to 127.0.0.1 below. Not a local name
 // on purpose: a page on 127.0.0.1 or localhost is a secure context, where the Clipboard API, notifications and downloads
 // work, which hides what fails for a person who opens http://homeserver:8080 from another machine.
@@ -249,6 +258,12 @@ export async function createContext({ base, outDir, variant }) {
   };
   // the value of a token on <html>, as the page computes it (lower case, trimmed)
   const tokenNow = (name) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toLowerCase(), name);
+  // the effect layer now (js/themes.js): the theme whose effect runs (""), its state (running, paused, over-budget or ""),
+  // the frames it has drawn, what it holds, and its rate
+  const fxNow = () => page.evaluate(() => {
+    const l = document.getElementById("fx-layer");
+    return { fx: l.dataset.fx ?? "", state: l.dataset.state ?? "", frames: l.fxFrames ?? 0, kids: l.childElementCount, fps: Number(l.dataset.fps ?? 0) };
+  });
   // the menu opened and read: [{ action, arg, checked, disabled, text }]; closed again with Escape
   const readMenu = async () => {
     await click("#btn-theme");
@@ -299,9 +314,9 @@ export async function createContext({ base, outDir, variant }) {
 
   const ctx = {
     browser, firefox, page, base, outDir, variant, problems, dialogs, stats, report,
-    PHONE, DESKTOP, SHOTS, LOOK_KEY, MODE_KEY, OLD_THEME_KEY, THEMES, BROWSER_HOST, systemTheme, fs, path, loopback,
+    PHONE, DESKTOP, SHOTS, LOOK_KEY, MODE_KEY, FX_KEY, OLD_THEME_KEY, THEMES, THEME_NAMES, SKINS, BROWSER_HOST, systemTheme, fs, path, loopback,
     sleep, frames, layoutSettled, until, text, count, shown, visible, click, waitText, waitCount, waitSome, modalOpen, eq, ok, dialogKeys, tabStaysIn,
-    noOldLabels, tabsOf, panelOrder, pageReady, goTab, phone, sticksOut, noSideScroll, themeNow, lookNow, stored, storedMode, storedLook, menuOpen, pickInMenu, pickMode, pickLook, flipMode, setTheme, tokenNow, readMenu,
+    noOldLabels, tabsOf, panelOrder, pageReady, goTab, phone, sticksOut, noSideScroll, themeNow, lookNow, stored, storedMode, storedLook, menuOpen, pickInMenu, pickMode, pickLook, flipMode, setTheme, tokenNow, readMenu, fxNow,
     shot, snap, signInWithToken, expectRefusals, expectStatus, resetPage, step,
   };
   return ctx;

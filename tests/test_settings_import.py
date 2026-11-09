@@ -148,7 +148,8 @@ async def test_an_owner_shaped_config_imports_to_the_same_effective_values(repo,
 
 async def test_a_file_without_the_optimizer_keeps_one_service_at_once(repo, tmp_path):
     manager = await run(repo, tmp_path, {"household": {"members": ["Me"]}})
-    assert manager.document.values == {"household.members": ["Me"], "optimizer.max_active_services": 1}
+    assert manager.document.values == {"household.members": [{"id": "person1", "name": "Me"}],
+                                       "optimizer.max_active_services": 1}
     assert manager.config.optimizer.max_active_services == 1
 
 

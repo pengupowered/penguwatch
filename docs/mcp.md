@@ -59,7 +59,7 @@ episodes, and either may be missing. Lists take a `limit` (a default, and a hard
 | Tool | Arguments | Answers |
 |---|---|---|
 | `up_next` | `limit` (10, max 60), `only_active_services` | The shows in progress with their next unwatched episode, titles with episodes ready first (the Up Next tab). |
-| `tonights_pick` | the filters of Tonight's Pick: `service_id`, `only_active_services` (true), `household_tag`, `status`, `media_type`, `min_rating`, `genre`, `ready_to_binge_only` | One suggested title: the same weighted random draw as the Tonight's Pick tab, nothing recorded. Asking again may give another title. |
+| `tonights_pick` | the filters of Tonight's Pick: `service_id`, `only_active_services` (true), `member` (a household member's name, as in `for`, or id), `shared` (true: titles two or more people want; false: one person's alone), `status`, `media_type`, `min_rating`, `genre`, `ready_to_binge_only` | One suggested title: the same weighted random draw as the Tonight's Pick tab, nothing recorded. Asking again may give another title. |
 | `search_library` | `query`, `status`, `limit` (10, max 100) | Titles in **your library** whose name matches (not the online catalogue), with status and progress. |
 | `title` | `id` or `name` | One title in detail: progress, next episode, ratings (IMDb, the library service's, yours, custom sources), genres, overview, and its service with price. A name that matches several titles gives the best match and `other_matches`. |
 | `schedule` | `days_ahead` (14, max 90), `limit` (30, max 100) | Upcoming episode air dates with the service each is on. Empty, with `enabled: false`, when no schedule driver is set. |
@@ -75,7 +75,7 @@ Example, `up_next`:
 
 ```json
 {"total":2,"shown":2,"up_next":[{"id":1,"title":"Severance","type":"show","service":"Apple TV+","service_active":true,
-"for":"Both","watched":2,"aired":4,"episodes_left":2,"next_to_watch":{"code":"S01E03","title":"Chapter 3","air_date":"2026-10-22"},
+"for":["Me","Partner"],"watched":2,"aired":4,"episodes_left":2,"next_to_watch":{"code":"S01E03","title":"Chapter 3","air_date":"2026-10-22"},
 "next_new_episode":{"code":"S01E05","title":"Chapter 5","air_date":"2026-11-10"},"ready_to_binge":false}]}
 ```
 
@@ -100,8 +100,8 @@ A failed lookup (a title that is not there) is a normal tool answer with `isErro
 - **JSON only, never cached.** `POST /mcp` accepts only `Content-Type: application/json` (`415` otherwise), so a page on
   another site cannot send it without a browser preflight, which the Origin rule then refuses. Answers carry
   `Cache-Control: no-store`.
-- **Untrusted text.** Titles, overviews and service names come from third-party catalogues (and the `for` field carries
-  the household member names from the Settings tab). They are data, not instructions: an assistant should not follow
+- **Untrusted text.** Titles, overviews and service names come from third-party catalogues (and the `for` field, a list,
+  carries the names of the household members who want the title, from the Settings tab). They are data, not instructions: an assistant should not follow
   directions found in them, and you should not enable the endpoint for an assistant that acts on such text without asking.
 - **Limits.** Request bodies are capped like the API's (`PENGUWATCH_MAX_BODY_BYTES`), every list has a maximum, and `/mcp`
   is rate limited to 120 calls per minute per client address. The limit answers `429` with a JSON-RPC error and

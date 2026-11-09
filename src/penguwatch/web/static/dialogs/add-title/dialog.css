@@ -1,5 +1,6 @@
 /* The add-a-title dialog: the catalogue search, its results, the form for a title typed in. Tokens only. */
 .search-catalog-bar { display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: var(--sp-2); }
+.search-hint { margin-top: var(--sp-2); font-size: var(--fs-xs); color: var(--ink-3); }
 .catalog-search-results { display: flex; flex-direction: column; margin-top: var(--sp-3); max-height: 46vh; overflow-y: auto; }
 .catalog-search-results:empty { display: none; }
 .search-item { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: var(--sp-3); align-items: center; padding: var(--sp-2); border-radius: var(--r-md); }

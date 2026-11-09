@@ -6,21 +6,23 @@ import { afterShowChange, loadRatingSources, scheduleSideRefresh } from "../../j
 import { register, registerAction } from "../../js/dispatch.js";
 import { closeModal, isOpen, onModalClose, openModal } from "../../js/modal.js";
 import { attributionsFor, creditLink, syncingTo, syncsToLibrary, titleLinks } from "../../js/drivers.js";
-import { updateShowProgress } from "../../js/showchanges.js";
+import { changeShowHousehold, updateShowProgress } from "../../js/showchanges.js";
 import { state } from "../../js/state.js";
 import {
   PLACEHOLDER_POSTER,
   STATUS_LABELS,
   displayTitle,
   esc,
-  householdOptions,
   householdShared,
   icon,
+  keepOneTicked,
   mediaIcon,
   ratingBadges,
   showToast,
   statusOptionsFor,
   subtitleHtml,
+  tickedWho,
+  whoToggles,
 } from "../../js/util.js";
 
 const MEDIA = { movie: ["film", "Movie"], anime: ["sparkle", "Anime"], show: ["tv", "TV Show"] };
@@ -92,8 +94,7 @@ function renderShowDetail(show) {
     <div class="detail-controls">
       <label>Status<select class="input" data-call="detailPatchField" data-on="change" data-args='[${show.id}, "status", "$value"]'>${statusOptionsFor(show)}</select></label>
       <label>Your rating<select class="input" data-call="detailRate" data-on="change" data-args='[${show.id}, "$value"]'>${ratingOptions}</select></label>
-      ${householdShared ? `<label>Who's watching<select class="input" data-call="detailPatchField" data-on="change" data-args='[${show.id}, "household_tag", "$value"]'>
-        ${householdOptions().map(([tag, label]) => `<option value="${tag}" ${show.household_tag === tag ? "selected" : ""}>${esc(label)}</option>`).join("")}</select></label>` : ""}
+      ${householdShared ? `<div class="detail-who" data-show="${show.id}"><span class="detail-who-l" id="detail-who-l">Who's watching</span>${whoToggles(show.household, { name: "detail-who", label: "Who's watching", attrs: ' aria-labelledby="detail-who-l"' })}</div>` : ""}
       <label>Priority<select class="input" data-call="detailPatchField" data-on="change" data-args='[${show.id}, "priority", "$value"]'>
         <option value="high" ${show.priority === "high" ? "selected" : ""}>High</option>
         <option value="medium" ${show.priority === "medium" ? "selected" : ""}>Normal</option>
@@ -112,6 +113,7 @@ function renderShowDetail(show) {
   const creditBox = document.getElementById("detail-credits");
   credits.forEach((a, i) => creditBox.append(i ? " · " : "", creditLink(a)));
   creditBox.hidden = !credits.length;
+  box.querySelector(".detail-who")?.addEventListener("change", (ev) => detailWho(show.id, ev.target));
   loadShowRatings(show.id);
   // The banner behind the hero, as a style property (the CSP forbids style attributes in markup)
   const hero = box.querySelector(".detail-hero");
@@ -190,6 +192,14 @@ async function clearRating(el) {
   } catch (err) {
     showToast(err.message, true);
   }
+}
+
+// A toggle of "Who's watching": the whole set goes through the one function every "who" control uses; a refused save
+// puts the toggle back.
+async function detailWho(showId, input) {
+  if (!keepOneTicked(input)) return;
+  const updated = await changeShowHousehold(showId, tickedWho(input.closest(".who-toggles")));
+  if (!updated) input.checked = !input.checked;
 }
 
 function detailPatchField(showId, field, value) {

@@ -1,6 +1,6 @@
 """Build a made-up demo library for screenshots and trying PenguWatch out.
 
-    PYTHONPATH=src python scripts/demo_library.py demo.db [--signed-in]
+    PYTHONPATH=src python scripts/demo_library.py demo.db [--signed-in] [--people N]
 
 Every title, network pairing and rating here is invented; posters are generated SVG artwork (data: URLs, so the page
 needs no network). Air dates are relative to today, so Up Next and the Air Schedule always have something to show.
@@ -12,6 +12,10 @@ Start the app on the result with PENGUWATCH_DB_PATH=demo.db.
 --signed-in stores a made-up SIMKL app id, token and sync state, so the page shows SIMKL as connected and the review
 changes can be opened. None of it is real: SIMKL would refuse the token, so use it only for pictures and for trying the
 page out with SIMKL out of reach (the app then reports a sync problem at its next sync).
+
+--people 1 or --people 3 makes a household of one ("Me") or three ("Me", "Partner", "Sam") instead of the default two
+(stored in the settings, as if saved on the Settings tab, so config.yaml's household is not imported). With three, some
+titles are for Sam, some shared by two of the three and some by everyone; with one, every title is Me's.
 """
 
 import asyncio
@@ -25,8 +29,9 @@ from pathlib import Path
 from penguwatch.catalog import load_catalog
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.drivers.base import OP_STATUS, OP_WATCHED, OP_RATE, SyncOp
-from penguwatch.models import HouseholdTag, MediaType, Priority, Show, ShowStatus
+from penguwatch.models import MediaType, Priority, Show, ShowStatus
 from penguwatch.ratings import RatingSourceSpec, RatingValue
+from penguwatch.settings.document import SettingsDocument
 
 # (title, year, kind, network, status, household, priority, simkl, imdb, seasons x episodes, watched, genres)
 TITLES = [
@@ -70,6 +75,25 @@ PALETTE = [("#1b3a5c", "#5aa2ff"), ("#3a1f4d", "#9d8cff"), ("#123d36", "#2bb5a0"
            ("#2b2f45", "#8cc0ff"), ("#40142a", "#e87ba4"), ("#1d3b1f", "#6fcf73"), ("#3d3510", "#f0ad1c")]
 
 
+PEOPLE = {1: ["Me"], 2: ["Me", "Partner"], 3: ["Me", "Partner", "Sam"]}
+
+
+def who_wants(who: str, i: int, people: int) -> list:
+    """The member ids of a title (TITLES' household column, `i` its place) in a household of `people`: as written for
+    two; for one, Me; for three, a both-title is everyone's or two of the three in turn, and some single titles are
+    Sam's."""
+    if people == 1:
+        return ["person1"]
+    ids = {"person1": ["person1"], "person2": ["person2"], "both": ["person1", "person2"]}[who]
+    if people == 3:
+        if who == "both":
+            ids = [["person1", "person2", "person3"], ["person1", "person2"], ["person2", "person3"],
+                   ["person1", "person3"]][i % 4]
+        elif i % 3 == 2:
+            ids = ["person3"]
+    return ids
+
+
 def poster(title: str) -> str:
     """A 2:3 SVG poster: a gradient chosen by the title, a moon and hills (no text: the cards crop posters)."""
     h = int(hashlib.sha1(title.encode()).hexdigest(), 16)
@@ -96,10 +120,14 @@ def watch_stamp(today: date, days_ago: int, hour: int, n: int) -> str:
     return base + "Z" if kind % 2 == 0 else base + f".{n * 7919 % 1000000:06d}+00:00"
 
 
-async def build(path: str, signed_in: bool = False) -> None:
+async def build(path: str, signed_in: bool = False, people: int = 2) -> None:
     repo = DatabaseRepository(path)
     # the built-in catalogue, as a first start seeds an empty table (config.yaml no longer lists services)
     await repo.initialize(load_catalog())
+    if people != 2:  # the household as the Settings tab stores it (the start then skips the config.yaml import)
+        members = [{"id": f"person{n}", "name": name} for n, name in enumerate(PEOPLE[people], start=1)]
+        await repo.initialize_settings(SettingsDocument(values={"household.members": members}),
+                                       f"Demo library: a household of {people}", [])
     for sid in ACTIVE:
         await repo.set_service_active(sid, True, renewal_day=sum(map(ord, sid)) % 27 + 1)
     today = date.today()
@@ -107,7 +135,7 @@ async def build(path: str, signed_in: bool = False) -> None:
     for i, (title, year, kind, network, status, who, prio, simkl, imdb, shape, watched, genres) in enumerate(TITLES):
         media = {"show": MediaType.SHOW, "anime": MediaType.ANIME, "movie": MediaType.MOVIE}[kind]
         show = Show(title=title, year=year, media_type=media, network=network, status=ShowStatus(status),
-                    household_tag=HouseholdTag(who), priority=Priority(prio), simkl_rating=simkl, imdb_rating=imdb,
+                    household=who_wants(who, i, people), priority=Priority(prio), simkl_rating=simkl, imdb_rating=imdb,
                     imdb_votes=1000 + 137 * i, poster=poster(title), runtime_minutes=24 if kind == "anime" else (110 if kind == "movie" else 45),
                     genres=genres, overview=f"{title} is an invented title from the PenguWatch demo library.",
                     is_ended=status in ("completed", "dropped"), simkl_id=900000 + i)
@@ -191,8 +219,14 @@ async def build(path: str, signed_in: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if a != "--signed-in"]
-    if len(args) != 1 or Path(args[0]).exists():
-        sys.exit("usage: demo_library.py <new database file> [--signed-in]")
-    asyncio.run(build(args[0], "--signed-in" in sys.argv[1:]))
-    print(f"demo library written to {args[0]} ({len(TITLES)} titles)")
+    argv = sys.argv[1:]
+    people = 2
+    if "--people" in argv:
+        at = argv.index("--people")
+        people = int(argv[at + 1]) if at + 1 < len(argv) and argv[at + 1] in ("1", "2", "3") else 0
+        del argv[at:at + 2]
+    args = [a for a in argv if a != "--signed-in"]
+    if len(args) != 1 or Path(args[0]).exists() or people not in PEOPLE:
+        sys.exit("usage: demo_library.py <new database file> [--signed-in] [--people 1|2|3]")
+    asyncio.run(build(args[0], "--signed-in" in argv, people))
+    print(f"demo library written to {args[0]} ({len(TITLES)} titles, {people} {'person' if people == 1 else 'people'})")

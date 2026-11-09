@@ -7,7 +7,7 @@ from datetime import timedelta
 from typing import Dict, Any
 from fastapi import Depends, HTTPException, Query
 from penguwatch.interest import score
-from penguwatch.models import Show, ShowStatus, Priority, HouseholdTag, MediaType, ShowCreateRequest
+from penguwatch.models import Show, ShowStatus, Priority, MediaType, ShowCreateRequest
 from penguwatch.api.deps import AppContainer, get_container, get_repo, get_sync
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.sync.engine import SyncEngine
@@ -31,7 +31,7 @@ async def _dismissed(repo: DatabaseRepository, kind: str) -> Dict[str, str]:
 
 def _brief(show: Show) -> Dict[str, Any]:
     out = {k: getattr(show, k) for k in ("id", "title", "year", "poster", "media_type", "status", "network",
-                                         "household_tag", "watched_episodes", "aired_episodes", "episodes_left",
+                                         "household", "watched_episodes", "aired_episodes", "episodes_left",
                                          "next_episode_air_date", "imdb_rating")}
     if show.en_title:  # only when known, like Show.en_title
         out["en_title"] = show.en_title
@@ -122,7 +122,8 @@ async def tidy_apply(
         parent = await repo.get_show_by_id(sq.parent_id) if sq.parent_id else None
         await _create_title(ShowCreateRequest(
             title=sq.title, ids=sq.ids, media_type=MediaType.ANIME,
-            status=payload.status, household_tag=parent.household_tag if parent else HouseholdTag.PERSON1,
+            # a new season is for the people its parent is for; without a parent, the first member's
+            status=payload.status, household=list(parent.household) if parent else [],
             priority=parent.priority if parent else Priority.MEDIUM,
         ), repo, sync, c.background)
         added += 1

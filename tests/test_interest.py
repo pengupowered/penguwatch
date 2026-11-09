@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from penguwatch.config import OptimizerConfig
 from penguwatch.interest import TasteProfile, build_profile, score
 from penguwatch.main import app
-from penguwatch.models import HouseholdTag, Priority, Show, ShowStatus
+from penguwatch.models import Priority, Show, ShowStatus
 from penguwatch.optimizer.engine import SubscriptionOptimizer
 
 
@@ -79,7 +79,7 @@ def test_reasons_order_and_vote_formatting():
     genres = ["Drama", "Crime", "Thriller"]
     profile = build_profile([Show(title=f"s{i}", genres=genres, user_rating=9.0) for i in range(5)])
     show = Show(title="t", genres=genres, imdb_rating=8.4, imdb_votes=1_234_567,
-                household_tag=HouseholdTag.BOTH, priority=Priority.HIGH)
+                household=["person1", "person2"], priority=Priority.HIGH)
     reasons = score(show, profile)[1]
     assert reasons == ["IMDb 8.4 (1.2M votes)", "You usually finish: Crime, Drama", "Both want it", "High priority"]
     assert score(Show(title="t", imdb_rating=7.1, imdb_votes=45_000), profile)[1][0] == "IMDb 7.1 (45K votes)"
@@ -90,7 +90,7 @@ def test_reasons_order_and_vote_formatting():
 def test_score_is_clamped_to_0_100():
     profile = TasteProfile({}, {})
     best = Show(title="x", imdb_rating=10.0, imdb_votes=10_000_000, priority=Priority.HIGH,
-                household_tag=HouseholdTag.BOTH)
+                household=["person1", "person2"])
     worst = Show(title="x", imdb_rating=1.0, imdb_votes=10_000_000, priority=Priority.LOW)
     assert 0 <= score(best, profile)[0] <= 100
     assert 0 <= score(worst, profile)[0] <= 100
@@ -159,5 +159,5 @@ async def test_optimizer_top_shows_follow_interest_score(container):
     assert [t["title"] for t in netflix.top_shows] == ["Acclaimed", "Mediocre but high priority"]
     assert set(netflix.top_shows[0]) == {
         "id", "title", "year", "poster", "imdb_rating", "episodes_left",
-        "is_ready_to_binge", "status", "priority", "household_tag",
+        "is_ready_to_binge", "status", "priority", "household",
     }

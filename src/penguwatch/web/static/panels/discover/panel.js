@@ -2,11 +2,14 @@
 import { api } from "../../js/api.js";
 import { on } from "../../js/bus.js";
 import { refreshAfterChange } from "../../js/data.js";
-import { register } from "../../js/dispatch.js";
+import { register, registerAction, registerChange } from "../../js/dispatch.js";
 import { discoveryOn, hasAccount, libraryLabel } from "../../js/drivers.js";
 import { state } from "../../js/state.js";
 import { onTabActivated } from "../../js/tabs.js";
-import { PLACEHOLDER_POSTER, STATUS_LABELS, esc, householdShared, icon, mediaIcon, showToast } from "../../js/util.js";
+import {
+  HOUSEHOLD, PLACEHOLDER_POSTER, STATUS_LABELS, esc, householdFirst, householdShared, icon, keepOneTicked, mediaIcon, showToast, tickedWho,
+  whoToggles,
+} from "../../js/util.js";
 
 const discover = { mode: "trending", media: "tv", interval: "week", hideLibrary: true, items: [], byIndex: [] };
 
@@ -96,8 +99,16 @@ function renderDiscover(items) {
       const because = it.because && it.because.length ? `<div class="discover-because">Because you liked ${esc(it.because.slice(0, 2).join(" & "))}</div>` : "";
       const actions = it.in_library
         ? `<button class="btn sm" data-call="openShow" data-args='[${it.library_id}]'>${icon("library")}In library · ${esc(STATUS_LABELS[it.library_status] || it.library_status)}</button>`
-        : `${householdShared ? `<button class="btn sm outline" data-call="addDiscovered" data-args='[${idx}, "both"]'>${icon("users")}We both want it</button>` : ""}
-           <button class="btn sm outline" data-call="addDiscovered" data-args='[${idx}, "person1"]'>${icon("plus")}Add</button>`;
+        : householdShared
+          ? `<button class="btn sm outline" data-call="addDiscovered" data-args='[${idx}, ["${esc(householdFirst)}"]]'>${icon("plus")}Add for me</button>
+             <details class="add-for">
+               <summary class="btn sm outline">${icon("users")}Add for…</summary>
+               <div class="add-for-menu">
+                 ${whoToggles(HOUSEHOLD.map((m) => m.id), { name: `add-for-${idx}`, label: `Who wants ${it.title}`, attrs: ' data-change="discover-who"' })}
+                 <button class="btn sm primary" data-action="discover-add-for" data-idx="${idx}">${icon("plus")}Add</button>
+               </div>
+             </details>`
+          : `<button class="btn sm outline" data-call="addDiscovered" data-args='[${idx}, []]'>${icon("plus")}Add</button>`;
       return `
         <div class="discover-card">
           <img class="poster discover-poster" src="${esc(it.poster || PLACEHOLDER_POSTER)}" alt="" loading="lazy" data-fallback="poster">
@@ -113,6 +124,7 @@ function renderDiscover(items) {
     .join("");
 }
 
+// `household`: the ids of the people who want it ([] : the first member, as the server does)
 async function addDiscovered(idx, household) {
   const it = discover.byIndex[idx];
   if (!it) return;
@@ -126,7 +138,7 @@ async function addDiscovered(idx, household) {
         year: it.year,
         poster: it.poster,
         overview: it.overview,
-        household_tag: household,
+        household,
       },
     });
     it.in_library = true;
@@ -143,5 +155,11 @@ onTabActivated("discover-tab", () => loadDiscover());
 // the login state arrives after the page loads (and changes when the account is connected or disconnected)
 on("library-status", () => { if (state.activeTab === "discover-tab") loadDiscover(); });
 register({ addDiscovered });
+// "Add for…": the people ticked in the card's menu
+registerAction("discover-add-for", (el) => {
+  const group = el.closest(".add-for")?.querySelector(".who-toggles");
+  if (group) addDiscovered(Number(el.dataset.idx), tickedWho(group));
+});
+registerChange("discover-who", (el, ev) => keepOneTicked(ev.target));
 
 export default { id: "discover", mount: setupDiscover };

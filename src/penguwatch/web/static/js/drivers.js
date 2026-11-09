@@ -3,7 +3,8 @@
 // whether there is an account to connect or sync, for a title's link on the service, and for which features are on.
 //
 // Markup hooks (filled whenever the drivers load, so static text needs no service name):
-//   data-tpl="Reconnect {library}"       the element's text; {library} {catalog} {catalog-first} {builtin} {interval} {connect-with} are the terms
+//   data-tpl="Reconnect {library}"       the element's text; {library} {catalog} {catalog-first} {catalog-links} {builtin} {interval} {connect-with} are the terms
+//                                        ({catalog-links}: "<label>, " for each catalogue that takes a pasted link to a title, else "")
 //   data-tpl-title / -aria / -placeholder   the same for the title, aria-label and placeholder attributes
 //   data-needs="<role>-driver"           on a tab's section (schedule-driver, discovery-driver): without a driver for the role the tab shows a note
 //   data-show-when="remote"              shown only when the condition holds: remote (the library has an account),
@@ -102,6 +103,7 @@ function terms() {
   const builtin = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}` : names[0] || "None";
   return {
     library: libraryLabel(), catalog: catalogLabel(), "catalog-first": catalogs[0] || "the catalogue", builtin,
+    "catalog-links": (state.drivers?.catalog || []).filter((n) => info(n)?.takes_links).map((n) => `${info(n).label}, `).join(""),
     interval: String(state.drivers?.pull_interval_minutes ?? 30),
     "connect-with": libraryDriver()?.connect_kind === "device_code" ? " with Device PIN" : "",
   };

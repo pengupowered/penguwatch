@@ -8,6 +8,7 @@ The API layer (api/titles.py) does the lookups and persistence and calls these i
     assemble_show                            (media-type rules, defaults, final Show)
 """
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -25,6 +26,29 @@ def search_media_types(media_type: Optional[MediaType]) -> Tuple[str, ...]:
     return {"movie": ("movie",), "anime": ("anime",), "show": ("show", "anime")}.get(
         media_type.value if media_type else "", ("show", "anime", "movie")
     )
+
+
+_REFS = (
+    (re.compile(r"themoviedb\.org/(tv|movie)/(\d+)", re.I), "tmdb"),
+    (re.compile(r"imdb\.com/title/(tt\d{6,})", re.I), "imdb"),
+    (re.compile(r"^(tt\d{6,})$", re.I), "imdb"),
+)
+_REF_MEDIA = {"tv": "show", "movie": "movie"}
+
+
+def parse_title_ref(text: str) -> Optional[Tuple[str, Any, Optional[str]]]:
+    """(provider, id, media type or None) when `text` is a pasted TMDB or IMDb link, or a bare IMDb id
+    ("tt0072562"); None for anything else (a title to search for). A bare number is never taken for an id. A catalogue's own links are
+    its business (`parse_link` on the catalogue)."""
+    text = text.strip()
+    for pattern, provider in _REFS:
+        m = pattern.search(text)
+        if not m:
+            continue
+        if provider == "imdb":
+            return provider, m.group(1).lower(), None
+        return provider, int(m.group(2)), _REF_MEDIA[m.group(1).lower()]
+    return None
 
 
 def _year(match: Any) -> Optional[int]:
@@ -174,7 +198,7 @@ def assemble_show(
     return Show(
         title=merged.title, en_title=merged.en_title, alt_titles=merged.alt_titles, year=merged.year, ids={**ids, **{k: v for k, v in merged.ids.items() if k not in ids}},
         media_type=media_type, network=network, service_id=service_id, service_manual=bool(payload.service_id),
-        status=status, priority=payload.priority, household_tag=payload.household_tag,
+        status=status, priority=payload.priority, household=list(payload.household),
         overview=merged.overview, poster=merged.poster, banner=merged.banner, genres=genres,
         imdb_rating=merged.imdb_rating, imdb_votes=merged.imdb_votes, simkl_rating=merged.simkl_rating,
         total_episodes=total, aired_episodes=aired, watched_episodes=watched,

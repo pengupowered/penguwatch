@@ -74,11 +74,8 @@ function controlHtml(spec, id) {
     }
     case "hour":
       return `<select class="input" ${common}${env ? " disabled" : ""}>${Array.from({ length: 24 }, (_, h) => `<option value="${h}"${Number(value) === h ? " selected" : ""}>${String(h).padStart(2, "0")}:00</option>`).join("")}</select>`;
-    case "names": {
-      const names = Array.isArray(value) ? value : [];
-      const max = spec.max_length || 2;
-      return `<span class="set-names" id="${id}">${Array.from({ length: max }, (_, i) => `<input class="input" type="text" autocomplete="off" data-key="${esc(spec.key)}" data-edit data-i="${i}" maxlength="40" value="${esc(names[i] ?? "")}" aria-label="${esc(spec.label)} ${i + 1}${i ? " (optional)" : ""}"${env ? " readonly" : ""}>`).join("")}</span>`;
-    }
+    case "names":
+      return peopleHtml(spec, id, env);
     case "driver":
       return `<select class="input" ${common} data-driver${env ? " disabled" : ""}>${offering(spec).map((d) => `<option value="${esc(d.name)}"${d.name === value ? " selected" : ""}>${esc(d.label)}</option>`).join("")}</select>`;
     case "drivers":
@@ -89,6 +86,69 @@ function controlHtml(spec, id) {
       return `<input class="input${num ? " num" : ""}" type="text" ${num ? "inputmode=\"decimal\" " : ""}autocomplete="off" spellcheck="false" ${common}${ro} value="${esc(value ?? "")}"${spec.max_length ? ` maxlength="${spec.max_length}"` : ""} placeholder="${esc(spec.empty || "")}" aria-describedby="${id}-m">`;
     }
   }
+}
+
+// ---------- the household's people: a row each (name, Remove), then "Add person" ----------
+// While what is typed is refused (an empty or repeated name, a new row not named yet) the rows on screen are kept here,
+// so a redraw does not lose them; otherwise the rows are the value (the draft's, else the server's).
+const peopleRows = {};
+
+const personOf = (p) => (p && typeof p === "object" ? { ...(p.id ? { id: p.id } : {}), name: p.name ?? "" } : { name: String(p ?? "") });
+
+function peopleNow(spec) {
+  if (S.invalid[spec.key] && peopleRows[spec.key]) return peopleRows[spec.key];
+  const value = valueOf(spec.key);
+  return (Array.isArray(value) ? value : []).map(personOf);
+}
+
+function peopleHtml(spec, id, env) {
+  const people = peopleNow(spec);
+  const max = spec.max_length || 20;
+  const rows = people.map((p, i) => `<li class="set-person">
+      <input class="input" type="text" autocomplete="off" data-key="${esc(spec.key)}" data-edit data-i="${i}" data-member="${esc(p.id || "")}" maxlength="40" value="${esc(p.name)}" aria-label="Person ${i + 1}"${env ? " readonly" : ""}>
+      <button type="button" class="btn sm danger" data-action="settings-person" data-key="${esc(spec.key)}" data-op="remove" data-i="${i}" aria-label="Remove ${esc(p.name || `person ${i + 1}`)}"${people.length <= 1 || env ? " disabled" : ""}>Remove</button>
+    </li>`).join("");
+  const add = `<button type="button" class="btn sm outline set-person-add" data-action="settings-person" data-key="${esc(spec.key)}" data-op="add"${people.length >= max || env ? " disabled" : ""}>${icon("plus")}Add person</button>`;
+  return `<div class="set-people" id="${id}"><ol class="set-people-list">${rows}</ol>${add}<span class="fine set-people-n">${people.length} of at most ${max}</span></div>`;
+}
+
+// The rows on screen as people: [{id?, name}] (a row without an id is someone new).
+function readPeople(row) {
+  return [...row.querySelectorAll("input[data-i]")].map((i) => ({ ...(i.dataset.member ? { id: i.dataset.member } : {}), name: i.value.trim() }));
+}
+
+// The rows as the value: accepted (and put in the draft), or kept on screen with the reason.
+function takePeople(spec, people) {
+  const why = namesProblem(spec, people);
+  if (why) {
+    peopleRows[spec.key] = people;
+    S.invalid[spec.key] = why;
+    changed();
+    return;
+  }
+  delete peopleRows[spec.key];
+  setValue(spec.key, people);
+}
+
+// "Add person" (a new, empty row: named before it can be saved) and "Remove" (never the last one). A removed person's
+// titles lose them when the change is saved; a title left with nobody goes to the first person (the server says how
+// many before the save).
+export function personOp(key, op, index) {
+  const spec = S.spec[key];
+  if (!spec || isEnv(key)) return;
+  const row = document.getElementById(`${idOf(key)}-row`);
+  if (!row) return;
+  // a name being typed is taken first: redrawing the rows removes its input, and the browser then sends that input's
+  // change event (read from the old rows) after this change
+  if (row.contains(document.activeElement)) document.activeElement.blur();
+  const people = readPeople(row);
+  if (op === "add" && people.length < (spec.max_length || 20)) people.push({ name: "" });
+  if (op === "remove" && people.length > 1) people.splice(Number(index), 1);
+  takePeople(spec, people);
+  rebuildControl(row, spec);
+  const inputs = row.querySelectorAll("input[data-i]");
+  if (op === "add") inputs[inputs.length - 1]?.focus();
+  else (inputs[Math.min(Number(index), inputs.length - 1)] || row.querySelector(".set-person-add"))?.focus();
 }
 
 // ---------- the line under the input ----------
@@ -145,9 +205,11 @@ export function rowHtml(spec) {
 
 // ---------- reading and editing ----------
 function readNames(row, spec) {
-  const names = [...row.querySelectorAll("input[data-i]")].map((i) => i.value.trim()).filter((n, i) => n !== "" || i === 0);
-  const why = namesProblem(spec, names.filter((n, i) => i === 0 || n !== ""));
-  return why ? { problem: why } : { stored: names.filter((n, i) => i === 0 || n !== "") };
+  const people = readPeople(row);
+  const why = namesProblem(spec, people);
+  if (why) peopleRows[spec.key] = people;
+  else delete peopleRows[spec.key];
+  return why ? { problem: why } : { stored: people };
 }
 
 // The input of `el` read as a stored value: {stored} or {problem}.
@@ -242,8 +304,9 @@ export function refreshRows(root = document.getElementById("settings-tab")) {
     if (!input || typing || bad) return;
     if (spec.type === "boolean") { input.checked = !!value; input.nextElementSibling.textContent = value ? "On" : "Off"; }
     else if (spec.type === "names") {
-      const inputs = row.querySelectorAll("input[data-i]");
-      inputs.forEach((n, i) => { n.value = (Array.isArray(value) ? value[i] : "") ?? ""; });
+      // redrawn when the rows on screen are not the value (a reset, a restored version, a discarded draft); never
+      // while one of them has the focus, and never when they already match (a blur's change event lands here too)
+      if (!same(readPeople(row), peopleNow(spec)) && !row.contains(document.activeElement)) rebuildControl(row, spec);
     } else if (spec.type === "drivers") { /* rebuilt by driverOp */ }
     else if (spec.type === "hour") input.value = String(value);
     else if (spec.type === "number" || spec.type === "integer") { if (parse(spec, input.value) !== value) input.value = String(value ?? ""); }

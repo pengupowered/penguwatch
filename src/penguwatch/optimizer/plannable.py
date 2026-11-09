@@ -2,11 +2,11 @@
 
 from typing import Iterable
 
-from penguwatch.models import HouseholdTag, OptimizerRecommendation, Priority, ServiceConfig, Show, ShowStatus
+from penguwatch.models import OptimizerRecommendation, Priority, ServiceConfig, Show, ShowStatus
 
 # Share of a title's remaining hours that counts as plannable, by status.
 STATUS_WEIGHT = {"watching": 1.0, "plantowatch": 0.5, "hold": 0.25}
-# A high-priority or "both want it" title counts in full whatever its status.
+# A high-priority or shared title (two or more people want it) counts in full whatever its status.
 PRIORITY_OR_BOTH_WEIGHT = 1.0
 
 _EXCLUDED = (ShowStatus.COMPLETED, ShowStatus.DROPPED)
@@ -17,7 +17,7 @@ def plannable_hours(show: Show) -> float:
     if show.status in _EXCLUDED:
         return 0.0
     hours = show.episodes_left * show.runtime_minutes / 60.0
-    if show.priority == Priority.HIGH or show.household_tag == HouseholdTag.BOTH:
+    if show.priority == Priority.HIGH or len(show.household) >= 2:
         return hours * PRIORITY_OR_BOTH_WEIGHT
     return hours * STATUS_WEIGHT.get(show.status.value, 0.0)
 

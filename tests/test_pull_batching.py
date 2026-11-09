@@ -19,7 +19,7 @@ import httpx
 
 from penguwatch import clock
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import HouseholdTag, MediaType, Priority, ServiceConfig, Show, ShowStatus
+from penguwatch.models import MediaType, Priority, ServiceConfig, Show, ShowStatus
 from penguwatch.sync import pull as pull_module
 from penguwatch.drivers.simkl.client import SIMKL_BASE_URL, SimklClient
 from tests.simkl_helpers import simkl_engine
@@ -162,7 +162,7 @@ async def seed_local(repo, sync):
     """Titles that exist before the first pull: household fields, an episode list, a locked and a vanished title."""
     mk = lambda sid, title, media=MediaType.SHOW, **kw: Show(ids={"simkl": sid}, title=title, media_type=media, network="Old Net", **kw)  # noqa: E731
     a = await repo.upsert_show(mk(10001, "Existing Household", status=ShowStatus.WATCHING, watched_episodes=2, total_episodes=8,
-                                  priority=Priority.HIGH, household_tag=HouseholdTag.BOTH, notes="keep me"))
+                                  priority=Priority.HIGH, household=["person1", "person2"], notes="keep me"))
     await repo.update_show_metadata(a, service_id="netflix")  # a manual pick
     b = await repo.upsert_show(mk(10002, "Synced Episodes", status=ShowStatus.WATCHING, watched_episodes=2, total_episodes=6))
     await repo.upsert_episode_list(b, [
@@ -178,7 +178,7 @@ async def seed_local(repo, sync):
     await sync.update_show_status(g, ShowStatus.HOLD)
     await repo.upsert_show(mk(20001, "Existing Anime", MediaType.ANIME, status=ShowStatus.PLANTOWATCH, service_id="crunchyroll"))
     await repo.upsert_show(mk(30001, "Movie 01", MediaType.MOVIE, status=ShowStatus.PLANTOWATCH,
-                              priority=Priority.LOW, household_tag=HouseholdTag.PERSON2))
+                              priority=Priority.LOW, household=["person2"]))
 
 
 def mock_simkl(activities, library, delta_list=None, ratings=None):
@@ -208,14 +208,19 @@ async def _rows(repo, sql):
 
 
 async def _shows(repo):
-    """The shows rows, each with its external ids (title_ids) under "ids" when it has any."""
+    """The shows rows, each with its external ids (title_ids) under "ids" when it has any, and who wants it
+    (show_household) under "household"."""
     rows = await _rows(repo, "SELECT * FROM shows ORDER BY id")
-    ids = {}
+    ids, people = {}, {}
     for r in await _rows(repo, "SELECT show_id, provider, external_id FROM title_ids ORDER BY show_id, provider"):
         ids.setdefault(r["show_id"], {})[r["provider"]] = r["external_id"]
+    for r in await _rows(repo, "SELECT show_id, member_id FROM show_household ORDER BY show_id, member_id"):
+        people.setdefault(r["show_id"], []).append(r["member_id"])
     for row in rows:
         if row["id"] in ids:
             row["ids"] = ids[row["id"]]
+        if row["id"] in people:
+            row["household"] = people[row["id"]]
     return rows
 
 
@@ -282,11 +287,14 @@ def _write_golden(data):
 
 
 _LEGACY_IDS = {"simkl_id": "simkl", "imdb_id": "imdb", "tmdb_id": "tmdb", "tvdb_id": "tvdb"}
+# 0.17 (migration 0020): who wants a title is a set of member ids, not one tag
+_LEGACY_HOUSEHOLD = {"person1": ["person1"], "person2": ["person2"], "both": ["person1", "person2"]}
 
 
 def _legacy_to_current(section, value):
     """The golden was recorded before the driver layer; this maps its storage shape to today's, mechanically:
-    shows' id columns -> "ids" (title_ids), episodes' simkl_id -> ids_json, staged entries' simkl_id -> ids."""
+    shows' id columns -> "ids" (title_ids), shows' household_tag -> "household" (show_household, migration 0020's
+    mapping), episodes' simkl_id -> ids_json, staged entries' simkl_id -> ids."""
     if section == "shows":
         out = []
         for row in value:
@@ -294,6 +302,8 @@ def _legacy_to_current(section, value):
             ids = {p: row.pop(c) for c, p in _LEGACY_IDS.items() if c in row}
             if ids:
                 row["ids"] = ids
+            if "household_tag" in row:
+                row["household"] = _LEGACY_HOUSEHOLD[row.pop("household_tag")]
             out.append(row)
         return out
     if section == "episodes":

@@ -39,10 +39,11 @@
         </select>
         {%- if household.shared %}
         <select id="filter-household-select" class="input sm" aria-label="Audience">
-          <option value="">All Audiences</option>
-          <option value="both">Both Want</option>
-          <option value="person1">{{ household.members[0] }} Only</option>
-          <option value="person2">{{ household.members[1] }} Only</option>
+          <option value="">Anyone</option>
+          {%- for member in household.members %}
+          <option value="{{ member.id }}">{{ member.name }} only</option>
+          {%- endfor %}
+          <option value="shared">{{ "Both want" if household.members|length == 2 else "Shared" }}</option>
         </select>
         {%- endif %}
         <select id="filter-service-select" class="input sm" aria-label="Service">

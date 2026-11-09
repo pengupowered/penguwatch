@@ -8,7 +8,7 @@ import respx
 import httpx
 
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import ServiceConfig, ShowStatus, Priority, HouseholdTag, MediaType
+from penguwatch.models import ServiceConfig, ShowStatus, Priority, MediaType
 from penguwatch.drivers.simkl.client import SimklClient, SIMKL_BASE_URL
 from tests.simkl_helpers import simkl_engine
 from penguwatch.drivers.simkl.payloads import build as simkl_body
@@ -119,11 +119,11 @@ async def test_local_priority_and_household_survive_sync(env):
     mock_reads()
     await sync.sync(deep=False)
     sev = await repo.get_show_by_external_id("simkl", 1400298)
-    await repo.update_show_metadata(sev.id, priority=Priority.HIGH, household_tag=HouseholdTag.BOTH)
+    await repo.update_show_metadata(sev.id, priority=Priority.HIGH, household=["person1", "person2"])
     await sync.sync(force_full=True, deep=False)
     sev = await repo.get_show_by_external_id("simkl", 1400298)
     assert sev.priority == Priority.HIGH
-    assert sev.household_tag == HouseholdTag.BOTH
+    assert sev.household == ["person1", "person2"]
 
 
 @pytest.mark.asyncio

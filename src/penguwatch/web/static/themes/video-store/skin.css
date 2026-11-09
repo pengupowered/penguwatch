@@ -1,0 +1,334 @@
+/* Video store: a neighbourhood rental shop (docs/themes.md, "Skins"). Shapes and textures only: every colour is a
+   token of this theme's theme.json (or a mix of them), and every rule is under this theme's data-look.
+
+   - The header is the shop front: a fascia with the name on a lit box sign, a striped awning with a scalloped edge under
+     it, and the tabs hanging from the awning as aisle signs on two cords (desktop). On a phone the awning is the header's
+     lower edge and the bottom bar is a counter with the awning's stripes along its top.
+   - Page titles are label-maker tape: embossed condensed capitals on coloured tape; panel titles are smaller tape.
+   - Cards are clamshell tape boxes: a thick case frame, a coloured spine with a paper label and a barcode sticker, and a
+     solid shadow like a box standing on a shelf. Panels are shelves with a lipped header.
+   - Chips are round price stickers (a dashed inner ring); buttons are chunky keys with a counter ledge.
+   - The light mode is the shop by day; the dark mode is the shop after hours (a neon-lit sign, a muted awning).
+
+   The faint tracking line drifting through the header is effect.js (--vs-band); while it runs (and only then: the
+   #fx-layer gate below) the open tab's sign sways a little on its cords. The tab labels keep the page's font and size, so
+   the tab strip fits as it does in every theme. */
+
+/* ---------- the skin's own values: after hours (dark) first, then the day shop (light) ---------- */
+:root[data-look="video-store"] {
+  --vs-cond: "Bahnschrift SemiCondensed", "Avenir Next Condensed", "Roboto Condensed", "Arial Narrow", "Liberation Sans Narrow", "DejaVu Sans Condensed", sans-serif-condensed, sans-serif;
+  /* the header's geometry (desktop): fascia height, awning band, stripe width, scallop depth, cord length */
+  --vs-sign-h: 58px;
+  --vs-awn-h: 16px;
+  --vs-stripe: 22px;
+  --vs-scal: 11px;
+  --vs-cord: 12px;
+  /* the header band effect.js draws in, px: the whole header */
+  --vs-band: 130px;
+
+  --vs-fascia: color-mix(in srgb, var(--surface-1) 82%, transparent);
+  --vs-floor: color-mix(in srgb, var(--bg) 82%, transparent);
+  --vs-awn-a: color-mix(in srgb, var(--accent) 88%, var(--bg));
+  --vs-awn-b: color-mix(in srgb, var(--surface-3) 70%, var(--bg));
+  --vs-awn-edge: color-mix(in srgb, var(--accent) 45%, transparent);
+  --vs-shade: var(--bg);
+  --vs-case: color-mix(in srgb, var(--card-line) 82%, var(--ink-1));
+  --vs-cords: color-mix(in srgb, var(--ink-1) 55%, var(--bg));
+  --vs-shadow: var(--scrim);
+  --vs-ledge: color-mix(in srgb, var(--bg) 85%, var(--scrim));
+  --vs-sign: var(--bg);
+  --vs-sign-ink: var(--accent);
+  --vs-sign-ring: var(--accent);
+  --vs-sign-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --vs-tape: color-mix(in srgb, var(--s1) 40%, var(--bg));
+  --vs-tape-ink: var(--ink-1);
+  --vs-tape-2: color-mix(in srgb, var(--accent) 46%, var(--bg));
+  --vs-tape-2-ink: var(--ink-1);
+  --vs-emboss-lo: color-mix(in srgb, var(--bg) 80%, transparent);
+  --vs-emboss-hi: color-mix(in srgb, var(--ink-1) 22%, transparent);
+  --vs-sticker: color-mix(in srgb, var(--s3) 22%, var(--surface-1));
+  --vs-sticker-ink: var(--ink-1);
+  --vs-sticker-ring: color-mix(in srgb, var(--s3) 60%, transparent);
+  --vs-label: var(--ink-2);
+  --vs-bars: var(--bg);
+}
+@media (prefers-color-scheme: light) {
+  :root[data-look="video-store"]:not([data-theme="dark"]) {
+    --vs-fascia: color-mix(in srgb, var(--surface-1) 84%, transparent);
+    --vs-floor: color-mix(in srgb, var(--bg) 84%, transparent);
+    --vs-awn-a: var(--accent);
+    --vs-awn-b: var(--surface-1);
+    --vs-awn-edge: color-mix(in srgb, var(--ink-1) 45%, transparent);
+    --vs-shade: var(--ink-1);
+    --vs-case: color-mix(in srgb, var(--ink-1) 90%, var(--surface-1));
+    --vs-cords: color-mix(in srgb, var(--ink-1) 70%, transparent);
+    --vs-shadow: color-mix(in srgb, var(--ink-1) 20%, transparent);
+    --vs-ledge: color-mix(in srgb, var(--ink-1) 72%, var(--surface-1));
+    --vs-sign: var(--accent);
+    --vs-sign-ink: var(--on-accent);
+    --vs-sign-ring: var(--ink-1);
+    --vs-sign-glow: transparent;
+    --vs-tape: color-mix(in srgb, var(--s1) 72%, var(--ink-1));
+    --vs-tape-ink: var(--surface-1);
+    --vs-tape-2: var(--accent);
+    --vs-tape-2-ink: var(--on-accent);
+    --vs-emboss-lo: color-mix(in srgb, var(--ink-1) 55%, transparent);
+    --vs-emboss-hi: color-mix(in srgb, var(--surface-1) 30%, transparent);
+    --vs-sticker: color-mix(in srgb, var(--s3) 42%, var(--surface-1));
+    --vs-sticker-ink: var(--ink-1);
+    --vs-sticker-ring: color-mix(in srgb, var(--ink-1) 40%, transparent);
+    --vs-label: var(--surface-1);
+    --vs-bars: var(--ink-1);
+  }
+}
+:root[data-look="video-store"][data-theme="light"] {
+  --vs-fascia: color-mix(in srgb, var(--surface-1) 84%, transparent);
+  --vs-floor: color-mix(in srgb, var(--bg) 84%, transparent);
+  --vs-awn-a: var(--accent);
+  --vs-awn-b: var(--surface-1);
+  --vs-awn-edge: color-mix(in srgb, var(--ink-1) 45%, transparent);
+  --vs-shade: var(--ink-1);
+  --vs-case: color-mix(in srgb, var(--ink-1) 90%, var(--surface-1));
+  --vs-cords: color-mix(in srgb, var(--ink-1) 70%, transparent);
+  --vs-shadow: color-mix(in srgb, var(--ink-1) 20%, transparent);
+  --vs-ledge: color-mix(in srgb, var(--ink-1) 72%, var(--surface-1));
+  --vs-sign: var(--accent);
+  --vs-sign-ink: var(--on-accent);
+  --vs-sign-ring: var(--ink-1);
+  --vs-sign-glow: transparent;
+  --vs-tape: color-mix(in srgb, var(--s1) 72%, var(--ink-1));
+  --vs-tape-ink: var(--surface-1);
+  --vs-tape-2: var(--accent);
+  --vs-tape-2-ink: var(--on-accent);
+  --vs-emboss-lo: color-mix(in srgb, var(--ink-1) 55%, transparent);
+  --vs-emboss-hi: color-mix(in srgb, var(--surface-1) 30%, transparent);
+  --vs-sticker: color-mix(in srgb, var(--s3) 42%, var(--surface-1));
+  --vs-sticker-ink: var(--ink-1);
+  --vs-sticker-ring: color-mix(in srgb, var(--ink-1) 40%, transparent);
+  --vs-label: var(--surface-1);
+  --vs-bars: var(--ink-1);
+}
+@media (max-width: 720px) {
+  :root[data-look="video-store"] { --vs-sign-h: 52px; --vs-awn-h: 9px; --vs-stripe: 16px; --vs-scal: 8px; --vs-band: 70px; }
+}
+
+:root[data-look="video-store"] .fx-layer canvas { position: absolute; left: 0; top: 0; will-change: transform; }
+
+/* ---------- the shop front: fascia, awning with a scalloped edge, and the floor the signs hang over ---------- */
+:root[data-look="video-store"] .topbar::before {
+  --vs-y: calc(env(safe-area-inset-top, 0px) + var(--vs-sign-h));
+  border-bottom: 1px solid color-mix(in srgb, var(--line-strong) 80%, transparent);
+  background:
+    radial-gradient(circle at 25% 0, var(--vs-awn-a) calc(var(--vs-scal) - 1.5px), var(--vs-awn-edge) calc(var(--vs-scal) - 1.5px) calc(var(--vs-scal) - .5px), transparent var(--vs-scal))
+      0 calc(var(--vs-y) + var(--vs-awn-h)) / calc(var(--vs-stripe) * 2) var(--vs-scal) repeat-x,
+    radial-gradient(circle at 75% 0, var(--vs-awn-b) calc(var(--vs-scal) - 1.5px), var(--vs-awn-edge) calc(var(--vs-scal) - 1.5px) calc(var(--vs-scal) - .5px), transparent var(--vs-scal))
+      0 calc(var(--vs-y) + var(--vs-awn-h)) / calc(var(--vs-stripe) * 2) var(--vs-scal) repeat-x,
+    linear-gradient(var(--vs-case), var(--vs-case)) 0 calc(var(--vs-y) - 2px) / 100% 3px no-repeat,
+    linear-gradient(to bottom, color-mix(in srgb, var(--vs-shade) 30%, transparent), transparent 45%, transparent 75%, color-mix(in srgb, var(--vs-shade) 14%, transparent))
+      0 var(--vs-y) / 100% var(--vs-awn-h) no-repeat,
+    repeating-linear-gradient(90deg, var(--vs-awn-a) 0 var(--vs-stripe), var(--vs-awn-b) var(--vs-stripe) calc(var(--vs-stripe) * 2))
+      0 var(--vs-y) / 100% var(--vs-awn-h) no-repeat,
+    linear-gradient(var(--vs-fascia), var(--vs-fascia)) 0 0 / 100% var(--vs-y) no-repeat,
+    var(--vs-floor);
+}
+:root[data-look="video-store"] .tb-inner { height: var(--vs-sign-h); padding-block: 0; }
+
+/* the shop's name on a lit box sign (by day: white letters on the red box; after hours: neon on a dark board) */
+:root[data-look="video-store"] .brand-name {
+  padding: 5px 14px 4px; border-radius: 6px;
+  font-family: var(--vs-cond); font-stretch: condensed; font-size: 19px; font-weight: 800; line-height: 1.2;
+  text-transform: uppercase; letter-spacing: .16em;
+  color: var(--vs-sign-ink); background: var(--vs-sign);
+  box-shadow: 0 0 0 3px var(--vs-sign-ring), inset 0 0 0 2px color-mix(in srgb, var(--vs-sign-ink) 40%, transparent), 0 0 14px var(--vs-sign-glow);
+  text-shadow: 0 0 9px var(--vs-sign-glow);
+}
+@media (min-width: 721px) {
+  :root[data-look="video-store"] .brand-name { display: inline-block; }
+}
+:root[data-look="video-store"] .status-pill { border-radius: 6px; border-width: 2px; font-weight: 700; }
+
+/* ---------- tabs: aisle signs hanging from the awning on two cords (desktop) ---------- */
+@media (min-width: 721px) {
+  :root[data-look="video-store"] .tabs { padding-top: var(--vs-awn-h); padding-bottom: 7px; }
+  :root[data-look="video-store"] .tabs-inner { gap: 4px; }
+  :root[data-look="video-store"] .nav-btn {
+    height: 36px; margin-top: var(--vs-cord); padding: 0 11px; border-radius: 4px; color: var(--ink-2);
+    background:
+      radial-gradient(circle at 13px 6px, var(--vs-case) 2px, transparent 2.6px),
+      radial-gradient(circle at calc(100% - 13px) 6px, var(--vs-case) 2px, transparent 2.6px),
+      var(--surface-1);
+    box-shadow: inset 0 0 0 2px var(--vs-case), 0 3px 0 var(--vs-shadow);
+    transform-origin: 50% calc(0px - var(--vs-cord));
+  }
+  /* the cords, from the awning's edge to the sign's two holes */
+  :root[data-look="video-store"] .nav-btn::before {
+    content: ""; position: absolute; top: calc(0px - var(--vs-cord)); left: 12px; right: 12px; height: calc(var(--vs-cord) + 6px);
+    border-left: 2px solid var(--vs-cords); border-right: 2px solid var(--vs-cords); pointer-events: none;
+  }
+  :root[data-look="video-store"] .nav-btn:hover { color: var(--ink-1); background-color: var(--surface-3); }
+  :root[data-look="video-store"] .nav-btn.active {
+    color: var(--on-accent); background-color: var(--accent);
+    box-shadow: inset 0 0 0 2px var(--vs-case), inset 0 0 0 4px color-mix(in srgb, var(--on-accent) 35%, transparent), 0 3px 0 var(--vs-shadow);
+  }
+  :root[data-look="video-store"] .nav-btn.active svg.i { color: var(--on-accent); }
+  :root[data-look="video-store"] .nav-btn.active::after { display: none; }
+}
+
+/* ---------- phones: the awning is the header's lower edge; the bottom bar is a counter under the awning's stripes ---------- */
+@media (max-width: 720px) {
+  :root[data-look="video-store"] .topbar { padding-bottom: calc(var(--vs-awn-h) + var(--vs-scal)); }
+  :root[data-look="video-store"] .topbar::before { border-bottom: 0; }
+  :root[data-look="video-store"] .tabs {
+    border-top: 0; padding-top: 12px;
+    background:
+      linear-gradient(var(--vs-case), var(--vs-case)) 0 6px / 100% 2px no-repeat,
+      repeating-linear-gradient(90deg, var(--vs-awn-a) 0 var(--vs-stripe), var(--vs-awn-b) var(--vs-stripe) calc(var(--vs-stripe) * 2)) 0 0 / 100% 6px no-repeat,
+      color-mix(in srgb, var(--surface-1) 96%, transparent);
+  }
+  :root[data-look="video-store"] .nav-btn, :root[data-look="video-store"] .nav-more { border-radius: 8px; }
+  :root[data-look="video-store"] .nav-btn.active, :root[data-look="video-store"] .nav-more.active {
+    color: var(--on-accent); background: var(--accent); box-shadow: inset 0 0 0 2px var(--vs-case);
+  }
+  :root[data-look="video-store"] .nav-btn.active::before, :root[data-look="video-store"] .nav-more.active::before { display: none; }
+  :root[data-look="video-store"] .nav-btn.active svg.i, :root[data-look="video-store"] .nav-more.active svg.i { color: var(--on-accent); }
+}
+
+/* ---------- page titles: label-maker tape, embossed condensed capitals ---------- */
+:root[data-look="video-store"] .page-t {
+  display: inline-block; padding: 7px 18px 6px 16px;
+  font-family: var(--vs-cond); font-stretch: condensed; font-size: 20px; font-weight: 800; line-height: 1.1;
+  text-transform: uppercase; letter-spacing: .16em;
+  color: var(--vs-tape-ink);
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--surface-1) 18%, transparent), transparent 40%, transparent 70%, color-mix(in srgb, var(--ink-1) 12%, transparent)),
+    var(--vs-tape);
+  text-shadow: 0 1px 0 var(--vs-emboss-lo), 0 -1px 0 var(--vs-emboss-hi);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 50%, 100% 100%, 0 100%, 4px 50%);
+  transform: rotate(-1.2deg);
+}
+/* the tab's icon on a round price sticker beside the tape */
+:root[data-look="video-store"] .page-h > svg.i {
+  width: 34px; height: 34px; padding: 7px; border-radius: 50%;
+  color: var(--vs-sticker-ink); background: var(--vs-sticker);
+  outline: 1.5px dashed var(--vs-sticker-ring); outline-offset: -4px;
+  box-shadow: 0 2px 0 var(--vs-shadow);
+  transform: rotate(-10deg);
+}
+:root[data-look="video-store"] .page-m { font-weight: 600; }
+@media (max-width: 720px) {
+  :root[data-look="video-store"] .page-t { font-size: 17px; letter-spacing: .12em; padding: 6px 14px 5px 12px; }
+  :root[data-look="video-store"] .page-h > svg.i { width: 30px; height: 30px; padding: 6px; }
+}
+
+/* ---------- cards: clamshell tape boxes with a coloured spine, its paper label and a barcode sticker ---------- */
+:root[data-look="video-store"] :is(.upnext-card, .show-card, .discover-card, .timeline-card) {
+  --vs-spine: var(--s2);
+  border: 3px solid var(--vs-case); border-left: 18px solid transparent; border-radius: 10px 8px 8px 10px;
+  background:
+    repeating-linear-gradient(to bottom, var(--vs-bars) 0 1.5px, transparent 1.5px 3px, var(--vs-bars) 3px 4px, transparent 4px 6px) 4px calc(100% - 16px) / 7px 22px no-repeat border-box,
+    linear-gradient(var(--vs-label), var(--vs-label)) 2px calc(100% - 12px) / 11px 30px no-repeat border-box,
+    linear-gradient(var(--vs-label), var(--vs-label)) 2px 14px / 11px min(38%, 150px) no-repeat border-box,
+    linear-gradient(var(--vs-spine), var(--vs-spine)) 0 0 / 18px 100% no-repeat border-box,
+    linear-gradient(var(--surface-1), var(--surface-1)) padding-box;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--surface-1) 60%, var(--line)), 4px 5px 0 var(--vs-shadow);
+}
+:root[data-look="video-store"] :is(.upnext-card, .show-card, .discover-card, .timeline-card):nth-child(4n+2) { --vs-spine: var(--s1); }
+:root[data-look="video-store"] :is(.upnext-card, .show-card, .discover-card, .timeline-card):nth-child(4n+3) { --vs-spine: var(--s3); }
+:root[data-look="video-store"] :is(.upnext-card, .show-card, .discover-card, .timeline-card):nth-child(4n) { --vs-spine: var(--s4); }
+:root[data-look="video-store"] :is(.show-card, .timeline-card, .discover-card):hover {
+  border-color: var(--accent) var(--accent) var(--accent) transparent;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--surface-1) 60%, var(--line)), 6px 7px 0 var(--vs-shadow);
+}
+
+/* ---------- panels: shelves with a lipped header and a tape label ---------- */
+:root[data-look="video-store"] .panel {
+  border: 2px solid var(--vs-case); border-radius: 6px;
+  box-shadow: 4px 5px 0 var(--vs-shadow);
+}
+:root[data-look="video-store"] .panel-h {
+  background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-1));
+  border-bottom: 4px solid var(--vs-case); border-radius: 4px 4px 0 0;
+}
+:root[data-look="video-store"] .panel-f { border-top: 2px dashed var(--line-strong); }
+:root[data-look="video-store"] .panel-t {
+  display: inline-block; max-width: 100%; padding: 4px 12px 3px 10px;
+  font-family: var(--vs-cond); font-stretch: condensed; font-size: var(--fs-sm); font-weight: 800; line-height: 1.2;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--vs-tape-2-ink); background: var(--vs-tape-2);
+  text-shadow: 0 1px 0 var(--vs-emboss-lo);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 3px) 50%, 100% 100%, 0 100%, 3px 50%);
+}
+
+/* ---------- chips: round price stickers ---------- */
+:root[data-look="video-store"] .chip:not(.st):not(.prio-high) {
+  border: 0; border-radius: 999px; font-weight: 800;
+  color: var(--vs-sticker-ink); background: var(--vs-sticker);
+  outline: 1px dashed var(--vs-sticker-ring); outline-offset: -3px;
+}
+:root[data-look="video-store"] .chip.prio-high { outline: 1px dashed color-mix(in srgb, var(--serious) 60%, transparent); outline-offset: -3px; font-weight: 800; }
+:root[data-look="video-store"] button.chip[aria-pressed="true"] {
+  color: var(--on-accent); background: var(--accent);
+  outline-color: color-mix(in srgb, var(--on-accent) 65%, transparent);
+}
+:root[data-look="video-store"] button.chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ---------- buttons: chunky keys on a counter ledge ---------- */
+:root[data-look="video-store"] .btn { border-radius: 5px; font-weight: 800; letter-spacing: .02em; }
+:root[data-look="video-store"] :is(.btn.outline, .btn.primary, .btn.danger) {
+  border-width: 2px; box-shadow: 0 3px 0 var(--vs-ledge);
+  font-family: var(--vs-cond); font-stretch: condensed; text-transform: uppercase; letter-spacing: .06em;
+}
+:root[data-look="video-store"] .btn.outline { background: var(--surface-1); border-color: color-mix(in srgb, currentColor 70%, var(--vs-case)); }
+:root[data-look="video-store"] .btn.outline:hover { background: var(--surface-3); }
+:root[data-look="video-store"] .btn.primary { border-color: color-mix(in srgb, var(--accent) 55%, var(--vs-case)); box-shadow: 0 3px 0 color-mix(in srgb, var(--accent) 45%, var(--vs-case)); }
+:root[data-look="video-store"] :is(.btn.outline, .btn.primary, .btn.danger):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--vs-ledge); }
+:root[data-look="video-store"] .seg {
+  border: 2px solid var(--vs-case); border-radius: 6px; padding: 2px; gap: 3px;
+  box-shadow: 0 3px 0 var(--vs-ledge);
+}
+:root[data-look="video-store"] .seg button { font-weight: 700; border-radius: 3px; }
+:root[data-look="video-store"] .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+:root[data-look="video-store"] .input { border-width: 2px; border-radius: 4px; background: var(--surface-1); }
+
+/* ---------- dialogs and menus: a tape box with the awning's stripes along its top ---------- */
+:root[data-look="video-store"] .modal-content {
+  border: 3px solid var(--vs-case); border-radius: 10px; padding-top: 10px;
+  background:
+    repeating-linear-gradient(90deg, var(--vs-awn-a) 0 16px, var(--vs-awn-b) 16px 32px) 0 0 / 100% 10px no-repeat,
+    var(--surface-1);
+  box-shadow: 8px 9px 0 var(--vs-shadow), var(--shadow-pop);
+}
+:root[data-look="video-store"] .modal-h { border-bottom: 3px solid var(--vs-case); }
+:root[data-look="video-store"] .modal-f { border-top: 2px dashed var(--line-strong); }
+:root[data-look="video-store"] .modal-t {
+  display: inline-block; padding: 5px 16px 4px 13px;
+  font-family: var(--vs-cond); font-stretch: condensed; font-weight: 800; line-height: 1.2;
+  text-transform: uppercase; letter-spacing: .13em;
+  color: var(--vs-tape-ink); background: var(--vs-tape);
+  text-shadow: 0 1px 0 var(--vs-emboss-lo), 0 -1px 0 var(--vs-emboss-hi);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 50%, 100% 100%, 0 100%, 4px 50%);
+}
+:root[data-look="video-store"] .menu {
+  border: 3px solid var(--vs-case); border-radius: 8px; padding-top: 12px;
+  background:
+    repeating-linear-gradient(90deg, var(--vs-awn-a) 0 12px, var(--vs-awn-b) 12px 24px) 0 0 / 100% 8px no-repeat,
+    var(--surface-1);
+  box-shadow: 6px 7px 0 var(--vs-shadow), var(--shadow-pop);
+}
+
+/* ---------- Settings: rows ruled like a shelf ---------- */
+:root[data-look="video-store"] .set-row { border-top-style: dashed; }
+:root[data-look="video-store"] .set-card { border-left: 6px solid var(--s1); border-radius: 4px; }
+
+/* ---------- History's charts: dotted grid ---------- */
+:root[data-look="video-store"] .hc-grid { stroke-dasharray: 1 4; }
+
+/* ---------- while the effect runs (never under reduced motion, with Animation off or in a hidden tab): the open
+   tab's sign sways a little on its cords. Transform only. ---------- */
+@keyframes video-store-sway {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+@media (min-width: 721px) {
+  :root[data-look="video-store"] #fx-layer[data-state="running"] ~ .topbar .nav-btn.active { animation: video-store-sway 7s ease-in-out infinite; }
+}

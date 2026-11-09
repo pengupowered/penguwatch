@@ -14,6 +14,16 @@
 .discover-because { font-size: var(--fs-xs); color: var(--busy); }
 .discover-overview { font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
 .discover-actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin-top: auto; padding-top: 4px; }
+/* "Add for…": who wants it, chosen in a menu that opens in the card's flow (never over the next card) */
+.add-for { min-width: 0; max-width: 100%; }
+.add-for[open] { flex-basis: 100%; }
+.add-for > summary { list-style: none; }
+.add-for > summary::-webkit-details-marker { display: none; }
+.add-for[open] > summary { background: var(--surface-3); color: var(--ink-1); }
+.add-for-menu {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); margin-top: var(--sp-2); padding: var(--sp-2);
+  border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface-2);
+}
 @media (max-width: 720px) {
   .discover-card { grid-template-columns: 84px minmax(0, 1fr); }
   .discover-poster { width: 84px; }

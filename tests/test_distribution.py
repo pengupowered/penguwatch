@@ -55,6 +55,15 @@ def test_the_settings_variables_are_passed_only_when_set(name):
         assert env[var] == "${%s:-}" % var
 
 
+def test_the_apt_upgrade_layer_is_refreshed_by_a_date_argument():
+    for name in ("Dockerfile", "Dockerfile.test"):
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert re.search(r"(?m)^ARG APT_REFRESH=$\n^RUN apt-get update && apt-get -y .*upgrade", text), name
+    assert _service("docker-compose.yml")["build"]["args"]["APT_REFRESH"] == "${APT_REFRESH:-}"
+    deploy = (ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
+    assert re.search(r'APT_REFRESH="\$\(date -u \+%Y-%m-%d\)"; export APT_REFRESH\n\s*run podman-compose build', deploy)
+
+
 def test_deploy_backup_includes_secrets_json_privately():
     text = (ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
     assert "data/secrets.json" in text and "secrets.json" in text.split("rollback point", 1)[1]

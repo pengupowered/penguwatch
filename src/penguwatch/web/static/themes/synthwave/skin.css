@@ -1,0 +1,340 @@
+/* Synthwave: 1980s neon on deep purple (docs/themes.md, "Skins"). Every colour is a token of this theme's theme.json
+   (mixed with color-mix where it glows), and every rule is under this theme's data-look, so nothing here reaches
+   another theme. It styles only the page hooks docs/themes.md lists ("Page hooks a skin may rely on").
+
+   One slant runs through the whole skin: titles in heavy italic capitals, buttons, chips and the status pill leaning
+   at the same angle (--sw-skew, --sw-slant), and the cards' angled header strips. The header is a dusk band with a
+   neon plate for the name and a double horizon line; the tabs are neon tubes, unlit until hovered, the open one fully
+   lit; a tab's title is chrome lettering over a striped sunset bar; cards and panels are square, edged in neon, with a
+   cut corner. At the bottom of the window a striped sun sits on the horizon, and effect.js draws a perspective grid
+   floor in front of it, drifting slowly toward you (without it, under reduced motion or with Animation off, the sun
+   and the horizon glow stay, still). The tab labels keep the page's font and size, so the tab strip fits as it does
+   in every theme; posters and the chips over them are left alone. */
+
+:root[data-look="synthwave"] {
+  /* the display face: a heavy condensed sans, set italic. macOS: Avenir Next Condensed (Heavy Italic); Windows:
+     Bahnschrift (its condensed width, slanted by the browser); Linux: Roboto Condensed when installed, else the
+     system sans in bold italic */
+  --sw-display: "Avenir Next Condensed", "Bahnschrift", "Roboto Condensed", "Arial Narrow", "Liberation Sans Narrow", sans-serif-condensed, sans-serif;
+  --sw-skew: -14deg;
+  --sw-slant: 6px;
+  --sw-glow: color-mix(in srgb, var(--accent) 55%, transparent);
+  --sw-glow-soft: color-mix(in srgb, var(--accent) 22%, transparent);
+  --sw-cyan: color-mix(in srgb, var(--s1) 55%, transparent);
+  --sw-edge: color-mix(in srgb, var(--accent) 45%, var(--card-line));
+  --sw-sunset: linear-gradient(90deg, var(--warn), var(--serious) 24%, var(--accent) 52%, color-mix(in srgb, var(--s4) 70%, transparent) 78%, transparent);
+  --sw-chrome: linear-gradient(to bottom, var(--s1) 0%, var(--ink-1) 44%, color-mix(in srgb, var(--accent) 45%, var(--bg)) 50%, var(--accent) 58%, var(--warn) 100%);
+  /* the floor at the bottom of the window: its height (the effect draws its grid there) and how far above the window's
+     bottom edge it starts (the phone's tab bar) */
+  --sw-floor: 260px;
+  --sw-floor-bottom: 0px;
+  --sw-sun: 380px;
+}
+@media (max-width: 720px) {
+  :root[data-look="synthwave"] { --sw-floor: 150px; --sw-floor-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px)); --sw-sun: 220px; }
+}
+
+/* ---------- the page: dusk at the top; at the bottom a striped sun on a glowing horizon (the grid floor is effect.js) ---------- */
+:root[data-look="synthwave"] body {
+  background-image:
+    radial-gradient(80% 220px at 50% 0, var(--sw-glow-soft), transparent 75%),
+    linear-gradient(to bottom, color-mix(in srgb, var(--accent) 9%, var(--bg)), var(--bg) 420px);
+  background-size: auto;
+  background-repeat: no-repeat;
+}
+/* the sun: a half disc on the horizon, sunset colours, cut by bands that widen toward the horizon */
+:root[data-look="synthwave"] body::before {
+  content: ""; position: fixed; z-index: -2; pointer-events: none;
+  left: calc(50% - var(--sw-sun) / 2); width: var(--sw-sun); height: calc(var(--sw-sun) / 2);
+  bottom: calc(var(--sw-floor-bottom) + var(--sw-floor));
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(to bottom, var(--warn), var(--serious) 45%, var(--accent) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, var(--ink-1) 0 46%, transparent 46% 50%, var(--ink-1) 50% 60%, transparent 60% 66%, var(--ink-1) 66% 74%, transparent 74% 82%, var(--ink-1) 82% 88%, transparent 88% 97%, var(--ink-1) 97%);
+  mask-image: linear-gradient(to bottom, var(--ink-1) 0 46%, transparent 46% 50%, var(--ink-1) 50% 60%, transparent 60% 66%, var(--ink-1) 66% 74%, transparent 74% 82%, var(--ink-1) 82% 88%, transparent 88% 97%, var(--ink-1) 97%);
+  opacity: .42;
+}
+/* the horizon: a glow along it, a lit line, and the floor below it a shade lighter than the sky */
+:root[data-look="synthwave"] body::after {
+  content: ""; position: fixed; z-index: -2; pointer-events: none;
+  left: 0; right: 0; bottom: var(--sw-floor-bottom); height: calc(var(--sw-floor) + 70px);
+  background:
+    linear-gradient(to bottom, transparent 69px, color-mix(in srgb, var(--accent) 70%, transparent) 69px 71px, transparent 71px),
+    radial-gradient(60% 70px at 50% 70px, color-mix(in srgb, var(--accent) 30%, transparent), transparent 80%),
+    linear-gradient(to bottom, transparent 70px, color-mix(in srgb, var(--accent) 10%, var(--bg)) 70px, color-mix(in srgb, var(--busy) 8%, var(--bg)));
+}
+/* the effect's canvases: the floor at the bottom of the window, each on a compositing layer of its own */
+:root[data-look="synthwave"] .fx-layer canvas { position: absolute; left: 0; top: auto; bottom: var(--sw-floor-bottom); will-change: transform; }
+
+/* ---------- header: a dusk band with a double horizon line under it ---------- */
+:root[data-look="synthwave"] .topbar::before {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 94%, transparent), color-mix(in srgb, var(--accent) 16%, var(--bg)));
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border-bottom: 2px solid var(--accent);
+  box-shadow: 0 3px 0 0 var(--bg), 0 4px 0 0 var(--s1), 0 8px 22px -8px var(--sw-glow);
+}
+/* the name on a slanted neon plate */
+:root[data-look="synthwave"] .brand-name {
+  position: relative; isolation: isolate; padding: 4px 16px 4px 14px; margin-left: 4px;
+  font-family: var(--sw-display); font-stretch: condensed; font-style: italic; font-weight: 800; font-size: 22px; line-height: 1.1;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--ink-1);
+  text-shadow: 0 0 8px var(--sw-glow), 0 0 2px var(--accent);
+}
+:root[data-look="synthwave"] .brand-name::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; transform: skewX(var(--sw-skew));
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 30%, var(--bg)), color-mix(in srgb, var(--accent) 8%, var(--bg)));
+  border: 1px solid var(--accent);
+  outline: 1px solid var(--sw-cyan); outline-offset: 2px;
+  box-shadow: 0 0 16px -3px var(--sw-glow), inset 0 0 12px -4px var(--sw-glow);
+}
+/* the status pill: a slanted plate in its status colour (the side lines are drawn, the top and bottom are its border) */
+:root[data-look="synthwave"] .status-pill {
+  --sw-line: color-mix(in srgb, var(--st) 60%, transparent);
+  border-radius: 0; border-color: var(--sw-line); padding-inline: 16px 18px;
+  clip-path: polygon(var(--sw-slant) 0, 100% 0, calc(100% - var(--sw-slant)) 100%, 0 100%);
+  background-image:
+    linear-gradient(to bottom right, transparent calc(50% - .8px), var(--sw-line) calc(50% - .8px) calc(50% + .8px), transparent calc(50% + .8px)),
+    linear-gradient(to bottom right, transparent calc(50% - .8px), var(--sw-line) calc(50% - .8px) calc(50% + .8px), transparent calc(50% + .8px));
+  background-size: var(--sw-slant) 100%; background-position: left top, right top; background-repeat: no-repeat; background-origin: border-box;
+}
+:root[data-look="synthwave"] .status-pill:focus-visible { clip-path: none; }
+
+/* ---------- the tab strip: a row of neon tubes, centred; unlit until hovered, the open tab fully lit ---------- */
+@media (min-width: 721px) {
+  :root[data-look="synthwave"] .tabs-inner { gap: 6px; margin-inline: auto; }
+  :root[data-look="synthwave"] .nav-btn { border-radius: 0; isolation: isolate; }
+  :root[data-look="synthwave"] .nav-btn:hover { background: none; }
+  :root[data-look="synthwave"] .nav-btn::before {
+    content: ""; position: absolute; inset: 7px 1px 8px; z-index: -1; border-radius: 10px; transform: skewX(var(--sw-skew));
+    border: 1.5px solid color-mix(in srgb, var(--s1) 24%, transparent);
+    background: color-mix(in srgb, var(--s1) 4%, transparent);
+    transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+  }
+  :root[data-look="synthwave"] .nav-btn:hover::before {
+    border-color: color-mix(in srgb, var(--s1) 70%, transparent);
+    box-shadow: 0 0 8px -1px var(--sw-cyan), inset 0 0 8px -3px var(--sw-cyan);
+  }
+  :root[data-look="synthwave"] .nav-btn.active::before {
+    border: 2px solid color-mix(in srgb, var(--accent) 65%, var(--ink-1));
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    box-shadow: 0 0 4px var(--accent), 0 0 16px var(--sw-glow), inset 0 0 10px var(--sw-glow);
+  }
+  :root[data-look="synthwave"] .nav-btn.active::after { display: none; }
+}
+:root[data-look="synthwave"] .nav-btn.active { color: var(--ink-1); text-shadow: 0 0 8px var(--sw-glow); }
+:root[data-look="synthwave"] .nav-btn.active svg.i { color: var(--s1); filter: drop-shadow(0 0 3px var(--sw-cyan)); }
+
+/* the phone's bottom bar: the same tubes, a double neon line along its top */
+@media (max-width: 720px) {
+  :root[data-look="synthwave"] .tabs {
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 12%, var(--surface-1)), var(--surface-1));
+    border-top: 2px solid var(--accent);
+    box-shadow: 0 -3px 0 0 var(--bg), 0 -4px 0 0 var(--s1), 0 -8px 20px -8px var(--sw-glow);
+  }
+  :root[data-look="synthwave"] .nav-btn,
+  :root[data-look="synthwave"] .nav-more { isolation: isolate; }
+  :root[data-look="synthwave"] .nav-btn::before,
+  :root[data-look="synthwave"] .nav-more::before {
+    content: ""; position: absolute; inset: 2px 4px; width: auto; height: auto; z-index: -1; border-radius: 12px; transform: skewX(-8deg);
+    border: 1.5px solid color-mix(in srgb, var(--s1) 20%, transparent); background: none;
+  }
+  :root[data-look="synthwave"] .nav-btn.active::before,
+  :root[data-look="synthwave"] .nav-more.active::before,
+  :root[data-look="synthwave"] .nav-more[aria-expanded="true"]::before {
+    top: 2px; left: 4px; width: auto; height: auto; border-radius: 12px;
+    border: 2px solid color-mix(in srgb, var(--accent) 65%, var(--ink-1));
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+    box-shadow: 0 0 4px var(--accent), 0 0 14px var(--sw-glow), inset 0 0 8px var(--sw-glow);
+  }
+  :root[data-look="synthwave"] .nav-btn.active,
+  :root[data-look="synthwave"] .nav-more.active { color: var(--ink-1); }
+}
+
+/* ---------- a tab's title: chrome lettering over a striped sunset bar; the tab's icon on a striped sun ---------- */
+:root[data-look="synthwave"] .page-h { position: relative; padding-bottom: 22px; column-gap: 14px; }
+:root[data-look="synthwave"] .page-h::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 13px; pointer-events: none;
+  background: var(--sw-sunset);
+  -webkit-mask-image: linear-gradient(to bottom, var(--ink-1) 0 4px, transparent 4px 6px, var(--ink-1) 6px 9px, transparent 9px 11px, var(--ink-1) 11px 12px, transparent 12px);
+  mask-image: linear-gradient(to bottom, var(--ink-1) 0 4px, transparent 4px 6px, var(--ink-1) 6px 9px, transparent 9px 11px, var(--ink-1) 11px 12px, transparent 12px);
+}
+:root[data-look="synthwave"] .page-h > svg.i {
+  width: 46px; height: 46px; padding: 8px 12px 16px; border-radius: 50%; color: var(--bg); stroke-width: 2.25;
+  background:
+    linear-gradient(to bottom, transparent 62%, var(--bg) 62% 66%, transparent 66% 74%, var(--bg) 74% 80%, transparent 80% 87%, var(--bg) 87% 94%, transparent 94%),
+    linear-gradient(to bottom, var(--warn), var(--serious) 50%, var(--accent));
+  box-shadow: 0 0 18px -4px var(--sw-glow);
+}
+:root[data-look="synthwave"] .page-t {
+  font-family: var(--sw-display); font-stretch: condensed; font-style: italic; font-weight: 800; font-size: 34px; line-height: 1.05;
+  text-transform: uppercase; letter-spacing: .04em; padding-right: .12em;
+  color: var(--ink-1); background: var(--sw-chrome); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 7px var(--sw-glow-soft)) drop-shadow(0 1px 0 color-mix(in srgb, var(--accent) 60%, transparent));
+}
+@media (max-width: 720px) {
+  :root[data-look="synthwave"] .page-h { padding-bottom: 18px; column-gap: 10px; }
+  :root[data-look="synthwave"] .page-h > svg.i { width: 38px; height: 38px; padding: 6px 9px 13px; }
+  :root[data-look="synthwave"] .page-t { font-size: 27px; }
+}
+
+/* ---------- cards: square, edged in neon, an angled header strip standing on the top edge, a cut corner ---------- */
+:root[data-look="synthwave"] .upnext-card,
+:root[data-look="synthwave"] .show-card,
+:root[data-look="synthwave"] .discover-card,
+:root[data-look="synthwave"] .timeline-card {
+  position: relative; border-radius: 0; border-color: var(--sw-edge);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 10%, transparent), 0 0 20px -8px var(--sw-glow), inset 0 0 24px -16px var(--sw-glow);
+}
+/* the strip stands outside the card's box, so a Library card shows it too without covering its poster */
+:root[data-look="synthwave"] .show-card { overflow: visible; }
+:root[data-look="synthwave"] .upnext-card::before,
+:root[data-look="synthwave"] .show-card::before,
+:root[data-look="synthwave"] .discover-card::before {
+  content: ""; position: absolute; left: 12px; top: -7px; height: 6px; width: min(46%, 200px); pointer-events: none;
+  transform: skewX(-40deg); transform-origin: bottom left;
+  background: linear-gradient(90deg, var(--accent), var(--serious) 60%, var(--warn));
+  box-shadow: 0 0 10px var(--sw-glow);
+}
+:root[data-look="synthwave"] .upnext-card::after,
+:root[data-look="synthwave"] .show-card::after,
+:root[data-look="synthwave"] .discover-card::after,
+:root[data-look="synthwave"] .panel::after {
+  content: ""; position: absolute; right: -1px; bottom: -1px; width: 18px; height: 18px; pointer-events: none;
+  background: linear-gradient(to bottom right, transparent calc(50% - 1px), var(--s1) calc(50% - 1px) calc(50% + 1px), var(--bg) calc(50% + 1px));
+  filter: drop-shadow(0 0 3px var(--sw-cyan));
+}
+:root[data-look="synthwave"] .show-card:hover,
+:root[data-look="synthwave"] .timeline-card:hover {
+  border-color: var(--card-line-hover);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), 0 0 26px -6px var(--sw-glow), inset 0 0 24px -14px var(--sw-glow);
+}
+:root[data-look="synthwave"] .timeline-card { border-left: 3px solid var(--accent); }
+/* a show with nothing left to watch (no Watched button) is dimmed, not made see-through: the sun and the floor behind
+   the page must never show through a card */
+:root[data-look="synthwave"] .upnext-card:not(:has(.btn.outline)) { opacity: 1; filter: brightness(.78) saturate(.8); }
+
+/* ---------- panels: square, a neon line along the top, an angled strip behind the title, a cut corner ---------- */
+:root[data-look="synthwave"] .panel {
+  border-radius: 0; border-color: color-mix(in srgb, var(--accent) 32%, var(--line));
+  background-image: linear-gradient(90deg, var(--accent), var(--s1) 55%, transparent);
+  background-size: 100% 2px; background-repeat: no-repeat;
+  box-shadow: 0 0 22px -12px var(--sw-glow);
+}
+:root[data-look="synthwave"] .panel-h {
+  border-color: color-mix(in srgb, var(--accent) 22%, var(--line));
+  background-image: linear-gradient(105deg, color-mix(in srgb, var(--accent) 26%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 300px, transparent 300px);
+}
+:root[data-look="synthwave"] .panel-f { border-color: color-mix(in srgb, var(--accent) 18%, var(--line)); }
+:root[data-look="synthwave"] .panel-t,
+:root[data-look="synthwave"] .modal-t {
+  font-family: var(--sw-display); font-stretch: condensed; font-style: italic; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .07em; text-shadow: 0 0 10px var(--sw-glow-soft);
+}
+:root[data-look="synthwave"] .panel-t { font-size: 15px; }
+
+/* ---------- buttons: slanted, a double neon outline (border and a ring outside it), the primary one lit ---------- */
+:root[data-look="synthwave"] .btn {
+  position: relative; isolation: isolate; border-radius: 0; border-color: transparent; background: transparent;
+  font-family: var(--sw-display); font-stretch: condensed; font-style: italic; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; padding-inline: 14px;
+}
+:root[data-look="synthwave"] .btn.icon { padding: 0; }
+:root[data-look="synthwave"] .btn::before {
+  content: ""; position: absolute; inset: 0 2px; z-index: -1; transform: skewX(var(--sw-skew));
+  border: 1px solid transparent; background: transparent;
+  transition: background var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease), border-color var(--t-fast);
+}
+:root[data-look="synthwave"] .btn:hover { background: transparent; }
+:root[data-look="synthwave"] .btn:hover::before { background: color-mix(in srgb, currentColor 14%, transparent); }
+:root[data-look="synthwave"] .btn:focus-visible { outline-offset: 3px; }
+:root[data-look="synthwave"] .btn.outline,
+:root[data-look="synthwave"] .btn.danger,
+:root[data-look="synthwave"] .btn.primary { border-color: transparent; }
+:root[data-look="synthwave"] .btn.outline::before,
+:root[data-look="synthwave"] .btn.danger::before {
+  border-color: color-mix(in srgb, var(--s1) 85%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--s1) 45%, transparent); outline-offset: 2px;
+  box-shadow: 0 0 10px -3px var(--sw-cyan), inset 0 0 8px -4px var(--sw-cyan);
+}
+:root[data-look="synthwave"] .btn.danger::before { border-color: color-mix(in srgb, currentColor 80%, transparent); outline-color: color-mix(in srgb, currentColor 40%, transparent); box-shadow: none; }
+:root[data-look="synthwave"] .btn.outline:hover::before { background: color-mix(in srgb, var(--s1) 14%, transparent); box-shadow: 0 0 14px -2px var(--sw-cyan), inset 0 0 10px -3px var(--sw-cyan); }
+:root[data-look="synthwave"] .btn.primary,
+:root[data-look="synthwave"] .btn.primary:hover { background: transparent; color: var(--on-accent); }
+:root[data-look="synthwave"] .btn.primary::before {
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 70%, var(--ink-1)), var(--accent) 55%);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--ink-1));
+  outline: 1px solid var(--accent); outline-offset: 2px;
+  box-shadow: 0 0 16px -2px var(--sw-glow);
+}
+:root[data-look="synthwave"] .btn.primary:hover::before { background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 55%, var(--ink-1)), color-mix(in srgb, var(--accent) 88%, var(--ink-1)) 55%); }
+/* Up Next's Watched button keeps its green, in the same double outline */
+:root[data-look="synthwave"] .upnext-card .btn.outline::before {
+  border-color: color-mix(in srgb, currentColor 75%, transparent); outline-color: color-mix(in srgb, currentColor 35%, transparent);
+  box-shadow: 0 0 10px -4px currentColor, inset 0 0 8px -5px currentColor;
+}
+
+/* ---------- chips: slanted tags, outlined in their own colour ---------- */
+:root[data-look="synthwave"] .chip {
+  --sw-line: color-mix(in srgb, currentColor 50%, transparent);
+  border-radius: 0; border-color: var(--sw-line); padding-inline: 12px;
+  clip-path: polygon(var(--sw-slant) 0, 100% 0, calc(100% - var(--sw-slant)) 100%, 0 100%);
+  background-image:
+    linear-gradient(to bottom right, transparent calc(50% - .8px), var(--sw-line) calc(50% - .8px) calc(50% + .8px), transparent calc(50% + .8px)),
+    linear-gradient(to bottom right, transparent calc(50% - .8px), var(--sw-line) calc(50% - .8px) calc(50% + .8px), transparent calc(50% + .8px));
+  background-size: var(--sw-slant) 100%; background-position: left top, right top; background-repeat: no-repeat; background-origin: border-box;
+  font-style: italic;
+}
+:root[data-look="synthwave"] button.chip:focus-visible { clip-path: none; }
+:root[data-look="synthwave"] button.chip[aria-pressed="true"] {
+  --sw-line: var(--accent);
+  color: var(--ink-1); background-color: color-mix(in srgb, var(--accent) 26%, var(--surface-1));
+  text-shadow: 0 0 8px var(--sw-glow);
+}
+:root[data-look="synthwave"] .seg { border-radius: 0; border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+:root[data-look="synthwave"] .seg button { border-radius: 0; font-style: italic; letter-spacing: .02em; }
+:root[data-look="synthwave"] .seg button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 28%, var(--surface-2)); color: var(--ink-1);
+  box-shadow: 0 0 0 1px var(--accent), 0 0 10px -2px var(--sw-glow);
+}
+
+/* ---------- inputs: square, a neon underline, a cyan glow when focused ---------- */
+:root[data-look="synthwave"] .input {
+  border-radius: 0; border-color: color-mix(in srgb, var(--accent) 30%, var(--line-strong));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--accent) 55%, transparent);
+}
+:root[data-look="synthwave"] .input:focus { box-shadow: 0 0 12px -2px var(--focus); }
+
+/* ---------- dialogs and menus: square, a double neon edge, the dialog's title on an angled strip ---------- */
+:root[data-look="synthwave"] .modal-content {
+  border-radius: 0; border: 1px solid var(--accent);
+  outline: 1px solid var(--sw-cyan); outline-offset: 3px;
+  box-shadow: var(--shadow-pop), 0 0 50px -12px var(--sw-glow);
+}
+:root[data-look="synthwave"] .modal-h {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background-image: linear-gradient(105deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 10%, transparent) 340px, transparent 340px);
+}
+:root[data-look="synthwave"] .modal-t { font-size: 21px; }
+:root[data-look="synthwave"] .menu {
+  border-radius: 0; border: 1px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--s1) 35%, transparent); outline-offset: 2px;
+  box-shadow: var(--shadow-pop), 0 0 28px -10px var(--sw-glow);
+}
+:root[data-look="synthwave"] .menu button,
+:root[data-look="synthwave"] .menu a { border-radius: 0; }
+:root[data-look="synthwave"] .menu button:hover,
+:root[data-look="synthwave"] .menu a:hover,
+:root[data-look="synthwave"] .menu button:focus-visible {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 26%, transparent), transparent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+@media (max-width: 720px) {
+  :root[data-look="synthwave"] .modal-content { outline: 0; border-width: 2px 0 0; }
+}
+
+/* ---------- Settings: rows ruled in faint neon ---------- */
+:root[data-look="synthwave"] .set-row { border-top-color: color-mix(in srgb, var(--accent) 16%, var(--line)); }
+:root[data-look="synthwave"] .set-card { border-color: color-mix(in srgb, var(--accent) 28%, var(--line)); border-radius: 0; }
+
+/* ---------- History's charts: dashed grid lines, glowing bars ---------- */
+:root[data-look="synthwave"] .hc-grid { stroke-dasharray: 2 4; }
+:root[data-look="synthwave"] .hc-svg { filter: drop-shadow(0 0 3px var(--sw-cyan)); }

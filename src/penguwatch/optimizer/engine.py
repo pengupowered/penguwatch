@@ -19,7 +19,6 @@ from penguwatch.models import (
     OptimizerPlan,
     ShowStatus,
     Priority,
-    HouseholdTag,
 )
 from penguwatch.config import OptimizerConfig
 from penguwatch.db.repository import DatabaseRepository
@@ -274,7 +273,8 @@ class SubscriptionOptimizer:
         total_episodes_backlog = 0
         total_hours_backlog = 0.0
         ready_to_binge_count = 0
-        both_want_count = 0
+        shared_count = 0  # titles two or more people want
+        extra_people = 0  # sum over the titles of (people who want it - 1): the household boost grows per person
         high_priority_count = 0
         imdb_ratings = []
         top_shows = []
@@ -289,8 +289,10 @@ class SubscriptionOptimizer:
 
             if show.is_ready_to_binge:
                 ready_to_binge_count += 1
-            if show.household_tag == HouseholdTag.BOTH:
-                both_want_count += 1
+            wanted_by = len(show.household)  # k: the people who want it (the current members)
+            if wanted_by >= 2:
+                shared_count += 1
+            extra_people += max(wanted_by - 1, 0)  # (k - 1): nothing for one person, one boost per extra person
             if show.priority == Priority.HIGH:
                 high_priority_count += 1
             if show.imdb_rating:
@@ -308,17 +310,17 @@ class SubscriptionOptimizer:
                         "is_ready_to_binge": show.is_ready_to_binge,
                         "status": show.status.value,
                         "priority": show.priority.value,
-                        "household_tag": show.household_tag.value,
+                        "household": list(show.household),
                     }
                 )
 
         avg_imdb = (sum(imdb_ratings) / len(imdb_ratings)) if imdb_ratings else None
 
         # Binge Score calculation
-        # Backlog hours + boosts for ready-to-binge + both want + quality
+        # Backlog hours + boosts for ready-to-binge + shared titles (per extra person) + quality
         score = min(total_plannable_hours(shows), BACKLOG_CAP_HOURS) * 1.0
         score += ready_to_binge_count * (self.config.ready_to_binge_boost * 10.0)
-        score += both_want_count * (self.config.household_priority_boost * 10.0)
+        score += extra_people * (self.config.household_priority_boost * 10.0)
         score += high_priority_count * 15.0
         if avg_imdb:
             score += max(0.0, (avg_imdb - 6.0) * 8.0)
@@ -362,7 +364,7 @@ class SubscriptionOptimizer:
             episodes_backlog=total_episodes_backlog,
             shows_count=len(shows),
             ready_to_binge_count=ready_to_binge_count,
-            both_want_count=both_want_count,
+            shared_count=shared_count,
             avg_imdb_rating=round(avg_imdb, 1) if avg_imdb else None,
             top_shows=top_shows,
             recommendation_reason=reason,

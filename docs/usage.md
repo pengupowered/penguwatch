@@ -7,7 +7,8 @@ The dashboard is a single page with tabs. Every tab has an address (`#/upnext`, 
 
 Every show you're watching with its exact next episode (`S02E05 – Title`), a progress bar and episodes left. **Watched**
 checks it off and sends that exact episode to your library service (SIMKL by default; nothing is sent with the local library). Filter to the services you have right now, to episodes
-that aired today, or (with two people in the household) to titles you both want.
+that aired today, or (with two or more people in the household) to one person's own titles or the shared ones ("Both
+want" with two people).
 
 ## Library and episode tracking
 
@@ -23,8 +24,11 @@ that aired today, or (with two people in the household) to titles you both want.
   title, the catalogue's alternative titles, the network and genres.
 * **Likely interest:** sort the library by a 0-100 score built from the rating (with shrinkage for few votes), your
   genre taste (what you finished or rated) and household signals; the badge's tooltip says why.
-* Per title: status, your rating, priority, notes, who wants to watch it (with two people), and the
-  service it streams on. Household fields are never overwritten by a sync.
+* Per title: status, your rating, priority, notes, who wants to watch it (with two or more people: tick the people
+  in the details dialog or with the card's "who" button), and the service it streams on. Household fields are never
+  overwritten by a sync. The Library's Audience filter shows anyone's titles, one person's own, or the shared ones; a
+  card names one person, "Both" (two people) or "Everyone" (three or more) when all want it, otherwise the names
+  ("Ann +2" when they do not fit).
 * **Your own ratings:** add rating sources (Letterboxd, a spreadsheet, a friend) and import their values; sort and
   filter the library by them, see them as badges on the cards and on a title's details. The **Ratings** tab (`g` then `r`)
   lists the sources, creates and edits them and imports a CSV file (read in your browser, in batches; the rows that
@@ -39,12 +43,18 @@ Discover needs a driver that offers `discovery` (SIMKL does; TVmaze does not, so
 * **Trending** TV, movies and anime (today / week / month) from the discovery driver, marked with what's already in your library and
   which of your services carries each title.
 * **For You:** "because you liked X & Y" picks from the discovery driver's recommendation lists (SIMKL's "users also watched" and "similar"), seeded by your
-  highest-rated titles and those you both want.
+  highest-rated titles and the high-priority titles two or more of you want (the more people, the earlier).
+* With two or more people, **Add for me** adds a title for the first person; **Add for…** lets you tick who wants it.
+* **Add title** searches the catalogue (SIMKL or TVmaze) for TV, anime and movies, up to 30 per type, and lists the best match first: a title
+  that equals what you typed (ignoring case, accents and punctuation, and also by its English or alternative names; the earliest
+  year first), then titles that start with it, then the catalogue's own order. Paste a SIMKL, TMDB or IMDb link (or an IMDb
+  `tt` id) instead of a name to get exactly that title as the only result.
 * One click adds a title to your library *and*, when the library has an account, to that account's plan-to-watch list.
 
 ## Optimizer and rotation planner
 
-* Each service is ranked by backlog hours, ready-to-binge seasons, titles you both want and ratings, with a
+* Each service is ranked by backlog hours, ready-to-binge seasons, shared titles (each person beyond the first who wants
+  a title adds the household weight once more) and ratings, with a
   keep / cancel / rotate-to verdict, "wait for the finale" detection and savings tracking.
 * **Bundles:** a service can include other services (see [Configuration](configuration.md#services-and-ratings)). While a bundle
   is active its members count as covered and cost nothing extra. The optimizer suggests switching to a bundle when it
@@ -52,7 +62,7 @@ Discover needs a driver that offers `discovery` (SIMKL does; TVmaze does not, so
 * **Rotation planner:** plans the next 3, 6 or 12 months: which service to keep, subscribe to, pause or cancel
   (cancelling at the renewal when it is known), within `max_active_services`, at your 90-day viewing pace. A bundle is
   planned as one service and never alongside its own members; free services are always kept. Backlog hours are
-  weighted (watching 1.0, plan to watch 0.5, on hold 0.25, high priority or both want 1.0) so one 900-hour
+  weighted (watching 1.0, plan to watch 0.5, on hold 0.25, high priority or shared by two or more 1.0) so one 900-hour
   plan-to-watch long-runner does not dominate. A table view sits behind the timeline.
 * **Value report:** hours watched, cost per hour and a cancel/keep verdict per active service. Enter each service's
   renewal day under *Services & Sync* to get cancel-before-renewal advice and alerts. Each service keeps its price
@@ -62,7 +72,9 @@ Discover needs a driver that offers `discovery` (SIMKL does; TVmaze does not, so
 
 ## Tonight's Pick
 
-A weighted random pick filtered by service availability, audience, rating, binge-readiness and show or movie.
+A weighted random pick filtered by service availability, audience (anyone's, the shared titles, or one person's own
+pick), rating, binge-readiness and show or movie. A title two people want is three times as likely, one three or more
+want nine times.
 Caught-up shows are skipped.
 
 ## Air schedule and calendar feed

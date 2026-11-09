@@ -126,7 +126,7 @@ only reach over SSH needs [PenguWatch opened to other devices](#opening-penguwat
 
 One deployment option among the others, and the right one for a NAS or a server that already runs containers. The image
 is `ghcr.io/pengupowered/penguwatch` for Intel/AMD (amd64) and ARM (arm64, including a Raspberry Pi 4 or newer with a
-64-bit system). Tags are exact versions (`0.16.0`) and `latest`. It is built from the same wheel as the native install,
+64-bit system). Tags are exact versions (`0.17.0`) and `latest`. It is built from the same wheel as the native install,
 runs as an unprivileged user (uid 10001) with a read-only root, and writes only to `/app/data` (a volume) and `/tmp`.
 
 ### Compose, from the published image
@@ -162,7 +162,7 @@ docker compose up -d --build      # or: podman-compose up -d --build
 docker run -d --name penguwatch --restart unless-stopped -p 8080:8080 \
   --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
   -v penguwatch_data:/app/data -v "$PWD/config.yaml:/app/config.yaml:ro" \
-  ghcr.io/pengupowered/penguwatch:0.16.0
+  ghcr.io/pengupowered/penguwatch:0.17.0
 ```
 
 In the container the config is `/app/config.yaml` and the data is `/app/data`, which also holds `secrets.json` (the

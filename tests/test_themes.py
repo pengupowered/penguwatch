@@ -1,5 +1,6 @@
-"""Themes (docs/themes.md): every theme folder passes the rules every theme must hold, the server default
-(config.yaml display.theme) reaches the page, and the boot script links only our own theme files.
+"""Themes (docs/themes.md): every theme folder passes the rules every theme must hold, its skin and effect keep to their
+contracts, the server default (config.yaml display.theme) and the effects setting (display.effects) reach the page, the
+boot script and the menu load only our own theme files, and the page keeps the hooks a skin relies on.
 
 A new theme folder is tested here without a new test: `test_every_theme_folder` runs each one through the checks."""
 
@@ -20,8 +21,11 @@ from penguwatch.pwa import shell_urls
 from penguwatch.web import theme_checks, themes
 
 ROOT = Path(__file__).resolve().parents[1]
-FOLDERS = sorted(p for p in themes.THEMES_DIR.iterdir() if p.is_dir())
-IDS = ["default", "nord", "dracula", "solarized", "e-ink", "high-contrast", "blueprint"]
+THEMES_DIR = themes.THEMES_DIR  # the shipped folders (a test below points themes.THEMES_DIR elsewhere for a while)
+FOLDERS = sorted(p for p in THEMES_DIR.iterdir() if p.is_dir())
+IDS = ["default", "amber-crt", "blueprint", "catppuccin", "cinema", "dracula", "e-ink", "gruvbox", "high-contrast",
+       "nord", "one-dark", "rose-pine", "solarized", "starship-console", "synthwave", "tokyo-night", "video-store"]
+SKINNED = ["amber-crt", "cinema", "starship-console", "synthwave", "video-store"]  # the themes with a skin.css and an effect.js
 
 
 def client():
@@ -34,16 +38,25 @@ def _nord() -> themes.Theme:
 
 def _theme_json(**tokens_dark) -> dict:
     """Nord's theme.json with changes to its dark tokens."""
-    raw = json.loads((themes.THEMES_DIR / "nord" / "theme.json").read_text(encoding="utf-8"))
+    raw = json.loads((THEMES_DIR / "nord" / "theme.json").read_text(encoding="utf-8"))
     raw["tokens"]["dark"] = {**raw["tokens"]["dark"], **tokens_dark}
     return raw
 
 
 # ---------- every theme folder ----------
 
-def test_the_seven_themes_are_there():
+def test_the_themes_are_there():
     assert [p.name for p in FOLDERS] == sorted(IDS)
     assert themes.builtin_ids()[0] == "default" and sorted(themes.builtin_ids()) == sorted(IDS)
+
+
+def test_the_settings_choices_and_the_api_list_are_the_theme_folders():
+    """Neither the Settings tab's "Theme for new browsers" nor GET /api/themes names a theme itself."""
+    from penguwatch.settings import registry, schema
+
+    spec = schema.setting_spec(next(s for s in registry.SETTINGS if s.key == "display.theme"))
+    assert spec["choices"] == list(themes.builtin_ids()) and sorted(spec["choices"]) == sorted(IDS)
+    assert [t["id"] for t in themes.api_list("v")] == list(themes.builtin_ids())
 
 
 @pytest.mark.parametrize("folder", FOLDERS, ids=[f.name for f in FOLDERS])
@@ -54,7 +67,12 @@ def test_every_theme_folder(folder):
     theme, problems = themes.check_theme(json.loads((folder / "theme.json").read_text(encoding="utf-8")), folder=folder)
     assert problems == []
     assert theme.id in themes.builtin_ids()  # discovered (a folder that fails discovery is left out of the page)
-    assert sorted(p.name for p in folder.iterdir()) == ["theme.json"]  # palettes only: no skin, effect or views
+    assert themes.folder_problems(folder) == []  # theme.json, and skin.css and effect.js when it has them: nothing else
+    assert (theme.skin, theme.effect) == ((folder.name in SKINNED,) * 2)
+    if theme.skin:
+        assert themes.skin_problems(theme.id, (folder / "skin.css").read_text(encoding="utf-8")) == []
+    if theme.effect:
+        assert themes.effect_problems((folder / "effect.js").read_text(encoding="utf-8")) == []
     assert theme_checks.problems(theme) == []
 
 
@@ -159,7 +177,7 @@ def test_blueprint_draws_its_grid_through_a_token_only():
     assert blueprint.tokens["dark"]["--grid"] == "rgba(255, 255, 255, 0.07)"
     components = (STATIC_DIR / "components.css").read_text(encoding="utf-8")
     assert components.count("var(--grid)") == 4 and "linear-gradient" in components  # lines are drawn from the token
-    assert not (themes.THEMES_DIR / "blueprint" / "skin.css").exists()
+    assert not (themes.THEMES_DIR / "blueprint" / "skin.css").exists()  # a palette: the grid needs no skin
 
 
 def test_the_generated_blocks_follow_the_modes():
@@ -243,6 +261,13 @@ async def test_the_page_carries_the_themes_and_the_server_default(container):
     by_id = {t["id"]: t for t in looks}
     assert "css" not in by_id["default"] and by_id["nord"]["css"] == f"/static/v/{ASSET_VERSION}/themes/nord/theme.css"
     assert by_id["e-ink"]["modes"] == ["light"] and by_id["nord"]["modes"] == ["dark", "light"]
+    assert "skin" not in by_id["nord"] and "effect" not in by_id["nord"]  # a palette
+    assert by_id["synthwave"]["skin"] == f"/static/v/{ASSET_VERSION}/themes/synthwave/skin.css"
+    assert by_id["synthwave"]["effect"] == f"/static/v/{ASSET_VERSION}/themes/synthwave/effect.js"
+    assert page.html["data-effects-default"] == "on"  # display.effects
+    container.config.display = DisplayConfig(theme="nord", effects=False)
+    _, page = await _page()
+    assert page.html["data-effects-default"] == "off"
 
 
 @pytest.mark.asyncio
@@ -268,14 +293,17 @@ async def test_api_themes_lists_every_theme_and_the_default(container):
     container.config.display = DisplayConfig(theme="solarized")
     async with client() as ac:
         data = (await ac.get("/api/themes")).json()
-    assert data["default"] == "solarized"
+    assert data["default"] == "solarized" and data["effects"] is True
     assert [t["id"] for t in data["themes"]] == list(themes.builtin_ids()) and data["themes"][0]["id"] == "default"
     nord = next(t for t in data["themes"] if t["id"] == "nord")
     assert nord["name"] == "Nord" and nord["modes"] == ["dark", "light"] and "arctic" in nord["description"]
-    assert nord["css"] == f"/static/v/{ASSET_VERSION}/themes/nord/theme.css"
-    container.config.display = DisplayConfig(theme="not-a-theme")
+    assert nord["css"] == f"/static/v/{ASSET_VERSION}/themes/nord/theme.css" and nord["skin"] == nord["effect"] == ""
+    synthwave = next(t for t in data["themes"] if t["id"] == "synthwave")
+    assert synthwave["skin"].endswith("/themes/synthwave/skin.css") and synthwave["effect"].endswith("/themes/synthwave/effect.js")
+    container.config.display = DisplayConfig(theme="not-a-theme", effects=False)
     async with client() as ac:
-        assert (await ac.get("/api/themes")).json()["default"] == "default"
+        data = (await ac.get("/api/themes")).json()
+    assert data["default"] == "default" and data["effects"] is False
 
 
 @pytest.mark.asyncio
@@ -290,11 +318,24 @@ async def test_a_theme_stylesheet_is_generated_and_served_under_the_tree_hash():
         assert (await ac.get("/static/v/0000000000/themes/nord/theme.css")).status_code == 404
 
 
-def test_the_service_worker_shell_lists_every_theme_stylesheet():
+def test_the_service_worker_shell_lists_every_theme_file():
     urls = shell_urls(STATIC_DIR, ASSET_VERSION)
     for theme_id in themes.look_stylesheets():
         assert f"/static/v/{ASSET_VERSION}/themes/{theme_id}/theme.css" in urls
+    for theme_id in SKINNED:
+        for name in ("skin.css", "effect.js"):
+            assert f"/static/v/{ASSET_VERSION}/themes/{theme_id}/{name}" in urls
     assert not any("/themes/default/" in u for u in urls)
+
+
+@pytest.mark.asyncio
+async def test_a_skin_and_an_effect_are_served_as_they_are_under_the_tree_hash():
+    async with client() as ac:
+        for name, kind in (("skin.css", "text/css"), ("effect.js", "javascript")):
+            res = await ac.get(f"/static/v/{ASSET_VERSION}/themes/synthwave/{name}")
+            assert res.status_code == 200 and kind in res.headers["content-type"], name
+            assert res.text == (themes.THEMES_DIR / "synthwave" / name).read_text(encoding="utf-8")
+        assert (await ac.get(f"/static/v/{ASSET_VERSION}/themes/nord/skin.css")).status_code == 404
 
 
 # ---------- the boot script (f2da081) ----------
@@ -315,29 +356,357 @@ def _ours(source: str) -> "re.Pattern":
     return re.compile(_js_regex(found.group(1)))
 
 
+FOREIGN = ("https://example.com/themes/x/theme.css", "//example.com/static/v/1/themes/x/theme.css",
+           "javascript:alert(1)//.css", f"/static/v/{ASSET_VERSION}/themes/x/../../js/main.js",
+           f"/static/v/{ASSET_VERSION}/js/main.js", f"/static/v/{ASSET_VERSION}/themes/x/y/theme.css",
+           "/static/themes/nord/theme.css", f'/static/v/{ASSET_VERSION}/themes/x/"><b>.css',
+           f"/static/v/{ASSET_VERSION}/themes/nord/theme.css\n", f"/static/v/{ASSET_VERSION}/themes/nord/skin.css?x=1",
+           f"/static/v/{ASSET_VERSION}/themes/x/../../../static/v/1/themes/x/skin.css", f"data:text/css,body{{}}")
+
+
 def test_theme_boot_links_every_theme_file_the_list_names_and_nothing_else():
-    # static/theme.js links a stylesheet only from our own theme folders: every URL the list holds must pass its check (or
-    # that theme would quietly lose its colours), and a URL from anywhere else must not
+    # static/theme.js links a stylesheet (the token blocks and the skin) only from our own theme folders: every URL the list
+    # holds must pass its check (or that theme would quietly lose its colours or its skin), and a URL from anywhere else
+    # must not
     ours = _ours(BOOT.read_text(encoding="utf-8"))
-    urls = [t["css"] for t in themes.page_list(ASSET_VERSION) if "css" in t]
-    assert len(urls) == 6 and all(ours.search(u) for u in urls)
-    for foreign in ("https://example.com/themes/x/theme.css", "//example.com/static/v/1/themes/x/theme.css",
-                    "javascript:alert(1)//.css", f"/static/v/{ASSET_VERSION}/themes/x/../../js/main.js",
-                    f"/static/v/{ASSET_VERSION}/js/main.js", f"/static/v/{ASSET_VERSION}/themes/x/theme.js",
-                    f"/static/v/{ASSET_VERSION}/themes/x/y/theme.css", "/static/themes/nord/theme.css",
-                    f'/static/v/{ASSET_VERSION}/themes/x/"><b>.css', f"/static/v/{ASSET_VERSION}/themes/nord/theme.css\n"):
+    looks = themes.page_list(ASSET_VERSION)
+    urls = [t["css"] for t in looks if "css" in t]
+    skins = [t["skin"] for t in looks if "skin" in t]
+    assert len(urls) == len(IDS) - 1 and len(skins) == len(SKINNED) and all(ours.search(u) for u in urls + skins)
+    for foreign in (*FOREIGN, f"/static/v/{ASSET_VERSION}/themes/x/theme.js", f"/static/v/{ASSET_VERSION}/themes/x/effect.js"):
+        assert not ours.search(foreign), foreign
+
+
+def _menu_rule(name: str) -> "re.Pattern":
+    found = re.search(rf'const {name} = \(url\) => typeof url === "string" && /(.+)/\.test\(url\);',
+                      (STATIC_DIR / "js" / "themes.js").read_text(encoding="utf-8"))
+    assert found, f"the check named `{name}` in js/themes.js moved: update this test with it"
+    return re.compile(_js_regex(found.group(1)))
+
+
+def test_the_menu_runs_only_our_own_effect_files():
+    """js/themes.js imports a theme's effect only from its own theme folder, under the tree hash, named effect.js: every
+    effect the list names passes, and no other script, stylesheet or site does."""
+    ours = _menu_rule("ourEffect")
+    effects = [t["effect"] for t in themes.page_list(ASSET_VERSION) if "effect" in t]
+    assert len(effects) == len(SKINNED) and all(ours.search(u) for u in effects)
+    for foreign in (*FOREIGN, *(u.replace(".css", ".js") for u in FOREIGN), f"/static/v/{ASSET_VERSION}/themes/x/skin.css",
+                    f"/static/v/{ASSET_VERSION}/themes/x/other.js", f"/static/v/{ASSET_VERSION}/js/themes.js",
+                    "https://example.com/static/v/1/themes/x/effect.js", f"/static/v/{ASSET_VERSION}/themes/x/effect.js\n",
+                    f"/static/v/{ASSET_VERSION}/themes/x/effect.mjs", "blob:https://example.com/effect.js"):
         assert not ours.search(foreign), foreign
 
 
 def test_the_menu_applies_the_same_rule_as_the_boot_script():
-    boot = _ours(BOOT.read_text(encoding="utf-8"))
-    menu = re.search(r'const ours = \(url\) => typeof url === "string" && /(.+)/\.test\(url\);',
-                     (STATIC_DIR / "js" / "themes.js").read_text(encoding="utf-8"))
-    assert menu and re.compile(_js_regex(menu.group(1))).pattern == boot.pattern
+    assert _menu_rule("ours").pattern == _ours(BOOT.read_text(encoding="utf-8")).pattern
 
 
 def test_the_boot_script_is_a_classic_script_that_writes_one_link():
     source = BOOT.read_text(encoding="utf-8")
     assert not re.search(r"^\s*(import|export)\b", source, re.M)  # a module would run only after parsing
-    assert source.count("document.write(") == 1 and "look.css" in source
+    assert source.count("document.write(") == 1 and "sheet(look.css," in source and "sheet(look.skin," in source
+    assert "effect" not in re.sub(r"//[^\n]*", "", source)  # the effect is the module's (js/themes.js), never run here
     assert "penguwatch.look" in source and "penguwatch.mode" in source and "penguwatch.theme" in source  # + the migration
+
+
+# ---------- skins and effects (docs/themes.md, "Skins" and "Effects") ----------
+
+SCOPE = ':root[data-look="testskin"]'
+GOOD_SKIN = f"""/* a skin */
+{SCOPE} {{ --ts-glow: color-mix(in srgb, var(--accent) 40%, transparent); }}
+{SCOPE} .panel, {SCOPE} :is(.upnext-card, .show-card) {{ border-color: var(--accent); box-shadow: 0 0 8px var(--ts-glow); }}
+@media (max-width: 720px) {{ {SCOPE} .nav-btn.active::before {{ background: var(--accent); }} }}
+@supports (backdrop-filter: blur(1px)) {{ {SCOPE} .topbar::before {{ backdrop-filter: blur(3px); }} }}
+@keyframes testskin-pulse {{ from {{ opacity: 1; }} to {{ opacity: .8; }} }}
+{SCOPE} .fx-layer canvas {{ position: absolute; will-change: transform; }}
+"""
+GOOD_EFFECT = """// an effect
+export default {
+  start(layer, ctx) {
+    const canvas = document.createElement("canvas");
+    layer.append(canvas);
+    const g = canvas.getContext("2d");
+    const off = ctx.onFrame(() => { g.fillStyle = ctx.tokens()["--accent"]; g.fillRect(0, 0, 1, 1); }, 4);
+    return () => { off(); canvas.remove(); };
+  },
+};
+"""
+
+
+def _theme_folder(root: Path, theme_id: str = "testskin", skin: str = GOOD_SKIN, effect: str = GOOD_EFFECT) -> Path:
+    folder = root / theme_id
+    folder.mkdir(parents=True)
+    (folder / "theme.json").write_text(json.dumps({**_theme_json(), "id": theme_id, "name": "Test skin"}), encoding="utf-8")
+    if skin is not None:
+        (folder / "skin.css").write_text(skin, encoding="utf-8")
+    if effect is not None:
+        (folder / "effect.js").write_text(effect, encoding="utf-8")
+    return folder
+
+
+@pytest.fixture
+def theme_root(tmp_path, monkeypatch):
+    """themes.THEMES_DIR pointed at an empty folder with only `default`, the caches cleared before and after."""
+    root = tmp_path / "themes"
+    (root / "default").mkdir(parents=True)
+    (root / "default" / "theme.json").write_text((THEMES_DIR / "default" / "theme.json").read_text(encoding="utf-8"),
+                                                 encoding="utf-8")
+    monkeypatch.setattr(themes, "THEMES_DIR", root)
+    themes.builtin_themes.cache_clear()
+    themes.look_stylesheets.cache_clear()
+    yield root
+    themes.builtin_themes.cache_clear()
+    themes.look_stylesheets.cache_clear()
+
+
+def test_the_loader_accepts_a_skin_and_an_effect(theme_root):
+    folder = _theme_folder(theme_root)
+    theme, problems = themes.check_theme(json.loads((folder / "theme.json").read_text(encoding="utf-8")), folder=folder)
+    assert problems == [] and theme.skin and theme.effect
+    assert themes.skin_problems("testskin", GOOD_SKIN) == [] and themes.effect_problems(GOOD_EFFECT) == []
+    assert themes.builtin_ids() == ("default", "testskin")
+    entry = next(e for e in themes.page_list("v1") if e["id"] == "testskin")
+    assert entry == {"id": "testskin", "name": "Test skin", "modes": ["dark", "light"], "css": "/static/v/v1/themes/testskin/theme.css",
+                     "skin": "/static/v/v1/themes/testskin/skin.css", "effect": "/static/v/v1/themes/testskin/effect.js"}
+    assert themes.theme_files("v1") == [entry["css"], entry["skin"], entry["effect"]]
+    # a palette folder has neither, and the list says so by leaving the keys out
+    _theme_folder(theme_root, "plain", skin=None, effect=None)
+    themes.builtin_themes.cache_clear()
+    plain = next(e for e in themes.page_list("v1") if e["id"] == "plain")
+    assert "skin" not in plain and "effect" not in plain
+
+
+@pytest.mark.parametrize("skin, words", [
+    (".panel { border-color: var(--accent); }", "'.panel' is not under"),  # unscoped
+    (f"{SCOPE} .panel, .show-card {{ border-color: var(--accent); }}", "'.show-card' is not under"),  # one of a list
+    (f"{SCOPE}:is(.a, .b), body {{ color: var(--ink-1); }}", "'body' is not under"),  # a comma inside :is() is not a split
+    (f"@media (min-width: 1px) {{ .panel {{ color: var(--ink-1); }} }}", "'.panel' is not under"),  # inside @media
+    (f"@supports (x: y) {{ @media print {{ body {{ color: var(--ink-1); }} }} }}", "'body' is not under"),
+    (':root[data-look="nord"] .panel { color: var(--ink-1); }', "is not under"),  # another theme's scope
+    ('[data-look="testskin"] .panel { color: var(--ink-1); }', "is not under"),  # not rooted at :root
+    (':root[data-look="testskin-x"] .panel { color: var(--ink-1); }', "is not under"),  # a longer id
+    (':root[data-look="testskin" i] .panel { color: var(--ink-1); }', "is not under"),
+    ('html .panel { color: var(--ink-1); }', "is not under"),
+    (f"{SCOPE} .panel {{ & + body {{ color: var(--ink-1); }} }}", "no nested rules"),
+    (f"@layer x {{ {SCOPE} .panel {{ color: var(--ink-1); }} }}", "@layer is not allowed"),
+    ("@import url(other.css);", "no url(), @import"),
+    (f"{SCOPE} body {{ background: url(https://example.com/x.png); }}", "no url()"),
+    ("@font-face { font-family: x; }", "@font-face is not allowed"),
+    ("@keyframes spin { from { opacity: 1; } }", "the name starts with 'testskin-'"),
+    (f"{SCOPE} .panel {{ border-color: #ff00ff; }}", "colour '#ff00ff' written out"),
+    (f"{SCOPE} .panel {{ border-color: rgba(255, 0, 255, .5); }}", "colour 'rgba(' written out"),
+    (f"{SCOPE} .panel {{ border-color: hotpink; }}", "colour 'hotpink' written out"),
+    (f"{SCOPE} {{ --accent: var(--s1); }}", "--accent is the palette's"),
+    (f"{SCOPE} {{ --on-image-bg: transparent; }}", "--on-image-bg is the palette's (theme.json) or fixed"),
+    (f"{SCOPE} {{ --card-line: var(--s1); }}", "--card-line is the palette's"),
+    (f"{SCOPE} .fx-layer {{ z-index: 5; }}", "z-index on the effect layer"),
+    (f"{SCOPE} #fx-layer[data-fx] {{ position: static; }}", "position on the effect layer"),
+    (f"{SCOPE} .fx-layer canvas {{ pointer-events: auto; }}", "pointer-events on the effect layer"),
+    (f"{SCOPE} .panel {{ color: var(--ink-1); }} }}", "an unmatched }"),
+    (f"{SCOPE} .panel {{ color: var(--ink-1);", "is not closed"),
+])
+def test_a_skin_that_breaks_the_contract_is_refused(skin, words):
+    problems = themes.skin_problems("testskin", skin)
+    assert any(words in p for p in problems), problems
+
+
+def test_a_theme_with_an_unscoped_skin_is_left_out_at_load(theme_root, caplog):
+    _theme_folder(theme_root, "leaky", skin=GOOD_SKIN.replace(SCOPE, ':root[data-look="leaky"]') + "\n.panel { opacity: 0; }\n")
+    _theme_folder(theme_root, "tidy", skin=GOOD_SKIN.replace(SCOPE, ':root[data-look="tidy"]').replace("testskin-", "tidy-"))
+    with caplog.at_level(logging.ERROR, logger="penguwatch.web.themes"):
+        assert themes.builtin_ids() == ("default", "tidy")
+    assert any("Theme leaky left out" in r.getMessage() and "'.panel' is not under" in r.getMessage() for r in caplog.records)
+
+
+@pytest.mark.parametrize("change, words", [
+    (("start(layer, ctx)", "begin(layer, ctx)"), "the default export is {start(layer, ctx)}"),
+    (("// an effect", 'import { x } from "./other.js";'), "no import"),
+    (("g.fillRect(0, 0, 1, 1);", "g.fillRect(0, 0, 1, 1); requestAnimationFrame(() => {});"), "requestAnimationFrame"),
+    (("g.fillRect(0, 0, 1, 1);", "setInterval(() => {}, 10);"), "setInterval"),
+    (("g.fillRect(0, 0, 1, 1);", "setTimeout(() => {}, 10);"), "setTimeout"),
+    (("g.fillRect(0, 0, 1, 1);", 'eval("1");'), "eval"),
+    (("g.fillRect(0, 0, 1, 1);", 'new Function("return 1")();'), "Function"),
+    (("g.fillRect(0, 0, 1, 1);", 'fetch("/api/shows");'), "fetch"),
+    (("g.fillRect(0, 0, 1, 1);", 'import("/x.js");'), "import"),
+    (("g.fillRect(0, 0, 1, 1);", 'localStorage.setItem("a", "b");'), "localStorage"),
+    (("layer.append(canvas);", "document.body.append(canvas);"), "document.body"),
+    (("layer.append(canvas);", 'document.querySelector("main").append(canvas);'), "querySelector"),
+    (("layer.append(canvas);", 'layer.append(canvas); canvas.style.zIndex = "9";'), "zIndex"),
+    (("layer.append(canvas);", 'layer.append(canvas); canvas.style.pointerEvents = "auto";'), "pointerEvents"),
+    (("layer.append(canvas);", 'layer.append(canvas); canvas.innerHTML = "<b>x</b>";'), "innerHTML"),
+    (('ctx.tokens()["--accent"]', '"#ff00ff"'), "colour '#ff00ff' written out"),
+    (('ctx.tokens()["--accent"]', '"rgb(255, 0, 255)"'), "colour 'rgb(' written out"),
+    (('ctx.tokens()["--accent"]', 'matchMedia("(x)").matches ? "" : ""'), "matchMedia"),
+])
+def test_an_effect_that_breaks_the_contract_is_refused(change, words):
+    old, new = change
+    assert old in GOOD_EFFECT
+    problems = themes.effect_problems(GOOD_EFFECT.replace(old, new))
+    assert any(words in p for p in problems), problems
+
+
+def test_a_theme_folder_holds_its_three_files_only(theme_root):
+    folder = _theme_folder(theme_root)
+    (folder / "theme.css").write_text("x", encoding="utf-8")  # would be hidden by the generated stylesheet
+    (folder / "extra").mkdir()
+    assert themes.folder_problems(folder) == ["extra: a theme folder holds only theme.json, skin.css, effect.js",
+                                              "theme.css: a theme folder holds only theme.json, skin.css, effect.js"]
+    assert "testskin" not in themes.builtin_ids()
+
+
+# ---------- the effect layer ----------
+
+class _Body(HTMLParser):
+    """The rendered page as (tag, id, classes, depth) for every element of <body>, in order."""
+
+    VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "use"}
+
+    def __init__(self):
+        super().__init__()
+        self.depth = 0
+        self.inside = False
+        self.nodes = []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "body":
+            self.inside = True
+            return
+        if not self.inside:
+            return
+        self.nodes.append((tag, a.get("id") or "", set((a.get("class") or "").split()), self.depth, a))
+        if tag not in self.VOID:
+            self.depth += 1
+
+    def handle_startendtag(self, tag, attrs):
+        if self.inside:
+            a = dict(attrs)
+            self.nodes.append((tag, a.get("id") or "", set((a.get("class") or "").split()), self.depth, a))
+
+    def handle_endtag(self, tag):
+        if tag == "body":
+            self.inside = False
+        elif self.inside and tag not in self.VOID:
+            self.depth -= 1
+
+
+async def _body():
+    text, _ = await _page()
+    parsed = _Body()
+    parsed.feed(text)
+    return parsed.nodes
+
+
+def _children(nodes, index):
+    """The direct children of nodes[index]."""
+    depth = nodes[index][3]
+    out = []
+    for node in nodes[index + 1:]:
+        if node[3] <= depth:
+            break
+        if node[3] == depth + 1:
+            out.append(node)
+    return out
+
+
+@pytest.mark.asyncio
+async def test_the_effect_layer_is_behind_the_page_and_never_hit():
+    """#fx-layer is the first element of <body>, empty and hidden from assistive technology, and page.css keeps it fixed,
+    behind everything (z-index -1 in the root's stacking context) and out of the pointer's way, its children too."""
+    nodes = await _body()
+    tag, ident, classes, depth, attrs = nodes[0]
+    assert (tag, ident, classes, depth, attrs.get("aria-hidden")) == ("div", "fx-layer", {"fx-layer"}, 0, "true")
+    assert nodes[1][3] == 0  # nothing inside it in the markup
+    css = (STATIC_DIR / "page.css").read_text(encoding="utf-8")
+    rule = re.search(r"^\.fx-layer \{([^}]*)\}", css, re.M).group(1)
+    for decl in ("position: fixed", "inset: 0", "z-index: -1", "pointer-events: none"):
+        assert decl in rule, decl
+    assert re.search(r"^\.fx-layer > \* \{ pointer-events: none; \}", css, re.M)
+
+
+# ---------- the page hooks a skin relies on (docs/themes.md, "Page hooks a skin may rely on") ----------
+
+WEB = STATIC_DIR.parent
+# part -> [(class, the files that make it: their markup or script writes the class)]. Every class is also a rule of the
+# page's stylesheets, so a skin restyles something that is there.
+PAGE_HOOKS = {
+    "the effect layer": [("fx-layer", ["templates/index.html"])],
+    "the header": [("topbar", ["templates/index.html"]), ("tb-inner", ["templates/index.html"]),
+                   ("brand", ["templates/index.html"]),
+                   ("brand-name", ["templates/index.html"]), ("status-pill", ["templates/index.html"]),
+                   ("tb-actions", ["templates/index.html"])],
+    "the tab bar": [("tabs", ["templates/index.html"]), ("tabs-inner", ["templates/index.html"]),
+                    ("nav-btn", ["templates/index.html"]), ("nav-more", ["templates/index.html"])],
+    "a tab's page": [("app-main", ["templates/index.html"]), ("tab-pane", ["static/panels/upnext/panel.html"]),
+                     ("page-h", ["static/panels/upnext/panel.html"]), ("page-t", ["static/panels/upnext/panel.html"])],
+    "cards": [("upnext-card", ["static/panels/upnext/panel.js"]), ("show-card", ["static/panels/watchlist/cards.js"]),
+              ("discover-card", ["static/panels/discover/panel.js"]), ("timeline-card", ["static/panels/calendar/panel.js"])],
+    "panels": [("panel", ["static/panels/services/panel.html", "static/panels/history/panel.js"]),
+               ("panel-h", ["static/panels/history/panel.js"]), ("panel-t", ["static/panels/history/panel.js"]),
+               ("panel-b", ["static/panels/history/panel.js"])],
+    "chips": [("chip", ["templates/index.html", "static/panels/upnext/panel.js"])],
+    "buttons": [("btn", ["templates/index.html"]), ("seg", ["static/panels/history/panel.html"])],
+    "inputs": [("input", ["static/panels/settings/fields.js"])],
+    "dialogs": [("modal", ["static/dialogs/details/dialog.html"]), ("modal-content", ["static/dialogs/details/dialog.html"]),
+                ("modal-h", ["static/dialogs/details/dialog.html"]), ("modal-t", ["static/dialogs/details/dialog.html"]),
+                ("modal-b", ["static/dialogs/details/dialog.html"])],
+    "menus": [("menu", ["templates/index.html"])],
+    "notes": [("empty", ["static/panels/upnext/panel.js"]), ("result", ["static/panels/upnext/panel.html"])],
+    "the Settings rows": [("set-sec", ["static/panels/settings/panel.js"]), ("set-row", ["static/panels/settings/fields.js"]),
+                          ("set-card", ["static/panels/settings/lists/webhooks.js"])],
+    "the Settings bar": [("set-bar", ["static/panels/settings/panel.html"])],
+    "History's charts": [("hc-svg", ["static/panels/history/charts.js"]), ("hc-grid", ["static/panels/history/charts.js"]),
+                         ("hc-axis", ["static/panels/history/charts.js"]), ("hc-bar", ["static/panels/history/charts.js"])],
+    "posters (left alone)": [("poster", ["static/panels/upnext/panel.js", "static/panels/watchlist/cards.js"]),
+                             ("on-image", ["static/panels/watchlist/cards.js"])],
+}
+
+
+def _all_page_css() -> str:
+    return "\n".join(p.read_text(encoding="utf-8") for p in STATIC_DIR.rglob("*.css") if "themes" not in p.parts)
+
+
+@pytest.mark.parametrize("part", PAGE_HOOKS)
+def test_the_page_keeps_the_hooks_a_skin_relies_on(part):
+    """A skin styles the page by these classes; a refactor that renames or drops one breaks every skin quietly, so it
+    fails here instead (and docs/themes.md's table is updated with it)."""
+    css = _all_page_css()
+    for name, files in PAGE_HOOKS[part]:
+        token = re.compile(rf"(?<![\w-]){re.escape(name)}(?![\w-])")
+        for rel_path in files:
+            source = (WEB / rel_path).read_text(encoding="utf-8")
+            assert any(token.search(c) for c in re.findall(r'class(?:Name)?\s*=\s*["`]([^"`]*)', source)), f"{name} in {rel_path}"
+        assert re.search(rf"(^|[\s,>}}]|:is\(|:not\()\.{re.escape(name)}(?![\w-])", css, re.M), f".{name} has no rule"
+
+
+@pytest.mark.asyncio
+async def test_the_page_keeps_the_structure_a_skin_relies_on():
+    """header.topbar holds div.tb-inner (its ::before is the header's background) and nav.tabs (div.tabs-inner of
+    button.nav-btn, then button.nav-more); main.app-main holds one section.tab-pane per tab, each starting with its .page-h."""
+    nodes = await _body()
+    index = {n[1]: i for i, n in enumerate(nodes) if n[1]}
+    top = index["topbar"]
+    assert nodes[top][0] == "header" and "topbar" in nodes[top][2]
+    kids = _children(nodes, top)
+    assert [(k[0], sorted(k[2])) for k in kids] == [("div", ["tb-inner"]), ("nav", ["tabs"])]
+    tabs = index["tabs"]
+    inner = _children(nodes, tabs)
+    assert [k[0] for k in inner] == ["div", "button"] and "tabs-inner" in inner[0][2] and "nav-more" in inner[1][2]
+    buttons = _children(nodes, nodes.index(inner[0]))
+    assert len(buttons) >= 10 and all(b[0] == "button" and "nav-btn" in b[2] and b[4].get("role") == "tab" for b in buttons)
+    main = index["main"]
+    assert nodes[main][0] == "main" and "app-main" in nodes[main][2]
+    panes = [k for k in _children(nodes, main) if k[0] == "section"]
+    assert len(panes) == len(buttons) and all("tab-pane" in p[2] and p[4].get("data-panel") for p in panes)
+    for pane in panes:
+        first = _children(nodes, nodes.index(pane))[0]
+        assert "page-h" in first[2], pane[1]
+
+
+def test_the_docs_list_every_page_hook():
+    docs = (ROOT / "docs" / "themes.md").read_text(encoding="utf-8")
+    section = docs[docs.index("### Page hooks a skin may rely on"):]
+    section = section[:section.index("\n## ")]
+    for part, hooks in PAGE_HOOKS.items():
+        for name, _ in hooks:
+            assert f".{name}" in section, f"{part}: .{name}"

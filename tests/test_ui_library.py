@@ -18,7 +18,7 @@ LIBRARY = STATIC / "panels" / "watchlist"
 # Everything cards.js and util.js (ratingBadges) read from a list item
 CARD_READS = [
     "id", "ids", "media_type", "title", "year", "poster", "network", "service_id", "service_manual",
-    "status", "priority", "household_tag", "simkl_rating", "imdb_rating", "user_rating",
+    "status", "priority", "household", "simkl_rating", "imdb_rating", "user_rating",
     "total_episodes", "watched_episodes", "aired_episodes", "next_to_watch", "last_watched", "is_ready_to_binge",
 ]
 

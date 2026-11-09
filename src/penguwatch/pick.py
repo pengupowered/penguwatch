@@ -7,7 +7,7 @@ status, household and media-type filters) and nothing here writes anything.
 import random
 from typing import Any, Dict, List, Optional
 
-from penguwatch.models import HouseholdTag, MediaType, Priority, RandomPickFilter, Show, ShowStatus
+from penguwatch.models import MediaType, Priority, RandomPickFilter, Show, ShowStatus
 
 
 def candidates(shows: List[Show], filters: RandomPickFilter) -> List[Show]:
@@ -26,10 +26,13 @@ def candidates(shows: List[Show], filters: RandomPickFilter) -> List[Show]:
     return found
 
 
+# A title more people want is likelier: x3 when two want it, x9 from three on (3 ** min(k - 1, 2))
+SHARED_FACTOR = 3.0
+SHARED_STEPS = 2
+
+
 def weight(show: Show) -> float:
-    w = 1.0
-    if show.household_tag == HouseholdTag.BOTH:
-        w *= 3.0
+    w = SHARED_FACTOR ** min(max(len(show.household) - 1, 0), SHARED_STEPS)
     if show.priority == Priority.HIGH:
         w *= 3.0
     elif show.priority == Priority.MEDIUM:

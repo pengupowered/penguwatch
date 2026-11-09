@@ -119,7 +119,8 @@ async def test_values_are_the_effective_values(store):
         res = await ac.get("/api/settings/values")
     values = SettingsValues.model_validate(res.json())
     assert values.revision == 1 and set(values.values) == set(registry.BY_KEY)
-    assert values.values["notify.hour"] == 9 and values.values["household.members"] == ["Me", "Partner"]
+    assert values.values["notify.hour"] == 9 and values.values["household.members"] == [
+        {"id": "person1", "name": "Me"}, {"id": "person2", "name": "Partner"}]
 
 
 @pytest.mark.asyncio

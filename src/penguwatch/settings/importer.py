@@ -112,6 +112,17 @@ def _pop(raw: dict, path: str) -> Any:
     return node.pop(parts[-1], None) if isinstance(node, dict) else None
 
 
+def _as_stored(setting: "registry.Setting", value: Any) -> Any:
+    """An old build's value in the shape this build stores (the frozen legacy tables keep the old shapes: the
+    household's members were a list of names before 0.17): read by the setting's own section model; as it is when
+    that model refuses it."""
+    model, name, _ = setting.resolve()
+    try:
+        return jsonable(getattr(model.model_validate({name: copy.deepcopy(value)}), name))
+    except (ValidationError, ValueError, TypeError):
+        return copy.deepcopy(value)
+
+
 def _dropped(paths: Iterable[str], key: str) -> bool:
     return any(p == key or key.startswith(p + ".") for p in paths)
 
@@ -288,8 +299,10 @@ def read_settings(raw: Any, *, move_secrets: bool = False, old: Optional[Dict[st
         if present(data, setting.key):
             if not _dropped(gone, setting.key):
                 values[setting.key] = jsonable(get_path(config, setting.key))
-        elif old is not None and setting.key in old and old[setting.key] != jsonable(setting.default()):
-            values[setting.key] = copy.deepcopy(old[setting.key])  # import rule 2: keep what the old build ran with
+        elif old is not None and setting.key in old:
+            was = _as_stored(setting, old[setting.key])
+            if was != jsonable(setting.default()):
+                values[setting.key] = was  # import rule 2: keep what the old build ran with
 
     lists: Dict[str, Optional[List[dict]]] = {}
     items = _webhooks(raw_hooks, move_secrets, result)

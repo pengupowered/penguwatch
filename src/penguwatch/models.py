@@ -26,11 +26,9 @@ class Priority(str, Enum):
     LOW = "low"
 
 
-class HouseholdTag(str, Enum):
-    """Who wants to watch a title. The names shown for person1 / person2 come from config.yaml (household.members)."""
-    BOTH = "both"
-    PERSON1 = "person1"
-    PERSON2 = "person2"
+# Who wants to watch a title: the ids of household members (config.HouseholdConfig: person1, person2, ...), at most
+# MAX_MEMBERS of them. Empty on a new title means "the first member" (the repository fills it in).
+Household = Annotated[List[Annotated[str, Field(pattern=r"^person[1-9][0-9]{0,5}$")]], Field(max_length=20)]
 
 
 class MediaType(str, Enum):
@@ -122,7 +120,8 @@ class Show(BaseModel):
     service_manual: bool = False
     status: ShowStatus = ShowStatus.PLANTOWATCH
     priority: Priority = Priority.MEDIUM
-    household_tag: HouseholdTag = HouseholdTag.PERSON1
+    # The member ids who want to watch it, in the members' order (people no longer in the household left out)
+    household: Household = Field(default_factory=list)
     simkl_rating: Optional[float] = None
     imdb_rating: Optional[float] = None
     imdb_votes: Optional[int] = None
@@ -220,7 +219,7 @@ class ShowCreateRequest(BaseModel):
     service_id: Optional[str] = None
     status: ShowStatus = ShowStatus.PLANTOWATCH
     priority: Priority = Priority.MEDIUM
-    household_tag: HouseholdTag = HouseholdTag.PERSON1
+    household: Household = Field(default_factory=list)  # empty: the first member
     overview: Optional[str] = None
     poster: Optional[str] = None
     banner: Optional[str] = None
@@ -234,7 +233,7 @@ class ShowCreateRequest(BaseModel):
 class ShowUpdateRequest(BaseModel):
     status: Optional[ShowStatus] = None
     priority: Optional[Priority] = None
-    household_tag: Optional[HouseholdTag] = None
+    household: Optional[Household] = None  # the whole set (at least one member); None leaves it as it is
     service_id: Optional[str] = None
     network: Optional[str] = None
     watched_episodes: Optional[int] = None
@@ -253,7 +252,7 @@ class OptimizerRecommendation(BaseModel):
     episodes_backlog: int
     shows_count: int
     ready_to_binge_count: int
-    both_want_count: int
+    shared_count: int  # titles two or more people want
     avg_imdb_rating: Optional[float] = None
     top_shows: List[Dict[str, Any]] = Field(default_factory=list)
     recommendation_reason: str
@@ -368,7 +367,8 @@ class RotationPlan(BaseModel):
 class RandomPickFilter(BaseModel):
     service_id: Optional[str] = None
     only_active_services: bool = True
-    household_tag: Optional[HouseholdTag] = None
+    member: Optional[str] = Field(default=None, pattern=r"^person[1-9][0-9]{0,5}$")  # titles this person wants
+    shared: Optional[bool] = None  # True: titles two or more people want; False: titles one person wants alone
     status: Optional[ShowStatus] = None
     media_type: Optional[MediaType] = None
     min_rating: Optional[float] = None

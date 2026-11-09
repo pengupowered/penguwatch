@@ -30,6 +30,6 @@ pytestmark = pytest.mark.skipif(
 def test_dashboard_modules_pass_eslint():
     run = subprocess.run(
         ["node", str(ESLINT), "--max-warnings", "0", "-c", str(ROOT / "tests" / "ui" / "eslint.config.mjs"),
-         *(str(STATIC / d) for d in ("js", "panels", "dialogs")), str(STATIC / "theme.js"), str(ROOT / "tests" / "ui")],
+         *(str(STATIC / d) for d in ("js", "panels", "dialogs", "themes")), str(STATIC / "theme.js"), str(ROOT / "tests" / "ui")],
         env={**os.environ, "PGBROWSER": PGBROWSER}, cwd=ROOT, capture_output=True, text=True, timeout=120)
     assert run.returncode == 0, f"{run.stdout}\n{run.stderr}"

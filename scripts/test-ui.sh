@@ -8,13 +8,14 @@
 #   scripts/test-ui.sh --command <cmd...>  run this command in the container instead of pytest
 # PENGUWATCH_JUNIT_DIR=<dir> (CI): pytest also writes <dir>/ui.xml; the one writable mount.
 #   PENGUWATCH_TEST_MEMORY=<size>   memory cap, no swap (default 3g: the app, Node and a browser, and /tmp is a tmpfs).
-#   PENGUWATCH_TEST_TIMEOUT=<s>     podman kills the container after this long (default 900).
+#   PENGUWATCH_TEST_TIMEOUT=<s>     podman kills the container after this long (default 1800).
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE="${UI_RUNNER_BASE:-localhost/ui-test-runner:1}"
 
-# One browser run may take 300 s (test_ui_smoke.py), so the hang guard allows 360 here.
-cmd=(python -m pytest -q -p no:cacheprovider -o faulthandler_timeout=360 tests/test_ui_smoke.py tests/test_ui_lint.py tests/test_ui_steps.py)
+# One browser run may take 600 s (test_ui_smoke.py: the demo run checks 17 themes and every skin), so the hang guard
+# allows 660 here.
+cmd=(python -m pytest -q -p no:cacheprovider -o faulthandler_timeout=660 tests/test_ui_smoke.py tests/test_ui_lint.py tests/test_ui_steps.py)
 mounts=()
 if [ "${1:-}" = "--command" ]; then
     shift
@@ -52,7 +53,7 @@ memory="${PENGUWATCH_TEST_MEMORY:-3g}"
 # --timeout                     podman itself kills the container after this long, also when this script was killed
 #                               (a killed `podman run` leaves its container running otherwise).
 exec podman run --rm \
-    --timeout "${PENGUWATCH_TEST_TIMEOUT:-900}" \
+    --timeout "${PENGUWATCH_TEST_TIMEOUT:-1800}" \
     --network none \
     --cap-drop=ALL \
     --security-opt no-new-privileges \

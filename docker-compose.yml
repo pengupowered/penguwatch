@@ -12,7 +12,10 @@
 # docker-compose.override.yml; see docker-compose.override.example.yml.
 services:
   penguwatch:
-    build: .
+    build:
+      context: .
+      args:
+        APT_REFRESH: ${APT_REFRESH:-}
     image: localhost/penguwatch:latest
     container_name: penguwatch
     # restart: always, because podman-restart.service (systemctl --user enable podman-restart.service)

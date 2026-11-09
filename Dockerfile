@@ -6,8 +6,8 @@
 #                                              --build-arg WHEEL_STAGE=wheel-prebuilt, so the image holds
 #                                              exactly the file that was tested and attached to the release.
 #
-# python:3.12-slim, pinned by digest (refresh the digest when updating the base image)
-ARG PYTHON_IMAGE=python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+# python:3.12-slim as of 2026-11-08 (3.12.16), pinned by digest (refresh the digest when updating the base image)
+ARG PYTHON_IMAGE=python:3.12-slim@sha256:5e2bdb1b0d542d5039cffb8181c65930093949194a65c365dfb1b0fe13a4fa5b
 ARG WHEEL_STAGE=wheel-built
 
 # ---- build: the wheel, with the hash-locked build backend; no build isolation, no download at build time ----
@@ -41,6 +41,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Security updates of the base image
+# APT_REFRESH (a date) changes when the layer below is rebuilt: without it a cached layer would keep old OS packages.
+ARG APT_REFRESH=
 RUN apt-get update && apt-get -y --no-install-recommends upgrade && rm -rf /var/lib/apt/lists/*
 
 # Every package is installed from a hash-locked file (see docs/supply-chain.md), then the wheel itself.

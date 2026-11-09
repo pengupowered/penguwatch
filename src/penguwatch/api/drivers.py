@@ -47,6 +47,8 @@ def _describe(name: str, cls, running: bool) -> Dict[str, Any]:
         "connect_kind": getattr(cls, "connect_kind", None),
         "extras": list(getattr(cls, "extras", ())),
         "title_urls": dict(getattr(cls, "title_urls", {})),
+        # whether Add title takes a pasted link to a title on this service (the catalogue's `parse_link`)
+        "takes_links": bool(getattr(cls, "takes_links", False)),
         "rating_sources": [{"id": r.id, "name": r.name, "label": r.label} for r in cls.rating_sources],
         # the credit the service's terms ask for wherever its data is shown (None: none asked)
         "attribution": dataclasses.asdict(cls.attribution) if getattr(cls, "attribution", None) else None,

@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Response
 
-from penguwatch.api.deps import get_repo
+from penguwatch.api.deps import AppContainer, get_container, get_repo
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.drivers import DRIVERS
 from penguwatch.drivers.base import state_key
@@ -37,20 +37,23 @@ def _cell(value) -> str:
 
 
 @router.get("/export/library.csv", summary="Export the library as CSV")
-async def export_library_csv(repo: DatabaseRepository = Depends(get_repo)):
+async def export_library_csv(repo: DatabaseRepository = Depends(get_repo),
+                             container: AppContainer = Depends(get_container)):
     shows = await repo.get_shows(sort_by="title")
     services = {s.id: s.name for s in await repo.get_services()}
     custom = [s for s in await repo.get_rating_sources() if not s.builtin]  # one column per custom source
     id_providers = list(dict.fromkeys([*CSV_ID_PROVIDERS, *repo.key_providers]))
     buf = io.StringIO()
     out = csv.writer(buf)
-    out.writerow(["title", "year", "type", "status", "priority", "audience", "service", "network", "our_rating",
+    household = container.config.household
+    out.writerow(["title", "year", "type", "status", "priority", "who", "service", "network", "our_rating",
                   "imdb_rating", "episodes_watched", "episodes_aired", "episodes_total",
                   "runtime_minutes", "genres", *(f"{p}_id" for p in id_providers), "last_watched_at",
                   *(csv_column(s.id) for s in custom)])
     for s in shows:
         out.writerow([_cell(v) for v in (
-            s.title, s.year, s.media_type.value, s.status.value, s.priority.value, s.household_tag.value,
+            s.title, s.year, s.media_type.value, s.status.value, s.priority.value,
+            "; ".join(household.names_of(s.household)),
             services.get(s.service_id or "", s.service_id or ""), s.network, s.user_rating,
             s.imdb_rating, s.watched_episodes, s.aired_episodes, s.total_episodes, s.runtime_minutes,
             "; ".join(s.genres), *(s.ids.get(p) for p in id_providers), s.last_watched_at,

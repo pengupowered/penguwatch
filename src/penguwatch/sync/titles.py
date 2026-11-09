@@ -5,7 +5,7 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from penguwatch.drivers.base import LibraryEntry, RelatedTitle, Title
-from penguwatch.models import HouseholdTag, MediaType, Priority, Show, ShowStatus
+from penguwatch.models import MediaType, Priority, Show, ShowStatus
 from penguwatch.ratings import STORED_BUILTIN_IDS, RatingValue, builtin_rating_columns
 from penguwatch.textsearch import clean_alt_titles, clean_en_title
 
@@ -34,7 +34,7 @@ def stored_ratings(title: Title) -> Dict[str, RatingValue]:
 
 
 def entry_to_show(entry: LibraryEntry) -> Show:
-    """The Show a library entry describes (household fields at their defaults)."""
+    """The Show a library entry describes (household fields at their defaults: a new title is the first member's)."""
     t = entry.title
     return Show(
         ids=t.ids,
@@ -50,7 +50,6 @@ def entry_to_show(entry: LibraryEntry) -> Show:
         network=t.network,
         status=ShowStatus(entry.status),
         priority=Priority.MEDIUM,
-        household_tag=HouseholdTag.PERSON1,
         **rating_fields(t),
         user_rating=entry.user_rating,
         last_watched_at=entry.last_watched_at,

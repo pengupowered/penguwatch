@@ -27,8 +27,8 @@ If it does not open, [the FAQ](faq.md#the-page-does-not-open-or-the-port-is-in-u
 
 ## 3. Names and services
 
-Open the **Settings** tab and, under Household, enter one or two names. With two, every title says who wants to watch
-it. Everything else on the tab has a sensible default; [Configuration](configuration.md) lists every setting.
+Open the **Settings** tab and, under Household, enter the names of the people who watch (Add person for each one). With
+two or more, every title says who wants to watch it. Everything else on the tab has a sensible default; [Configuration](configuration.md) lists every setting.
 
 Then open **Services & Sync** and switch on the services you pay for this month, with their prices and renewal days: the
 optimizer needs this. The tab starts with a built-in list of common US services, with their list prices and the network

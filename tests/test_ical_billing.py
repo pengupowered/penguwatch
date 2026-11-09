@@ -16,7 +16,7 @@ TODAY = date(2026, 10, 12)
 def _rec(sid="netflix", name="Netflix", cost=19.99, renew_in=10, **kw):
     base = dict(
         service_id=sid, service_name=name, is_active=True, monthly_cost=cost, binge_score=1.0, hours_backlog=0.0,
-        episodes_backlog=0, shows_count=0, ready_to_binge_count=0, both_want_count=0, recommendation_reason="",
+        episodes_backlog=0, shows_count=0, ready_to_binge_count=0, shared_count=0, recommendation_reason="",
         action="keep_active", next_renewal=(TODAY + timedelta(days=renew_in)).isoformat() if renew_in is not None else None,
         renewal_in_days=renew_in,
     )

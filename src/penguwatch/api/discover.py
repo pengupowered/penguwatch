@@ -18,12 +18,11 @@ from penguwatch.models import (
     Show,
     ShowStatus,
     Priority,
-    HouseholdTag,
     MediaType,
     ShowCreateRequest,
 )
 from penguwatch.drivers.base import Title
-from penguwatch.api.deps import AppContainer, get_container, get_drivers, get_repo, get_sync
+from penguwatch.api.deps import AppContainer, get_container, get_drivers, get_repo, get_sync, household_ids
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.optimizer import bundles
 from penguwatch.sync.active import ActiveDrivers
@@ -106,6 +105,25 @@ async def discover_trending(
     return items
 
 
+MAX_SEEDS = 15
+
+
+def recommendation_seeds(shows: List[Show], key: str) -> List[Show]:
+    """The titles recommendations start from: rated 8 or more by you, shared by two or more people at high priority,
+    or watched / finished with a score of 8.3 or more; your rating first, then the more people want it, then the
+    score. With two people, "shared" is "both want it", as before 0.17."""
+    seeds = [
+        s for s in shows
+        if s.ids.get(key) and (
+            (s.user_rating or 0) >= 8
+            or (len(s.household) >= 2 and s.priority == Priority.HIGH)
+            or (s.status in (ShowStatus.COMPLETED, ShowStatus.WATCHING) and (s.imdb_rating or 0) >= 8.3)
+        )
+    ]
+    seeds.sort(key=lambda s: (-(s.user_rating or 0), -len(s.household), -(s.imdb_rating or 0)))
+    return seeds[:MAX_SEEDS]
+
+
 @router.get("/discover/recommendations", summary="Recommendations", dependencies=[Depends(rate_limit("recommendations", 10, 60))])
 async def discover_recommendations(
     limit: int = Query(30),
@@ -128,16 +146,7 @@ async def discover_recommendations(
             return {"enabled": True, "items": [i for i in items if not i["in_library"]][:limit], "seeds": c.get("seeds", [])}
 
     shows = await repo.get_shows()
-    seeds = [
-        s for s in shows
-        if s.ids.get(key) and (
-            (s.user_rating or 0) >= 8
-            or (s.household_tag == HouseholdTag.BOTH and s.priority == Priority.HIGH)
-            or (s.status in (ShowStatus.COMPLETED, ShowStatus.WATCHING) and (s.imdb_rating or 0) >= 8.3)
-        )
-    ]
-    seeds.sort(key=lambda s: (-(s.user_rating or 0), s.household_tag != HouseholdTag.BOTH, -(s.imdb_rating or 0)))
-    seeds = seeds[:15]
+    seeds = recommendation_seeds(shows, key)
     lib_ids = {s.ids[key] for s in shows if s.ids.get(key)}
     sem = asyncio.Semaphore(4)
 
@@ -196,7 +205,7 @@ async def discover_add(
         ids=ids,
         media_type=MediaType(media),
         status=payload.status,
-        household_tag=payload.household_tag,
+        household=household_ids(c.config, payload.household, ["body", "household"]),
         poster=payload.poster,
         overview=payload.overview,
     )

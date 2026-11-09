@@ -5,6 +5,105 @@ and versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-08
+
+### Added
+- **Skins and effects for themes.** A theme folder may now hold a `skin.css` (shapes, glows and textures, every rule
+  scoped to the theme; the loader refuses an unscoped rule, a colour written out, a palette token, `url()` and the like)
+  and an `effect.js` (a subtle animation drawn in a layer behind the whole page, never over a poster, a chip or text). The
+  engine owns an effect's limits: it never runs while the system asks for reduced motion, pauses while the tab is hidden,
+  draws at most 12 frames a second and slows down, then stops, when its frames run long. The page hooks a skin may rely on
+  are listed in [Themes](docs/themes.md#page-hooks-a-skin-may-rely-on) and held by a test
+  ([Themes: Skins and Effects](docs/themes.md#skins)).
+- **Five skins**, each restyling the page's shapes (header, tabs, titles, cards, buttons) and with a subtle effect
+  behind the page that adds 0.7 to 1.3 % of the main thread in the test browser ([Measuring an effect](docs/themes.md#measuring-an-effect)):
+  - **Amber CRT**: the page inside an old amber monitor (dark only): a rounded bezel, monospace throughout, a status
+    line, soft-key tabs F1 to F12, prompt titles with a block cursor, double-ruled cards and panels, [ BRACKETED ]
+    buttons, inverse-video chips; a slow roll down the glass (6 frames a second).
+  - **Cinema**: a grand movie palace at night (dark only), velvet red and near-black with warm gold: velvet curtains at
+    the page's edges, the header a marquee sign framed in bulbs over a scalloped valance, ticket-stub tabs, page titles
+    on a letter board, gilt poster-case cards, programme-framed panels, plaque buttons and ticket chips, in a display
+    serif; the marquee's bulbs brighten in turn and a faint warm light drifts over the curtains (3 frames a second).
+  - **Starship console**: a starship computer console (dark only) in teal, amber, steel blue and coral on black. An elbow
+    frame joins a corner block, a thick bar along the top and a rail down the left side, where the tabs stack as solid
+    colour blocks with rounded ends (on phones the elbow is the top corner and the bottom bar a row of blocks); page
+    titles in condensed capitals beside a rounded bar, panels and dialogs framed by bars, cards in brackets, flat
+    rounded-end buttons and chips. Two blocks at the foot of the rail brighten in turn and a faint sweep passes behind
+    the header (3 frames a second).
+  - **Synthwave**: 1980s neon on deep purple (dark only): a dusk header with the name on a slanted neon plate, the tabs
+    as neon tubes (the open one fully lit), chrome italic titles over a striped sunset bar, slanted buttons with a double
+    neon outline and slanted chips, square neon-edged cards and panels with angled header strips and a cut corner, and a
+    striped sun on the horizon at the bottom of the window over a grid floor drifting slowly toward you (4 frames a
+    second).
+  - **Video store**: a neighbourhood rental shop in red, teal and cream (light, with an "after hours" dark): a shop-front
+    header with the name on a lit sign, a striped awning with a scalloped edge and the tabs hanging from it as aisle
+    signs, label-maker tape titles, clamshell tape-box cards with a labelled spine, price-sticker chips, chunky buttons
+    on a counter ledge, and a faint tracking line drifting through the header (3 frames a second) while the open tab's
+    sign sways a little.
+- **Five more palette themes.** Catppuccin (Mocha and Latte), Gruvbox (dark and light), Tokyo Night (Night and Day), Rosé
+  Pine (Main and Dawn) and One Dark (with One Light), using each project's published colours under its licence (MIT, and
+  Apache-2.0 for Tokyo Night; sources and the few colours nudged to pass the contrast checks are in
+  [Themes](docs/themes.md#palette-credits)). They appear in the header's theme menu, the Settings tab's "Theme for new
+  browsers" and `GET /api/themes` like the others.
+- **Animation on or off.** The theme menu has an "Animation" item, kept in each browser, and Settings > Display has
+  **Theme animation** (`display.effects`, on by default) for browsers that have not chosen. `GET /api/themes` gives
+  each theme's `skin` and `effect` URLs and the setting as `effects`.
+- **Add title takes a link.** Pasting a SIMKL, TMDB or IMDb link, or an IMDb `tt` id, into the search box offers that one
+  title; a line under the box says so. `GET /api/drivers` gives each driver's `takes_links` (whether a link to a title on
+  its service can be pasted).
+- **A household of 1 to N people** (up to 20, in effect no limit; [Configuration](docs/configuration.md#what-the-settings-mean)).
+  Settings > Household lists the people with a Remove button each and **Add person**. Each person has an id
+  (`person1`, `person2`, ...) that titles keep through a rename; a new person gets the next unused id, never one a
+  removed person had. Removing someone takes them off their titles; a title that was only theirs goes to the first
+  person, and the tab says how many before the save. Who wants a title is any set of the people: ticked in the details
+  dialog, the Library card's "who" button and Add title, and with **Add for…** on Discover (**Add for me** stays one
+  click). The Library's Audience filter, Up Next's chips and Tonight's Pick offer each person's own titles and the shared
+  ones (two or more people); a card names one person, "Both" or "Everyone", or the names ("Ann +2" when they do not
+  fit). With one person every "who" control stays hidden; with two everything scores, sorts and filters as before.
+- **Shared titles count more the more people want them:** the optimizer adds the household weight once per person
+  beyond the first, the likely-interest score its household bonus likewise ("Shared by 3", "Everyone wants it"),
+  Tonight's Pick weighs a title two people want three times and one three or more want nine times, and the
+  recommendation seeds put the titles more people want first. With two people the numbers are the ones before
+  (a test pins them).
+- The demo library takes `--people 1` or `--people 3`, and the browser test runs those households as the `solo` and
+  `household` variants.
+
+### Changed
+- **API: who wants a title is a list of member ids (breaking, 0.x).** A title's `household_tag` (`person1`, `person2` or
+  `both`) is replaced by `household` (`["person1", "person2"]`) in `GET`/`POST`/`PATCH /api/shows`, the card view, Up
+  Next, `POST /api/discover/add` and the optimizer's `top_shows`; `GET /api/shows?household_tag=` by `member=<id>`
+  (repeatable) and `shared=true|false`; Tonight's Pick (`POST /api/decide/pick`, MCP `tonights_pick`) takes `member` and
+  `shared` instead of `household_tag`; the optimizer's `both_want_count` and the dashboard stats' `both_want_count` are
+  `shared_count`; the library CSV's `audience` column is `who`, the names joined by "; "; MCP answers' `for` is a list of
+  names (it was one name or "Both"). The setting `household.members` is a list of `{id, name}`; a list of names (the
+  0.16 shape) is still read everywhere a value comes from: the store, a kept version, an exported file, the one-time
+  import and `config.yaml`.
+- **Database:** migration 0020 moves who wants each title into the table `show_household` (`person1` stays
+  `person1`, `person2` stays `person2`, `both` becomes both of them, an empty or unknown value `person1`; with one
+  person stored, every title is `person1`'s), checks that every title has its people, then drops
+  `shows.household_tag`. The settings label "Weight of titles both want" is "Weight of shared titles".
+- **The theme menu groups its 17 themes** under "Palettes" and "Skins", each by name; it stays inside the window and
+  scrolls when it is taller than the window.
+- The browser test reads the theme list from the theme folders, and measures the tab bar in every theme.
+
+### Fixed
+- **Add title could not find well-known titles.** SIMKL's search was asked for 10 results per type and ranked the US
+  "Saturday Night Live" 11th, behind spin-offs and other countries' versions. Each type now asks for 30 (same number
+  of requests, details still only for the first eight) and the results are ordered by match: an exact title first
+  (also by English or alternative name, earliest year first), then titles starting with the query, then the
+  catalogue's order. TVmaze searches are ranked the same way.
+- **Library cards cut the service's name** ("Netf", "Prim") when three rating badges shared the poster's top edge, more so
+  in a skin with a card spine. The badges now move to a second line when both do not fit.
+- **Up Next's filter chips ran off a phone's screen** ("Both wa…"), in a row that scrolled sideways without a sign of it.
+  They wrap onto a second line instead.
+
+### Security
+- **Base image refreshed.** The image is built on `python:3.12-slim` 3.12.16 (new digest pin), and the Debian upgrade layer
+  is now rebuilt on every deploy (`APT_REFRESH` build argument, a date), so a local rebuild no longer keeps a cached layer
+  with old OS packages. Fixes apt and libapt-pkg 3.0.3 (CVE-2026-109518) and zlib1g (CVE-2026-85091, CVE-2026-76844,
+  CVE-2026-27171) in locally built images. The released image already had them.
+- The test suite's local TLS server requires TLS 1.2 or newer (CodeQL `py/insecure-protocol`).
+
 ## [0.16.0] - 2026-11-07
 
 ### Added
@@ -246,7 +345,8 @@ The first public release.
 - The example `config.yaml` no longer sets `server.host` or `database.db_path`; leave them out to get the defaults
   above. The container and `docker compose` behave as before, and your existing `config.yaml` keeps working.
 
-[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/pengupowered/penguwatch/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/pengupowered/penguwatch/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/pengupowered/penguwatch/compare/v0.15.2...v0.16.0
 [0.15.2]: https://github.com/pengupowered/penguwatch/compare/v0.15.1...v0.15.2
 [0.15.1]: https://github.com/pengupowered/penguwatch/compare/v0.15.0...v0.15.1

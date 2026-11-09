@@ -9,6 +9,7 @@
 """
 
 import logging
+import re
 import time
 from typing import Any, AsyncIterator, Dict, Hashable, List, Mapping, Optional, Sequence, Tuple
 
@@ -18,10 +19,11 @@ from penguwatch.drivers.base import (
 )
 from penguwatch.drivers.simkl import auth, mapper, payloads
 from penguwatch.drivers.simkl.client import (
-    DEFAULT_TTL, RENEW_MARGIN, SimklAuthError, SimklClient, SimklError, SimklScopeError, extract_simkl_id,
+    DEFAULT_TTL, RENEW_MARGIN, SEARCH_LIMIT, SimklAuthError, SimklClient, SimklError, SimklScopeError, extract_simkl_id,
 )
 from penguwatch.drivers.simkl.mapper import DETAIL_MEDIA, MEDIA_OF, READ_ONLY_MSG, STATUS_BUCKETS, SYNC_TYPE_INFO
 from penguwatch.models import MediaType
+from penguwatch.textsearch import rank_matches, title_names
 
 logger = logging.getLogger("penguwatch.drivers.simkl")
 
@@ -422,12 +424,25 @@ class SimklCatalog:
         await self.service.ensure_credentials()
         return bool(self.service.client.client_id)
 
-    async def search(self, query: str, media_types: Sequence[str], limit: int = 10, detailed: int = 8) -> List[Title]:
-        """Searches TV, anime and movies (in the order of `media_types`); the first `detailed` get their details."""
+    @staticmethod
+    def parse_link(text: str) -> Optional[Tuple[str, int, str]]:
+        """(NAME, id, media type) for a pasted link to a title on SIMKL; None for anything else."""
+        m = re.search(r"simkl\.com/(tv|anime|movies)/(\d+)", text, re.I)
+        return (NAME, int(m.group(2)), {"tv": "show", "anime": "anime", "movies": "movie"}[m.group(1).lower()]) if m else None
+
+    async def search(self, query: str, media_types: Sequence[str], limit: int = SEARCH_LIMIT,
+                     detailed: int = 8) -> List[Title]:
+        """Searches TV, anime and movies (in the order of `media_types`), `limit` results of each, best match first
+        (textsearch.rank_matches); the first `detailed` of them get their details."""
         kinds = tuple(dict.fromkeys(SEARCH_KINDS[m] for m in media_types if m in SEARCH_KINDS))
+
+        def order(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            return rank_matches(query, items, names=lambda i: title_names(mapper.search_title(i)),
+                                year=lambda i: mapper.search_title(i).year)
+
         return [mapper.search_title(item) for item in
                 await self.service.client.search(query, kinds=kinds or ("tv", "anime", "movie"), limit=limit,
-                                                 enrich=detailed)]
+                                                 enrich=detailed, order=order)]
 
     async def title(self, media_type: Optional[str], ids: Mapping[str, Any]) -> Optional[Title]:
         """Details by SIMKL id; with no media type, each type is tried. None when SIMKL has nothing."""
@@ -456,10 +471,14 @@ class SimklCatalog:
         """A SIMKL id for a title known by its TMDB id (and whether SIMKL files it as anime)."""
         if ids.get(NAME):
             return dict(ids), media_type
-        if not ids.get("tmdb"):
+        provider = next((p for p in ("tmdb", "imdb") if ids.get(p)), None)
+        if not provider:
             return None
         await self.service.ensure_credentials()
-        for hit in await self.service.client.lookup_by_id(tmdb=ids["tmdb"], type="movie" if media_type == "movie" else "show"):
+        query = {provider: ids[provider]}
+        if provider == "tmdb":  # an IMDb id says movie or show by itself
+            query["type"] = "movie" if media_type == "movie" else "show"
+        for hit in await self.service.client.lookup_by_id(**query):
             sid = extract_simkl_id(hit) or extract_simkl_id(hit.get("show") or hit.get("movie") or {})
             if sid:
                 anime = hit.get("type") == "anime" or bool(hit.get("anime_type"))

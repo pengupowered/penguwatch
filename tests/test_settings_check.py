@@ -97,7 +97,7 @@ def test_check_import_writes_nothing_and_makes_no_network_call(backup, tmp_path,
     assert no_network == []
     assert digest(backup) == before and digest(config) == config_before
     assert sorted(p.name for p in backup.parent.iterdir()) == files_before  # no -wal, -shm or secrets.json
-    assert "migration: 18 -> 19" in text
+    assert "migration: 18 -> 20" in text
     assert "  server.timezone: same" in text and "  mcp.enabled: same" in text
     assert "webhooks: 1 in config.yaml, 1 stored, 1 same" in text
     assert "services: 14 in config.yaml, 14 same" in text

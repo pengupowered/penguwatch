@@ -99,37 +99,127 @@ class OptimizerConfig(BaseModel):
     unused_hours: float = Field(default=0.5, ge=0, le=20)
 
 
-class HouseholdConfig(BaseModel):
-    """Who watches. Two names add "Both" and the "who wants to watch" field; one name hides that field."""
+MAX_MEMBERS = 20  # "effectively unlimited": a household rarely has more than five people
+MEMBER_NAME_MAX = 40
+MEMBER_ID_RE = re.compile(r"^person([1-9][0-9]{0,5})$")
 
-    members: List[str] = Field(default_factory=lambda: ["Me", "Partner"], min_length=1, max_length=2,
-                               json_schema_extra={"ui_type": "names"})
+
+def member_number(member_id: str) -> int:
+    """The N of an id `person<N>`, or 0 for anything else."""
+    m = MEMBER_ID_RE.fullmatch(member_id or "") if isinstance(member_id, str) else None
+    return int(m.group(1)) if m else 0
+
+
+def normal_members(value: Any, floor: int = 0) -> Any:
+    """The household members in their stored shape, [{"id": "person<N>", "name": ...}], from any shape a value may
+    come in. The old shape (before 0.17, a list of names) gets person1, person2, ... in order. A member without an id
+    gets the next number above every id in the list and above `floor` (the highest id ever given, which the settings
+    store keeps: an id is never reused). Anything that is not a list is returned as it is, for the model to refuse."""
+    if not isinstance(value, (list, tuple)):
+        return value
+    items = list(value)
+    if items and all(isinstance(i, str) for i in items):
+        return [{"id": f"person{n}", "name": name} for n, name in enumerate(items, start=1)]
+    out: List[Any] = []
+    for item in items:
+        if isinstance(item, str):
+            out.append({"name": item})
+        elif isinstance(item, BaseModel):
+            out.append(item.model_dump())
+        elif isinstance(item, dict):
+            out.append({k: item[k] for k in ("id", "name") if k in item})
+        else:
+            out.append(item)
+    top = max([floor, *(member_number(i.get("id")) for i in out if isinstance(i, dict))])
+    for item in out:
+        if isinstance(item, dict) and not item.get("id"):
+            top += 1
+            item["id"] = f"person{top}"
+    return out
+
+
+class HouseholdMember(BaseModel):
+    """One person. `id` (person1, person2, ...) is what titles store; it never changes, so a rename keeps every title
+    with its people, and it is never given to anyone else after the person is removed."""
+
+    id: str
+    name: str
+
+
+class HouseholdConfig(BaseModel):
+    """Who watches: 1 to MAX_MEMBERS people. With two or more, every title says who wants to watch it (a set of member
+    ids) and the "who" controls show; with one, they are hidden. The old shape (a list of names) is still read."""
+
+    members: List[HouseholdMember] = Field(
+        default_factory=lambda: [HouseholdMember(id="person1", name="Me"), HouseholdMember(id="person2", name="Partner")],
+        min_length=1, max_length=MAX_MEMBERS, json_schema_extra={"ui_type": "names"})
+
+    @field_validator("members", mode="before")
+    @classmethod
+    def _old_shape(cls, value: Any) -> Any:
+        return normal_members(value)
 
     @field_validator("members")
     @classmethod
-    def _clean_names(cls, names: List[str]) -> List[str]:
-        cleaned = [str(n).strip() for n in names]
-        if any(not n or len(n) > 40 for n in cleaned):
-            raise ValueError("household.members: each name needs 1 to 40 characters")
-        return cleaned
+    def _clean_names(cls, members: List[HouseholdMember]) -> List[HouseholdMember]:
+        seen_ids, seen_names = set(), set()
+        for member in members:
+            member.name = str(member.name).strip()
+            if not member.name or len(member.name) > MEMBER_NAME_MAX:
+                raise ValueError(f"household.members: each name needs 1 to {MEMBER_NAME_MAX} characters")
+            if not member_number(member.id):
+                raise ValueError("household.members: a person's id is person1, person2, ...")
+            if member.id in seen_ids:
+                raise ValueError("household.members: each id may appear once")
+            if member.name.casefold() in seen_names:
+                raise ValueError("household.members: each person needs a different name")
+            seen_ids.add(member.id)
+            seen_names.add(member.name.casefold())
+        return members
 
     @property
     def shared(self) -> bool:
-        return len(self.members) == 2
+        """Two or more people: titles say who wants them, and the page shows the "who" controls."""
+        return len(self.members) >= 2
 
-    def labels(self) -> Dict[str, str]:
-        """Tag value -> name shown (HouseholdTag values)."""
-        if not self.shared:
-            return {"person1": self.members[0]}
-        return {"both": "Both", "person1": self.members[0], "person2": self.members[1]}
+    @property
+    def ids(self) -> List[str]:
+        return [m.id for m in self.members]
+
+    @property
+    def first(self) -> str:
+        """The first person's id: who a title is for when nobody says."""
+        return self.members[0].id
+
+    def names(self) -> Dict[str, str]:
+        """Member id -> name."""
+        return {m.id: m.name for m in self.members}
+
+    def current(self, ids: Iterable[str]) -> List[str]:
+        """The ids of `ids` that are members now, in the members' order."""
+        wanted = set(ids or ())
+        return [m.id for m in self.members if m.id in wanted]
+
+    def names_of(self, ids: Iterable[str]) -> List[str]:
+        """The names of the members among `ids`, in the members' order (ids of people no longer here are left out)."""
+        names = self.names()
+        return [names[i] for i in self.current(ids)]
+
+    def page_members(self) -> List[Dict[str, str]]:
+        """What the page's <meta> carries: [{"id", "name"}]."""
+        return [{"id": m.id, "name": m.name} for m in self.members]
 
 
 class DisplayConfig(BaseModel):
-    """How the page looks. `theme` is the palette a browser shows until its person picks one in the header menu. An id
+    """How the page looks. `theme` is the theme a browser shows until its person picks one in the header menu. An id
     that no theme has is not an error here (themes are folders, found at run time): the page falls back to `default`
-    and the log says so once (penguwatch.web.themes.resolve_default)."""
+    and the log says so once (penguwatch.web.themes.resolve_default). `effects`: whether a theme's animation runs in a
+    browser whose person has not chosen in the menu."""
 
     theme: str = Field(default="default", json_schema_extra={"ui_type": "theme"})
+    # A theme's animated effect (docs/themes.md, "Effects"): on for browsers that have not turned it off in the theme
+    # menu. Off here: off unless a browser turns it on. Never runs under prefers-reduced-motion.
+    effects: bool = True
     # The Grafana base URL the page header links to; "" = no links (PENGUWATCH_GRAFANA_URL wins while set)
     grafana_url: str = ""
 

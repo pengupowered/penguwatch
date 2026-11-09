@@ -1,0 +1,354 @@
+/* Cinema: a grand old movie palace (docs/themes.md, "Skins"). Velvet curtains hang at the page's edges, the header is a
+   lit marquee sign with a border of bulbs over a velvet valance, the tabs are ticket stubs, each page's title is set on a
+   letter board, cards sit in gilt poster-case frames, panels are framed like a printed programme, and buttons are
+   plaques with cut corners. Every colour is a token of this theme's theme.json (mixed with color-mix), every rule is
+   under this theme's data-look, and every shape is a gradient, a border, a shadow or a mask. The tab labels keep the
+   page's font and size; posters and the chips over them are left alone.
+   Fonts are the system's: a display serif for headings (Didot on a Mac, Bodoni MT or Sitka Banner on Windows, then
+   Georgia; the Linux test browser shows Liberation Serif) and a monospace for the letter board, whose tiles line up
+   with its letters because every letter of a monospace is 1ch wide.
+   Motion: the marquee's two sets of bulbs brighten in turn only while the theme's effect runs (#fx-layer
+   data-state="running": not under reduced motion, not with Animation off, not in a hidden tab), so the engine's limits
+   hold for it too; effect.js moves a faint warm light over the curtains. */
+
+:root[data-look="cinema"] {
+  --cn-serif: Didot, "Bodoni 72", "Bodoni MT", "Sitka Banner", "Playfair Display", Georgia, "Liberation Serif", serif;
+  --cn-mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+  --cn-solid: var(--bg); /* any opaque token: masks only read its alpha */
+  --cn-gold: var(--accent);
+  --cn-gold-hi: color-mix(in srgb, var(--accent) 52%, var(--ink-1));
+  --cn-gold-lo: color-mix(in srgb, var(--accent) 42%, var(--bg));
+  --cn-gold-dim: color-mix(in srgb, var(--accent) 58%, var(--bg));
+  --cn-glow: color-mix(in srgb, var(--accent) 42%, transparent);
+  --cn-velvet: var(--q2);
+  --cn-velvet-lo: color-mix(in srgb, var(--q1) 70%, var(--bg));
+  --cn-velvet-hi: color-mix(in srgb, var(--q2) 72%, var(--q3));
+  --cn-paper: var(--ink-1);
+  /* the curtains' width at each edge of the page; effect.js reads it (a plain length, so it can) */
+  --cn-curtain: 0px;
+  /* a marquee bulb: a pale filament in a gold glow */
+  --cn-bulb-a: radial-gradient(circle at 25% 50%, var(--cn-gold-hi) 0 1.8px, var(--accent) 2.6px, color-mix(in srgb, var(--accent) 35%, transparent) 3.6px, transparent 5.5px);
+  --cn-bulb-b: radial-gradient(circle at 75% 50%, var(--cn-gold-hi) 0 1.8px, var(--accent) 2.6px, color-mix(in srgb, var(--accent) 35%, transparent) 3.6px, transparent 5.5px);
+  --cn-bulb-av: radial-gradient(circle at 50% 25%, var(--cn-gold-hi) 0 1.8px, var(--accent) 2.6px, color-mix(in srgb, var(--accent) 35%, transparent) 3.6px, transparent 5.5px);
+  --cn-bulb-bv: radial-gradient(circle at 50% 75%, var(--cn-gold-hi) 0 1.8px, var(--accent) 2.6px, color-mix(in srgb, var(--accent) 35%, transparent) 3.6px, transparent 5.5px);
+  --cn-pitch: 44px; /* two bulbs */
+  --cn-channel: 13px; /* the dark channel round the sign the bulbs sit in */
+  /* a ticket: a half-round notch cut in the middle of each end */
+  --cn-ticket: radial-gradient(circle at 0 50%, transparent 5px, var(--cn-solid) 5.5px) 0 0 / 51% 100% no-repeat,
+               radial-gradient(circle at 100% 50%, transparent 5px, var(--cn-solid) 5.5px) 100% 0 / 51% 100% no-repeat;
+  --cn-ticket-sm: radial-gradient(circle at 0 50%, transparent 3.5px, var(--cn-solid) 4px) 0 0 / 51% 100% no-repeat,
+                  radial-gradient(circle at 100% 50%, transparent 3.5px, var(--cn-solid) 4px) 100% 0 / 51% 100% no-repeat;
+  /* a plaque: a quarter-round cut at each corner */
+  --cn-plaque: radial-gradient(circle at 0 0, transparent 5px, var(--cn-solid) 5.5px) 0 0 / 51% 51% no-repeat,
+               radial-gradient(circle at 100% 0, transparent 5px, var(--cn-solid) 5.5px) 100% 0 / 51% 51% no-repeat,
+               radial-gradient(circle at 0 100%, transparent 5px, var(--cn-solid) 5.5px) 0 100% / 51% 51% no-repeat,
+               radial-gradient(circle at 100% 100%, transparent 5px, var(--cn-solid) 5.5px) 100% 100% / 51% 51% no-repeat;
+  /* the gilt of a poster case: lit from the top left */
+  --cn-gilt: linear-gradient(135deg, var(--cn-gold-hi), var(--cn-gold) 20%, var(--cn-gold-lo) 48%, var(--cn-gold) 74%, var(--cn-gold-hi));
+}
+@media (min-width: 721px) {
+  :root[data-look="cinema"] { --cn-curtain: 30px; }
+}
+@media (min-width: 1200px) {
+  :root[data-look="cinema"] { --cn-curtain: 46px; }
+}
+@media (min-width: 1600px) {
+  :root[data-look="cinema"] { --cn-curtain: 120px; }
+}
+@media (max-width: 720px) {
+  :root[data-look="cinema"] { --cn-pitch: 30px; --cn-channel: 9px; }
+}
+
+/* ---------- the house: velvet curtains at both edges of the page, a warm light from the stage ---------- */
+:root[data-look="cinema"] body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(90deg, color-mix(in srgb, var(--bg) 55%, transparent), transparent 35%, transparent 62%, color-mix(in srgb, var(--bg) 75%, transparent) 88%, var(--bg)),
+    repeating-linear-gradient(90deg, var(--cn-velvet-lo) 0, var(--cn-velvet) 9px, var(--cn-velvet-hi) 12px, var(--cn-velvet) 15px, var(--cn-velvet-lo) 24px),
+    linear-gradient(270deg, color-mix(in srgb, var(--bg) 55%, transparent), transparent 35%, transparent 62%, color-mix(in srgb, var(--bg) 75%, transparent) 88%, var(--bg)),
+    repeating-linear-gradient(270deg, var(--cn-velvet-lo) 0, var(--cn-velvet) 9px, var(--cn-velvet-hi) 12px, var(--cn-velvet) 15px, var(--cn-velvet-lo) 24px),
+    radial-gradient(70% 520px at 50% 0, color-mix(in srgb, var(--q2) 22%, transparent), transparent 75%);
+  background-size: var(--cn-curtain) 100%, var(--cn-curtain) 100%, var(--cn-curtain) 100%, var(--cn-curtain) 100%, 100% 100%;
+  background-position: left top, left top, right top, right top, center top;
+  background-repeat: repeat-y, repeat-y, repeat-y, repeat-y, no-repeat;
+}
+:root[data-look="cinema"] .fx-layer canvas { position: absolute; top: 0; will-change: transform; }
+@media (min-width: 721px) {
+  /* the page keeps clear of the curtains */
+  :root[data-look="cinema"] .app-main {
+    padding-inline: max(24px, calc(var(--cn-curtain) + 18px - max(0px, (100vw - var(--page-max)) / 2)));
+    padding-top: 30px;
+  }
+}
+
+/* ---------- the header: a velvet valance holding the marquee sign and the row of tickets ---------- */
+:root[data-look="cinema"] .topbar::before {
+  background:
+    linear-gradient(to bottom, color-mix(in srgb, var(--bg) 30%, transparent), transparent 45%, color-mix(in srgb, var(--bg) 55%, transparent)),
+    repeating-linear-gradient(90deg, var(--cn-velvet-lo) 0, var(--cn-velvet) 13px, var(--cn-velvet-hi) 17px, var(--cn-velvet) 21px, var(--cn-velvet-lo) 34px);
+  backdrop-filter: none;
+  border-bottom: 2px solid var(--cn-gold-dim);
+}
+/* the valance's scalloped hem with a gold fringe, hanging just below the header */
+:root[data-look="cinema"] .topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 13px; pointer-events: none;
+  background: radial-gradient(18px 12px at 50% 0, var(--cn-velvet) 0 74%, var(--cn-gold-dim) 78% 94%, transparent 100%) 0 0 / 36px 13px repeat-x;
+  filter: drop-shadow(0 3px 3px color-mix(in srgb, var(--bg) 80%, transparent));
+}
+
+/* the marquee sign: a gold frame, a dark channel of bulbs round it, a gold inner rule and the name in lights */
+:root[data-look="cinema"] .tb-inner {
+  margin: 12px auto 0; width: calc(100% - 32px); max-width: calc(var(--page-max) - 32px);
+  padding: calc(var(--cn-channel) + 9px) calc(var(--cn-channel) + 16px);
+  border: 2px solid var(--cn-gold); border-radius: 4px;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--cn-velvet-lo) 55%, var(--bg)), var(--bg) 85%);
+  box-shadow:
+    inset 0 0 0 var(--cn-channel) color-mix(in srgb, var(--cn-gold-lo) 30%, var(--bg)),
+    inset 0 0 0 calc(var(--cn-channel) + 1.5px) var(--cn-gold-dim),
+    0 0 0 1px var(--bg),
+    0 0 28px -6px var(--cn-glow);
+}
+/* the bulbs: two sets (::before, ::after) side by side round the channel. `round` scales the tiles of both sets the same,
+   so they interleave exactly and no bulb is cut at a corner. */
+:root[data-look="cinema"] .tb-inner::before,
+:root[data-look="cinema"] .tb-inner::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  padding: var(--cn-channel) 0;
+  background-origin: padding-box, padding-box, content-box, content-box;
+  background-clip: padding-box, padding-box, content-box, content-box;
+}
+:root[data-look="cinema"] .tb-inner::before {
+  background-image: var(--cn-bulb-a), var(--cn-bulb-a), var(--cn-bulb-av), var(--cn-bulb-av);
+  background-size: var(--cn-pitch) var(--cn-channel), var(--cn-pitch) var(--cn-channel), var(--cn-channel) var(--cn-pitch), var(--cn-channel) var(--cn-pitch);
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: round no-repeat, round no-repeat, no-repeat round, no-repeat round;
+}
+:root[data-look="cinema"] .tb-inner::after {
+  background-image: var(--cn-bulb-b), var(--cn-bulb-b), var(--cn-bulb-bv), var(--cn-bulb-bv);
+  background-size: var(--cn-pitch) var(--cn-channel), var(--cn-pitch) var(--cn-channel), var(--cn-channel) var(--cn-pitch), var(--cn-channel) var(--cn-pitch);
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: round no-repeat, round no-repeat, no-repeat round, no-repeat round;
+}
+@keyframes cinema-bulbs { 0%, 100% { opacity: 1; } 50% { opacity: .38; } }
+:root[data-look="cinema"] #fx-layer[data-state="running"] ~ .topbar .tb-inner::before,
+:root[data-look="cinema"] #fx-layer[data-state="running"] ~ .topbar .tb-inner::after {
+  will-change: opacity; animation: cinema-bulbs 2.8s ease-in-out infinite;
+}
+:root[data-look="cinema"] #fx-layer[data-state="running"] ~ .topbar .tb-inner::after { animation-delay: -1.4s; }
+
+:root[data-look="cinema"] .brand-name {
+  font-family: var(--cn-serif); font-size: 25px; font-weight: 700; line-height: 1;
+  text-transform: uppercase; letter-spacing: .2em; color: var(--cn-gold-hi);
+  text-shadow: 0 0 1px var(--accent), 0 0 12px var(--cn-glow);
+}
+:root[data-look="cinema"] .status-pill {
+  border-radius: 0; -webkit-mask: var(--cn-plaque); mask: var(--cn-plaque);
+  padding-inline: 12px 15px;
+}
+:root[data-look="cinema"] .status-pill:focus-visible { outline-offset: -4px; }
+
+/* ---------- the tabs: a row of ticket stubs, the open one gold ---------- */
+@media (min-width: 721px) {
+  :root[data-look="cinema"] .tabs { max-width: none; align-items: center; padding-block: 10px 12px; }
+  :root[data-look="cinema"] .tabs-inner { gap: 6px; margin-inline: auto; }
+  :root[data-look="cinema"] .nav-btn {
+    height: 34px; padding: 0 15px 0 14px; gap: 11px; border-radius: 0;
+    color: var(--ink-2);
+    background:
+      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--bg) 70%, transparent) 0 2px, transparent 2px 5px) 37px 0 / 1px 100% no-repeat,
+      linear-gradient(to bottom, color-mix(in srgb, var(--cn-velvet) 42%, var(--surface-3)), color-mix(in srgb, var(--cn-velvet) 30%, var(--surface-2)));
+    -webkit-mask: var(--cn-ticket); mask: var(--cn-ticket);
+  }
+  :root[data-look="cinema"] .tabs-icons .nav-btn { padding: 0 15px; background-size: 0 0, auto; }
+  :root[data-look="cinema"] .nav-btn:hover {
+    color: var(--ink-1);
+    background:
+      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--bg) 70%, transparent) 0 2px, transparent 2px 5px) 37px 0 / 1px 100% no-repeat,
+      linear-gradient(to bottom, color-mix(in srgb, var(--cn-velvet) 60%, var(--surface-3)), color-mix(in srgb, var(--cn-velvet) 45%, var(--surface-2)));
+  }
+  :root[data-look="cinema"] .tabs-icons .nav-btn:hover { background-size: 0 0, auto; }
+  :root[data-look="cinema"] .nav-btn svg.i { color: var(--cn-gold); }
+  :root[data-look="cinema"] .nav-btn.active {
+    color: var(--on-accent);
+    background:
+      repeating-linear-gradient(to bottom, color-mix(in srgb, var(--on-accent) 55%, transparent) 0 2px, transparent 2px 5px) 37px 0 / 1px 100% no-repeat,
+      linear-gradient(to bottom, var(--cn-gold-hi), var(--accent) 60%, color-mix(in srgb, var(--accent) 85%, var(--bg)));
+  }
+  :root[data-look="cinema"] .tabs-icons .nav-btn.active { background-size: 0 0, auto; }
+  :root[data-look="cinema"] .nav-btn.active svg.i { color: var(--on-accent); }
+  :root[data-look="cinema"] .nav-btn.active::after { display: none; }
+  :root[data-look="cinema"] .nav-btn:focus-visible { outline-offset: -4px; }
+  :root[data-look="cinema"] .nav-btn.active:focus-visible { outline-color: var(--on-accent); }
+}
+
+/* ---------- a tab's title: white letters on a letter board ---------- */
+:root[data-look="cinema"] .page-h {
+  padding-bottom: 14px;
+  background:
+    linear-gradient(90deg, transparent, var(--cn-gold-dim) 12%, var(--cn-gold-dim) 88%, transparent) 0 100% / 100% 1px no-repeat,
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--cn-gold-dim) 60%, transparent) 20%, color-mix(in srgb, var(--cn-gold-dim) 60%, transparent) 80%, transparent) 0 calc(100% - 4px) / 100% 1px no-repeat;
+}
+:root[data-look="cinema"] .page-h > svg.i { display: none; }
+/* Every letter of a monospace is 1ch wide, so with letter-spacing --cn-s each takes 1ch + --cn-s: the tiles are that wide,
+   with a --cn-g groove at the end of each, and start (--cn-s + --cn-g) / 2 in, so each sits under its letter, the frame is
+   as wide at both ends, and a wrapped line, starting at the same place, lines up too. */
+:root[data-look="cinema"] .page-t {
+  --cn-s: .5em; --cn-g: 3px; --cn-lh: 1.75em;
+  font: 700 20px/var(--cn-lh) var(--cn-mono); letter-spacing: var(--cn-s); text-transform: uppercase;
+  color: var(--bg); max-width: 100%;
+  padding: 0 0 var(--cn-g) var(--cn-s);
+  border: 3px solid var(--bg);
+  background:
+    linear-gradient(var(--bg), var(--bg)) 0 0 / calc((var(--cn-s) - var(--cn-g)) / 2 + 1px) 100% no-repeat,
+    linear-gradient(var(--bg), var(--bg)) 100% 0 / calc((var(--cn-s) - var(--cn-g)) / 2 + 1px) 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--bg) 0 var(--cn-g), transparent var(--cn-g) var(--cn-lh)) 0 0 / 100% 100% no-repeat,
+    linear-gradient(90deg, transparent 0 calc(100% - var(--cn-g)), var(--bg) calc(100% - var(--cn-g))) calc((var(--cn-s) + var(--cn-g)) / 2) 0 / calc(1ch + var(--cn-s)) 100% repeat-x,
+    linear-gradient(to bottom, var(--cn-paper), color-mix(in srgb, var(--cn-paper) 84%, var(--accent)));
+  box-shadow: 0 0 0 1px var(--cn-gold-dim), 0 0 0 3px var(--bg), 0 0 0 4px var(--cn-gold-dim), 0 0 26px -2px var(--cn-glow);
+  text-shadow: none;
+}
+:root[data-look="cinema"] .page-t:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+:root[data-look="cinema"] .page-m { font-family: var(--cn-serif); font-style: italic; font-size: var(--fs-md); color: var(--ink-3); }
+
+/* ---------- cards: gilt poster cases with a bevel, lit from above ---------- */
+:root[data-look="cinema"] :is(.upnext-card, .show-card, .discover-card, .timeline-card) {
+  border: 5px solid var(--cn-gold); border-image: var(--cn-gilt) 1; border-radius: 0;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 8%, var(--surface-1)), var(--surface-1) 55%);
+  box-shadow:
+    inset 1px 1px 0 color-mix(in srgb, var(--bg) 70%, transparent),
+    inset -1px -1px 0 color-mix(in srgb, var(--cn-gold-hi) 40%, transparent),
+    0 0 0 1px var(--bg),
+    0 14px 30px -18px var(--cn-glow);
+}
+:root[data-look="cinema"] :is(.upnext-card, .show-card, .discover-card, .timeline-card):hover {
+  border-image: linear-gradient(135deg, var(--ink-1), var(--cn-gold-hi) 22%, var(--cn-gold) 50%, var(--cn-gold-hi) 78%, var(--ink-1)) 1;
+  box-shadow:
+    inset 1px 1px 0 color-mix(in srgb, var(--bg) 70%, transparent),
+    0 0 0 1px var(--bg),
+    0 16px 34px -14px var(--cn-glow);
+}
+
+/* ---------- panels: a printed programme, a double gold rule with studs at the corners ---------- */
+:root[data-look="cinema"] .panel {
+  border: 1px solid var(--cn-gold-dim); border-radius: 0;
+  background:
+    radial-gradient(circle, var(--cn-gold) 0 2px, transparent 2.6px) 0 0 / 9px 9px no-repeat,
+    radial-gradient(circle, var(--cn-gold) 0 2px, transparent 2.6px) 100% 0 / 9px 9px no-repeat,
+    radial-gradient(circle, var(--cn-gold) 0 2px, transparent 2.6px) 0 100% / 9px 9px no-repeat,
+    radial-gradient(circle, var(--cn-gold) 0 2px, transparent 2.6px) 100% 100% / 9px 9px no-repeat,
+    var(--surface-1);
+  box-shadow: inset 0 0 0 4px var(--surface-1), inset 0 0 0 5px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+:root[data-look="cinema"] .panel-h {
+  margin: 5px 5px 0; padding-left: 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--cn-velvet) 34%, var(--surface-1)), var(--surface-1));
+}
+:root[data-look="cinema"] .panel-h > svg.i { color: var(--cn-gold-dim); }
+:root[data-look="cinema"] :is(.panel-t, .modal-t) {
+  font-family: var(--cn-serif); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--cn-gold-hi);
+}
+:root[data-look="cinema"] .panel-f { margin: 0 5px 5px; border-top-color: color-mix(in srgb, var(--accent) 24%, var(--line)); }
+
+/* ---------- buttons: plaques with cut corners; gold ones are brass ---------- */
+:root[data-look="cinema"] .btn {
+  border-radius: 0; -webkit-mask: var(--cn-plaque); mask: var(--cn-plaque);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+:root[data-look="cinema"] .btn:focus-visible { outline-offset: -4px; }
+:root[data-look="cinema"] .btn.outline {
+  border-color: var(--cn-gold-dim);
+  background:
+    radial-gradient(circle at 0 0, transparent 5px, var(--cn-gold-dim) 5.5px 6.5px, transparent 7px) -1px -1px / 8px 8px no-repeat,
+    radial-gradient(circle at 100% 0, transparent 5px, var(--cn-gold-dim) 5.5px 6.5px, transparent 7px) calc(100% + 1px) -1px / 8px 8px no-repeat,
+    radial-gradient(circle at 0 100%, transparent 5px, var(--cn-gold-dim) 5.5px 6.5px, transparent 7px) -1px calc(100% + 1px) / 8px 8px no-repeat,
+    radial-gradient(circle at 100% 100%, transparent 5px, var(--cn-gold-dim) 5.5px 6.5px, transparent 7px) calc(100% + 1px) calc(100% + 1px) / 8px 8px no-repeat,
+    color-mix(in srgb, var(--cn-velvet) 16%, transparent);
+}
+:root[data-look="cinema"] .btn.outline:hover { background-color: color-mix(in srgb, var(--cn-velvet) 40%, var(--surface-2)); color: var(--ink-1); }
+:root[data-look="cinema"] .btn.primary {
+  background: linear-gradient(to bottom, var(--cn-gold-hi), var(--accent) 55%, color-mix(in srgb, var(--accent) 82%, var(--bg)));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink-1) 60%, transparent), inset 0 -2px 0 color-mix(in srgb, var(--bg) 35%, transparent);
+}
+:root[data-look="cinema"] .btn.primary:hover { background: linear-gradient(to bottom, var(--ink-1), var(--cn-gold-hi) 55%, var(--accent)); }
+:root[data-look="cinema"] .btn.primary:focus-visible { outline-color: var(--on-accent); }
+:root[data-look="cinema"] .btn.danger { border-color: color-mix(in srgb, var(--crit) 50%, transparent); }
+
+/* ---------- chips: little tickets, notched at both ends ---------- */
+:root[data-look="cinema"] .chip:not(.on-image) {
+  border-radius: 0; padding-inline: 10px; -webkit-mask: var(--cn-ticket-sm); mask: var(--cn-ticket-sm);
+}
+:root[data-look="cinema"] .chip:not(.st, .on-image) {
+  background: color-mix(in srgb, var(--cn-velvet) 34%, var(--surface-3)); border-color: transparent;
+}
+:root[data-look="cinema"] button.chip { font-weight: var(--fw-semi); }
+:root[data-look="cinema"] button.chip[aria-pressed="true"] {
+  color: var(--ink-1); border-color: transparent;
+  background: color-mix(in srgb, var(--accent) 30%, var(--surface-3));
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+:root[data-look="cinema"] button.chip:focus-visible { outline-offset: -3px; }
+
+/* ---------- inputs, segmented choices ---------- */
+:root[data-look="cinema"] .input { border-radius: 0; border-color: color-mix(in srgb, var(--accent) 30%, var(--line-strong)); }
+:root[data-look="cinema"] .seg { border-radius: 0; border-color: var(--cn-gold-dim); }
+:root[data-look="cinema"] .seg button { border-radius: 0; }
+:root[data-look="cinema"] .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); box-shadow: none; }
+:root[data-look="cinema"] .seg button[aria-pressed="true"]:focus-visible { outline-color: var(--on-accent); outline-offset: -3px; }
+
+/* ---------- dialogs: a gilt case, the title on a velvet band under a row of bulbs ---------- */
+:root[data-look="cinema"] .modal-content {
+  border: 5px solid var(--cn-gold); border-image: var(--cn-gilt) 1; border-radius: 0;
+  box-shadow: var(--shadow-pop), 0 0 0 1px var(--bg), 0 24px 60px -24px var(--cn-glow);
+}
+:root[data-look="cinema"] .modal-h {
+  padding-top: 22px;
+  border-bottom: 1px solid var(--cn-gold-dim);
+  background:
+    var(--cn-bulb-a) 0 0 / 28px 14px round no-repeat,
+    linear-gradient(to bottom, color-mix(in srgb, var(--cn-velvet) 45%, var(--surface-1)), var(--surface-1));
+}
+:root[data-look="cinema"] .modal-h > svg.i { color: var(--cn-gold); }
+:root[data-look="cinema"] .modal-f { border-top-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+
+/* ---------- the header's menus: a small programme ---------- */
+:root[data-look="cinema"] .menu {
+  border-radius: 0; border: 1px solid var(--cn-gold-dim);
+  box-shadow: inset 0 0 0 3px var(--surface-1), inset 0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow-pop);
+  padding: 7px;
+}
+
+/* ---------- Settings ---------- */
+:root[data-look="cinema"] .set-row { border-top-color: color-mix(in srgb, var(--accent) 16%, var(--line)); }
+:root[data-look="cinema"] .set-card { border-radius: 0; border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+
+/* ---------- History's charts ---------- */
+:root[data-look="cinema"] .hc-grid { stroke-dasharray: 2 4; }
+
+/* ---------- phones: a smaller sign, no curtains, the bottom bar a row of tickets under a string of bulbs ---------- */
+@media (max-width: 720px) {
+  :root[data-look="cinema"] .tb-inner {
+    margin: 6px 6px 0; width: auto; padding: calc(var(--cn-channel) + 4px) calc(var(--cn-channel) + 3px);
+  }
+  :root[data-look="cinema"] .topbar::after { height: 9px; background-size: 24px 9px; background-image: radial-gradient(12px 8px at 50% 0, var(--cn-velvet) 0 72%, var(--cn-gold-dim) 76% 94%, transparent 100%); }
+  :root[data-look="cinema"] .topbar::before { border-bottom-width: 1px; }
+  :root[data-look="cinema"] .app-main { padding-top: 22px; }
+  :root[data-look="cinema"] .tabs {
+    border-top: 2px solid var(--cn-gold-dim); padding-top: 14px;
+    background:
+      var(--cn-bulb-a) 0 1px / 32px 10px round no-repeat,
+      var(--cn-bulb-b) 0 1px / 32px 10px round no-repeat,
+      linear-gradient(to bottom, color-mix(in srgb, var(--cn-velvet) 50%, var(--surface-1)), var(--surface-1));
+  }
+  :root[data-look="cinema"] :is(.nav-btn, .nav-more) { border-radius: 0; margin-inline: 3px; }
+  :root[data-look="cinema"] :is(.nav-btn, .nav-more).active {
+    color: var(--on-accent);
+    background: linear-gradient(to bottom, var(--cn-gold-hi), var(--accent));
+    -webkit-mask: var(--cn-ticket); mask: var(--cn-ticket);
+  }
+  :root[data-look="cinema"] :is(.nav-btn, .nav-more).active::before { display: none; }
+  :root[data-look="cinema"] :is(.nav-btn, .nav-more):focus-visible { outline-offset: -4px; }
+  :root[data-look="cinema"] .page-t { --cn-s: .4em; font-size: 15px; }
+  :root[data-look="cinema"] :is(.upnext-card, .show-card, .discover-card, .timeline-card) { border-width: 4px; }
+  :root[data-look="cinema"] .modal-content { border-width: 4px 4px 0; }
+}

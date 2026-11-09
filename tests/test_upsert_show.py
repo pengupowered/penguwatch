@@ -3,7 +3,7 @@
 import pytest
 
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import HouseholdTag, MediaType, Priority, ServiceConfig, Show, ShowStatus
+from penguwatch.models import MediaType, Priority, ServiceConfig, Show, ShowStatus
 
 # Columns upsert_show never writes (set elsewhere): they must stay at their defaults.
 NEVER_WRITTEN = {"episodes_synced_at", "sequels"}
@@ -16,7 +16,7 @@ def full_show(**over) -> Show:
         title="Round Trip", year=1999, poster="p.jpg", banner="b.jpg", overview="An overview.",
         genres=["Drama", "Mystery"], network="Some Net", service_id="netflix", service_manual=True,
         status=ShowStatus.WATCHING,
-        priority=Priority.HIGH, household_tag=HouseholdTag.PERSON2, simkl_rating=7.7, imdb_rating=8.1,
+        priority=Priority.HIGH, household=["person2"], simkl_rating=7.7, imdb_rating=8.1,
         imdb_votes=12345, user_rating=9.0, total_episodes=24,
         watched_episodes=7, aired_episodes=20, runtime_minutes=52,
         next_episode_air_date="2030-01-02", next_episode_season=2, next_episode_number=5,
@@ -68,7 +68,7 @@ async def test_update_coalesces_and_keeps_household_fields(tmp_path):
             ids={"simkl": 1001}, title="Renamed", poster="new.jpg", genres=[], status=ShowStatus.COMPLETED,
             watched_episodes=3, imdb_rating=5.5, is_ended=False,
             # household-only values that must NOT overwrite the stored ones
-            priority=Priority.LOW, household_tag=HouseholdTag.BOTH,
+            priority=Priority.LOW, household=["person1", "person2"],
             notes="other note", service_manual=False, enriched_at="2000-01-01",
             # total/aired 0 keep the stored counts; runtime default 45 is a real value
             total_episodes=0, aired_episodes=0,
@@ -92,7 +92,7 @@ async def test_update_coalesces_and_keeps_household_fields(tmp_path):
         # zero keeps counts
         assert got.total_episodes == 24 and got.aired_episodes == 20
         # household-only fields untouched
-        assert got.priority == Priority.HIGH and got.household_tag == HouseholdTag.PERSON2
+        assert got.priority == Priority.HIGH and got.household == ["person2"]
         assert got.notes == "household note"
         assert got.service_manual is True
         assert got.enriched_at == "2026-01-02T10:00:00+00:00"

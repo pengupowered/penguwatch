@@ -87,15 +87,16 @@ def local_time(value: Optional[str]) -> Optional[str]:
 
 # --- how a title is shown ---------------------------------------------------------------------------------------------
 
-def _who(c: AppContainer, show: Show) -> str:
-    return c.config.household.labels().get(show.household_tag.value, show.household_tag.value)
+def _who(c: AppContainer, member_ids) -> List[str]:
+    """The names of the people who want a title (its member ids), in the household's order."""
+    return c.config.household.names_of(member_ids or ())
 
 
 def brief(c: AppContainer, show: Show) -> Dict[str, Any]:
     """One line of a list: what a title is and how far along."""
     out: Dict[str, Any] = {
         "id": show.id, "title": show.title, "year": show.year, "type": show.media_type.value,
-        "status": show.status.value, "for": _who(c, show), "service_id": show.service_id,
+        "status": show.status.value, "for": _who(c, show.household), "service_id": show.service_id,
         "watched": show.watched_episodes, "aired": show.aired_episodes, "total": show.total_episodes,
         "episodes_left": show.episodes_left, "imdb": show.imdb_rating, "my_rating": show.user_rating,
     }
@@ -150,7 +151,7 @@ async def _up_next(c: AppContainer, a: UpNextArgs):
         nxt = e.get("up_next") or {}
         row = {"id": e["id"], "title": e["title"], "type": getattr(e["media_type"], "value", e["media_type"]),
                "service": e.get("service_name"), "service_active": e.get("service_active"),
-               "for": c.config.household.labels().get(getattr(e["household_tag"], "value", e["household_tag"])),
+               "for": _who(c, e.get("household")),
                "watched": e["watched_episodes"], "aired": e["aired_episodes"], "episodes_left": e["episodes_left"],
                "next_to_watch": _episode(nxt.get("code"), nxt.get("title"), nxt.get("air_date")),
                "next_new_episode": _episode(format_episode_code(e.get("next_episode_season"), e.get("next_episode_number")),
@@ -165,13 +166,27 @@ async def _up_next(c: AppContainer, a: UpNextArgs):
 # --- tonights_pick -----------------------------------------------------------------------------------------------------
 
 class PickArgs(Args, RandomPickFilter):
-    """Tonight's Pick's own filter (the same fields as POST /api/decide/pick)."""
+    """Tonight's Pick's own filter (the same fields as POST /api/decide/pick; `member` also takes a name)."""
+
+    member: Optional[str] = Field(None, max_length=64, description=(
+        "A household member's name (as in a title's `for`) or id: only titles that person wants."))
+    shared: Optional[bool] = Field(None, description=(
+        "true: only titles two or more people want; false: only titles one person wants alone."))
+
+
+def _member_id(c: AppContainer, wanted: Optional[str]) -> List[str]:
+    if not wanted:
+        return []
+    for member in c.config.household.members:
+        if wanted in (member.id, member.name) or wanted.casefold() == member.name.casefold():
+            return [member.id]
+    raise ToolFailure("No one in the household has that name; the names are in each title's `for`.")
 
 
 async def _tonights_pick(c: AppContainer, a: PickArgs):
     shows = await c.repository.get_shows(
         service_id=a.service_id, only_active_services=a.only_active_services, status=a.status,
-        household_tag=a.household_tag, media_type=a.media_type)
+        members=_member_id(c, a.member), shared=a.shared, media_type=a.media_type)
     drawn = pick.pick(shows, a)
     chosen = drawn["result"]
     if chosen is None:
@@ -256,7 +271,7 @@ async def _schedule(c: AppContainer, a: ScheduleArgs):
                "episode": it.get("next_episode_number"), "episode_title": it.get("next_episode_title"),
                "air": local_time(it.get("next_episode_air_date")), "service": it.get("service_name") or it.get("network"),
                "service_active": bool(it.get("is_service_active")),
-               "for": c.config.household.labels().get(it.get("household_tag"))}
+               "for": _who(c, it.get("household"))}
         if it.get("en_title"):
             row["en_title"] = it["en_title"]
         rows.append({k: v for k, v in row.items() if v is not None})

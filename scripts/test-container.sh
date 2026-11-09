@@ -33,7 +33,7 @@ version="$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' "$ROOT/src/penguwatch/__init
 [ -n "$version" ] || fail "cannot read __version__"
 
 if [ "$BUILD" = 1 ]; then
-    "$ENGINE" build "${BUILD_ARGS[@]}" -t "$IMAGE" "$ROOT"
+    "$ENGINE" build --build-arg "APT_REFRESH=$(date -u +%Y-%m-%d)" "${BUILD_ARGS[@]}" -t "$IMAGE" "$ROOT"
 fi
 
 tmp="$(mktemp -d)"

@@ -55,27 +55,76 @@ export function statusOptionsFor(show) {
     .join("");
 }
 
-// Who watches: tag -> name, from the Household setting (household.members), which the server puts in a <meta> of the page.
-const HOUSEHOLD_NAMES = (() => {
+// Who watches: the household's people [{id, name}] in order, from the Household setting (household.members), which the
+// server puts in a <meta> of the page. A title's `household` is the ids of the people who want it.
+export const HOUSEHOLD = (() => {
   try {
-    return JSON.parse(document.querySelector('meta[name="penguwatch-household"]')?.content || "{}");
+    const members = JSON.parse(document.querySelector('meta[name="penguwatch-household"]')?.content || "[]");
+    return Array.isArray(members) ? members.filter((m) => m && typeof m.id === "string") : [];
   } catch {
-    return {};
+    return [];
   }
 })();
 
-// Two people: titles carry "who wants to watch" (person1, person2 or both). One person: that field is hidden.
-export const householdShared = "person2" in HOUSEHOLD_NAMES;
+// Two or more people: titles say who wants to watch them, and the "who" controls show. One person: they are hidden.
+export const householdShared = HOUSEHOLD.length >= 2;
+// Who a title is for when nobody says ("Add for me")
+export const householdFirst = HOUSEHOLD.length ? HOUSEHOLD[0].id : "person1";
 
-// Plain text (escape it before putting it into HTML).
-export function householdLabel(tag) {
-  if (tag === "both") return "Both";
-  return HOUSEHOLD_NAMES[tag] || HOUSEHOLD_NAMES.person1 || "Me";
+// The current members among `ids`, in the household's order.
+export function householdIds(ids) {
+  const set = new Set(ids || []);
+  return HOUSEHOLD.filter((m) => set.has(m.id)).map((m) => m.id);
 }
 
-// [value, label] pairs for the "who wants to watch" pickers.
-export function householdOptions() {
-  return (householdShared ? ["person1", "person2", "both"] : ["person1"]).map((tag) => [tag, householdLabel(tag)]);
+export function householdName(id) {
+  return (HOUSEHOLD.find((m) => m.id === id) || {}).name || "";
+}
+
+// The word for titles two or more people want: "Both want" with two people, "Shared" with more.
+export const sharedLabel = () => (HOUSEHOLD.length === 2 ? "Both want" : "Shared");
+
+// Plain text for who wants a title (escape it before putting it into HTML): one person's name; "Both" (two people) or
+// "Everyone" (three or more) when all of them do; otherwise the names, or "Ann +2" when they would not fit.
+export function householdText(ids, fit = 18) {
+  const who = householdIds(ids);
+  if (!who.length) return HOUSEHOLD.length ? HOUSEHOLD[0].name : "";
+  if (who.length === 1) return householdName(who[0]);
+  if (who.length === HOUSEHOLD.length) return HOUSEHOLD.length === 2 ? "Both" : "Everyone";
+  const names = who.map(householdName);
+  const all = names.join(", ");
+  return all.length <= fit ? all : `${names[0]} +${names.length - 1}`;
+}
+
+// The icon for who wants a title: one person or several.
+export const householdIcon = (ids) => (householdIds(ids).length > 1 ? "users" : "user");
+
+// Toggle chips, one per person, for choosing who wants a title (a checkbox each; at least one stays ticked: see
+// keepOneTicked). `name` groups the checkboxes; `label` is the group's accessible name.
+export function whoToggles(ids, { name = "who", label = "Who wants to watch", attrs = "" } = {}) {
+  const on = new Set(householdIds(ids).length ? householdIds(ids) : [householdFirst]);
+  const toggle = (m) => {
+    const tick = on.has(m.id) ? " checked" : "";
+    return `<label class="who-toggle"><input type="checkbox" name="${esc(name)}" value="${esc(m.id)}"${tick}><span>${esc(m.name)}</span></label>`;
+  };
+  return `<span class="who-toggles" role="group" aria-label="${esc(label)}"${attrs}>${HOUSEHOLD.map(toggle).join("")}</span>`;
+}
+
+// The ids ticked in a group of whoToggles, in the household's order.
+export function tickedWho(group) {
+  return householdIds([...group.querySelectorAll('input[type="checkbox"]:checked')].map((i) => i.value));
+}
+
+// A change of one toggle that would leave nobody ticked is undone: a title is always wanted by someone. True when the
+// change stands.
+export function keepOneTicked(input) {
+  const group = input.closest(".who-toggles");
+  if (!input.checked && group && !group.querySelector('input[type="checkbox"]:checked')) {
+    input.checked = true;
+    showToast("At least one person wants a title", true);
+    return false;
+  }
+  return true;
 }
 
 // The built-in rating sources a title has a value for (state.ratingSources lists them; a title keeps each in its

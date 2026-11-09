@@ -37,7 +37,7 @@ Every document, grouped by what you are trying to do. The [project README](../RE
 
 - [Development](development.md): project layout, running locally, tests, migrations.
 - [The web UI](ui.md): how the page is built, theming, adding a tab and the rules the tests enforce.
-- [Themes](themes.md): the seven palettes, the server default, the theme.json contract, the checks, adding a theme.
+- [Themes](themes.md): the twelve palettes and five skins, the server default, the theme.json contract, skins and effects, the checks, adding a theme.
 - [Releasing](releasing.md): CI, the release workflow and the first public release.
 - [Supply chain](supply-chain.md): the dependency policy and how dependencies are updated.
 - [Contributing](../CONTRIBUTING.md), [Security policy](../SECURITY.md) and the [changelog](../CHANGELOG.md).

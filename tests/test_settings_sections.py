@@ -11,6 +11,7 @@ from penguwatch.config import (
 )
 from penguwatch.drivers.simkl.options import SimklOptions
 from penguwatch.settings import legacy, registry
+from penguwatch.settings.importer import _as_stored
 
 _PINNING = ("PENGUWATCH_LOG_LEVEL", "PENGUWATCH_TZ", "PENGUWATCH_MCP_ENABLED", "PENGUWATCH_GRAFANA_URL",
             "PENGUWATCH_NOTIFY_KIND", "PENGUWATCH_NOTIFY_HOUR", "PENGUWATCH_NOTIFY_URL", "PENGUWATCH_CONFIG")
@@ -35,7 +36,8 @@ def test_the_new_defaults_equal_the_constants_they_replace():
 
 def test_every_default_but_one_equals_what_the_old_build_ran_with():
     assert set(legacy.OLD_DEFAULTS) == set(registry.BY_KEY)
-    changed = {key for key, old in legacy.OLD_DEFAULTS.items() if old != registry.get(key).default()}
+    # the old values in this build's stored shape (the household's members were a list of names before 0.17)
+    changed = {key for key, old in legacy.OLD_DEFAULTS.items() if _as_stored(registry.get(key), old) != registry.get(key).default()}
     assert changed == {"optimizer.max_active_services"}
     assert legacy.OLD_DEFAULTS["optimizer.max_active_services"] == 1
     assert set(legacy.OLD_EXAMPLE_VALUES) <= set(registry.BY_KEY)

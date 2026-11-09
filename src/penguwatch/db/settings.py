@@ -238,12 +238,15 @@ class SettingsMixin:
     async def save_settings(self, base_revision: int, values: Mapping[str, Any],
                             lists: Mapping[str, Optional[List[dict]]], source: str,
                             describe: Callable[[SettingsDocument, SettingsDocument], str],
-                            slots: Iterable[str] = ()) -> Tuple[int, SettingsDocument, SettingsDocument, str]:
+                            slots: Iterable[str] = (),
+                            also: Optional[Callable[[Any], Awaitable[None]]] = None,
+                            ) -> Tuple[int, SettingsDocument, SettingsDocument, str]:
         """Applies a change (values[key] None: back to the default; lists[name] None: back to the default) as the
         next revision, unless a part it touches changed since `base_revision` (SettingsConflict). `slots`: the secret
         slots this save writes or clears (their names are kept for the conflict check; their values are in
-        secrets.json). `describe(old, new)` gives the version's summary line. Returns (revision, document before,
-        after, summary)."""
+        secrets.json). `describe(old, new)` gives the version's summary line. `also(db)` runs in the same transaction
+        after the rows are written (the household's titles when its members change); an exception rolls everything
+        back. Returns (revision, document before, after, summary)."""
         now = time.time()
         slots = sorted(set(slots))
         async with self.write() as db:
@@ -252,6 +255,8 @@ class SettingsMixin:
                 raise SettingsConflict(current, conflicts)
             old = await read_document(db)
             await _write(db, values, lists, now)
+            if also is not None:
+                await also(db)
             new = await read_document(db)
             summary = describe(old, new)
             if slots:

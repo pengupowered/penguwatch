@@ -50,14 +50,20 @@ simkl:
   app_name: "PenguWatch"
 
 household:
-  # Who watches: one or two names. Two add "Both" and a "who wants to watch" field on every title (used by the
-  # filters, Tonight's Pick and the optimizer's "both want" boost); one name hides that field.
+  # Who watches: 1 to 20 names (read once, then edited on the Settings tab, which gives each person an id that titles
+  # keep through a rename). With two or more, every title says who wants to watch it (used by the filters, Tonight's
+  # Pick and the optimizer's shared-title weight); with one, that field is hidden.
   members: ["Me", "Partner"]
 
 display:
   # The theme a browser shows until its person picks another in the header's theme menu (docs/themes.md): default,
-  # nord, dracula, solarized, e-ink, high-contrast or blueprint. An unknown name falls back to default (the log says so).
+  # amber-crt, blueprint, catppuccin, cinema, dracula, e-ink, gruvbox, high-contrast, nord, one-dark, rose-pine,
+  # solarized, starship-console, synthwave, tokyo-night or video-store. An unknown name falls back to default (the log
+  # says so).
   theme: default
+  # A theme's subtle background animation (Synthwave's), for browsers that have not switched it in the theme menu. Never
+  # runs when the system asks for reduced motion.
+  effects: true
 
 mcp:
   # The read-only MCP endpoint (POST /mcp): lets an AI assistant such as Claude ask what is up next, what to

@@ -19,7 +19,7 @@ from httpx import ASGITransport, AsyncClient
 
 from penguwatch import activity, clock, grafana, notify, webhooks_component
 from penguwatch.components import Context
-from penguwatch.config import WebhookConfig
+from penguwatch.config import HouseholdMember, WebhookConfig
 from penguwatch.drivers.simkl.client import SimklClient
 from penguwatch.main import app
 from penguwatch.models import Show, ShowStatus
@@ -95,7 +95,7 @@ async def rig(container, monkeypatch):
     clock.configure(None)
     grafana.configure("")
     hub = SettingsHub()
-    appliers.register_core(hub, config)
+    appliers.register_core(hub, config, repo)
     manager = FakeManager(config, hub)
     engine = simkl_engine(SimklClient(client_id="x", access_token="y"), repo, config.driver_options("simkl"))
     ctx = Context(app=app, config=config, repository=repo, settings=hub, settings_manager=manager, sync=engine,
@@ -180,6 +180,11 @@ async def _theme_default(rig):
         return (await ac.get("/api/themes")).json()["default"]
 
 
+async def _effects_default(rig):
+    async with client() as ac:
+        return (await ac.get("/api/themes")).json()["effects"]
+
+
 async def _bulk_groups(rig):
     async with client() as ac:
         return (await ac.get("/api/history", params={"days": 7})).json()["bulk_groups"]
@@ -203,8 +208,10 @@ def config_value(section, name):
 
 
 ENTRIES: Dict[str, Entry] = {
-    # household: the in-place copy alone (the names are read per request; the PUT answer says `reload`)
-    "household.members": Entry(["Ana", "Ben"], config_value("household", "members")),
+    # household: the in-place copy (the names are read per request; the PUT answer says `reload`) and the repository's
+    # member ids (which of a title's stored people count), from the core applier
+    "household.members": Entry([HouseholdMember(id="person1", name="Ana"), HouseholdMember(id="person3", name="Ben")],
+                               lambda r: _members(r), expect=(["Ana", "Ben"], ("person1", "person3"))),
     # sync intervals: the library's attributes, which the worker reads each loop
     "simkl.auto_sync_interval_minutes": Entry(10, sync_attr("pull_interval_minutes")),
     "simkl.idle_after_hours": Entry(24, sync_attr("idle_after_hours")),
@@ -222,6 +229,7 @@ ENTRIES: Dict[str, Entry] = {
     "notify.renewal_warning_days": Entry(9, _asked_days, prepare=lambda r: r.manager.put(slots={"notify.url": NEW_URL})),
     # display / integrations
     "display.theme": Entry("nord", _theme_default),
+    "display.effects": Entry(False, _effects_default),
     "server.timezone": Entry("Pacific/Auckland", lambda r: _value(str(clock.tz()))),
     "mcp.enabled": Entry(True, _mcp_status, expect=200),
     "display.grafana_url": Entry("https://grafana.example.com:3000", lambda r: _value(
@@ -248,6 +256,10 @@ async def _boost(rig, name):
 
 async def _unused(rig):
     return rig.optimizer.unused_hours
+
+
+async def _members(rig):
+    return [m.name for m in rig.config.household.members], rig.repo.household_members
 
 
 def test_every_registry_key_has_an_entry_or_is_a_restart_key():
@@ -283,14 +295,15 @@ def config_value_now(config, key):
 
 
 def test_the_appliers_of_the_contract_are_registered_by_their_components(rig):
-    assert sorted(rig.hub.names) == sorted(["clock.zone", "logging.level", "grafana.links", "sync.intervals",
-                                            "notify.channel", "webhooks.hooks"])
+    assert sorted(rig.hub.names) == sorted(["clock.zone", "logging.level", "grafana.links", "household.members",
+                                            "sync.intervals", "notify.channel", "webhooks.hooks"])
     assert rig.hub.subscribers(Change.of(keys=["server.timezone"])) == ["clock.zone"]
     assert rig.hub.subscribers(Change.of(slots=["notify.url"])) == ["notify.channel"]
     assert rig.hub.subscribers(Change.of(lists=["webhooks"])) == ["webhooks.hooks"]
     assert rig.hub.subscribers(Change.of(slots=["webhook.home.secret"])) == ["webhooks.hooks"]
     # settings the optimizer, History, /mcp and the page read per use have no applier
-    for key in ("optimizer.value_window_days", "optimizer.unused_hours", "history.bulk_min", "mcp.enabled", "display.theme"):
+    for key in ("optimizer.value_window_days", "optimizer.unused_hours", "history.bulk_min", "mcp.enabled", "display.theme",
+                "display.effects"):
         assert rig.hub.subscribers(Change.of(keys=[key])) == [], key
 
 

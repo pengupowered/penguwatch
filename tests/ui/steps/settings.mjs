@@ -389,4 +389,52 @@ export const steps = [
     await waitSome(".set-sec", 8);
     eq("no banner", await page.$("#settings-banner [data-banner]"), null);
   }, { variants: ["token"] }],
+
+  // `household` variant (test_ui_smoke.py): the demo library with Me, Partner and Sam (person1-3). One save adds Ana,
+  // renames Sam and removes Partner; the titles follow the ids. The dialogs' steps (details.mjs) run after this file and
+  // see Me, Sammy and Ana.
+  ["three people: add one, rename one and remove one in one save; the titles follow the ids", async ({ click, eq, goTab, ok, page, pageReady, text, until, waitSome }) => {
+    const ROW = '.set-row[data-key="household.members"]';
+    await goTab("settings");
+    await waitSome(`${ROW} .set-person`, 3);
+    const names = () => page.$$eval(`${ROW} .set-person input`, (els) => els.map((i) => i.value));
+    eq("a row per person", (await names()).join(" | "), "Me | Partner | Sam");
+    eq("Remove is on while there is more than one", await page.$$eval(`${ROW} [data-op=remove]`, (b) => b.map((x) => x.disabled).join()), "false,false,false");
+    await click(`${ROW} [data-op=add]`);
+    await until((r) => document.querySelectorAll(`${r} .set-person`).length === 4, ROW);
+    eq("the new row has the focus", await page.evaluate(() => document.activeElement.dataset.i), "3");
+    ok("an unnamed person is refused before Save", /1 to 40 characters/.test(await text(`${ROW} [data-msg]`)));
+    await page.keyboard.type("Ana");
+    await page.$eval(`${ROW} input[data-i="2"]`, (i) => { i.focus(); i.select(); });
+    await page.keyboard.type("Sammy");
+    await click(`${ROW} [data-op=remove][data-i="1"]`);
+    await until((r) => document.querySelectorAll(`${r} .set-person`).length === 3, ROW);
+    eq("the rows", (await names()).join(" | "), "Me | Sammy | Ana");
+    eq("the ids kept by the rows (Ana's is given by the server)", await page.$$eval(`${ROW} .set-person input`, (els) => els.map((i) => i.dataset.member).join()), "person1,person3,");
+    await until((r) => document.querySelector(`${r} .set-warn`), ROW);
+    eq("the warning says how many titles move", await text(`${ROW} .set-warn`), "10 titles are for Partner; saving takes that person off them. 4 of them are for no one else and move to Me.");
+    const reloaded = page.waitForNavigation({ waitUntil: "load" });
+    await click("#settings-save");
+    await reloaded; // the names are in the page's <meta>: the page reloads after the save
+    await pageReady();
+    const members = await page.$eval('meta[name="penguwatch-household"]', (m) => JSON.parse(m.content));
+    eq("the people after the save", members.map((m) => `${m.id}:${m.name}`).join(" | "), "person1:Me | person3:Sammy | person4:Ana");
+    const who = await page.evaluate(async () => Object.fromEntries((await (await fetch("/api/shows")).json()).map((s) => [s.title, s.household.join("+")])));
+    eq("Sam's title kept its id under the new name", who["Brass Meridian"], "person3");
+    eq("a title only Partner wanted went to Me", who["Kitchen Lights"], "person1");
+    eq("Partner and Sam's title is Sammy's", who["Starlit Ramen"], "person3");
+    eq("everyone's title is Me and Sammy's", who["The Quiet Harbor"], "person1+person3");
+    ok("nobody's title is Ana's yet", !Object.values(who).some((w) => w.includes("person4")));
+  }, { variants: ["household"] }],
+
+  ["three people at 390 px: the people editor fits, Remove beside each name, nothing sticks out", async ({ eq, goTab, layoutSettled, ok, page, phone, sticksOut, waitSome }) => {
+    await goTab("settings");
+    await waitSome('.set-row[data-key="household.members"] .set-person', 3);
+    await phone(async () => {
+      await layoutSettled();
+      const rows = await page.$$eval('.set-row[data-key="household.members"] .set-person', (els) => els.map((li) => { const [i, b] = [li.querySelector("input"), li.querySelector("button")].map((e) => e.getBoundingClientRect()); return Math.abs(i.top - b.top) < 8 && b.right <= innerWidth; }));
+      ok(`each name and its Remove share a line inside the window (${rows.join()})`, rows.length === 3 && rows.every(Boolean));
+      eq("sticks out", (await sticksOut()).join(" | "), "");
+    });
+  }, { variants: ["household"] }],
 ];

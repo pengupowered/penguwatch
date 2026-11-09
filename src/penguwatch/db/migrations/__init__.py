@@ -37,6 +37,7 @@ _REGISTRY = [
     (17, "driver_state", "0017_driver_state"),
     (18, "staged_cursor", "0018_staged_cursor"),
     (19, "settings", "0019_settings"),
+    (20, "household_members", "0020_household_members"),
 ]
 
 MIGRATIONS: List[Tuple[int, str, Migration]] = [

@@ -50,23 +50,28 @@ def free_port() -> int:
 
 
 # (variant, browser): `demo` is the made-up library with SIMKL not connected; `token` is the same behind an access token
-# (the run signs in through the sign-in page first); `themed` is the same app with config.yaml display.theme: nord (the
-# steps of core.mjs that say variants: ["themed"]); `pinned` is the same app with PENGUWATCH_TZ and PENGUWATCH_NOTIFY_URL set
+# (the run signs in through the sign-in page first); `themed` is the same app with config.yaml display.theme: nord and
+# display.effects: false (the steps of core.mjs that say variants: ["themed"]); `pinned` is the same app with PENGUWATCH_TZ and PENGUWATCH_NOTIFY_URL set
 # (settings.mjs: a setting pinned by the environment is read-only), PENGUWATCH_LOG_LEVEL invalid (ignored) and a config.yaml
-# webhook that signs with PENGUWATCH_WEBHOOK_DEMO (read-only on the page); the Firefox run is one pass over the core steps only.
+# webhook that signs with PENGUWATCH_WEBHOOK_DEMO (read-only on the page); `household` is the demo library with three
+# people and `solo` with one (scripts/demo_library.py --people; the steps that say variants: ["household"] or ["solo"]);
+# the Firefox run is one pass over the core steps only.
 RUNS = [pytest.param("demo", "chromium", id="demo"), pytest.param("token", "chromium", id="token"),
         pytest.param("themed", "chromium", id="themed"), pytest.param("pinned", "chromium", id="pinned"),
+        pytest.param("household", "chromium", id="household"), pytest.param("solo", "chromium", id="solo"),
         pytest.param("demo", "firefox", id="demo-firefox")]
+PEOPLE = {"household": 3, "solo": 1}  # the household of each variant (2 for the others)
 
 
 @pytest.mark.parametrize("variant, browser", RUNS)
 def test_dashboard_in_headless_browser(tmp_path, variant, browser):
     """`demo`: every panel and dialog on the demo library. `token`: the same app behind PENGUWATCH_ACCESS_TOKEN: the
-    sign-in page, then the core steps. `themed`: the server's default theme (display.theme). `demo-firefox`: the core steps in Firefox (PENGUWATCH_BROWSER=firefox)."""
+    sign-in page, then the core steps. `themed`: the server's default theme (display.theme). `household` / `solo`: three
+    people / one person. `demo-firefox`: the core steps in Firefox (PENGUWATCH_BROWSER=firefox)."""
     db = tmp_path / "smoke.db"
-    asyncio.run(demo_library().build(str(db)))
+    asyncio.run(demo_library().build(str(db), people=PEOPLE.get(variant, 2)))
     config = tmp_path / "config.yaml"
-    config.write_text(f'database: {{db_path: "{db.as_posix()}"}}\n' + ("display: {theme: nord}\n" if variant == "themed" else "")
+    config.write_text(f'database: {{db_path: "{db.as_posix()}"}}\n' + ("display: {theme: nord, effects: false}\n" if variant == "themed" else "")
                       # a 0.15 webhook that signs with a variable: imported once, shown read-only (settings.mjs)
                       + ("webhooks:\n  - {id: imported, name: Imported, url: 'https://192.0.2.30/in', secret_env: PENGUWATCH_WEBHOOK_DEMO}\n"
                          if variant == "pinned" else ""), encoding="utf-8")
@@ -119,7 +124,7 @@ def test_dashboard_in_headless_browser(tmp_path, variant, browser):
                 pytest.fail(f"the app did not start:\n{output}")
         out_dir = tmp_path / "out"  # screenshots; tmp_path is the only writable place in the container
         out_dir.mkdir()
-        run = subprocess.run(["node", str(UI / "smoke.mjs"), base, str(out_dir), variant], env=env, capture_output=True, text=True, timeout=300)
+        run = subprocess.run(["node", str(UI / "smoke.mjs"), base, str(out_dir), variant], env=env, capture_output=True, text=True, timeout=600)
         print(run.stdout)  # shown with -s: the steps that passed
         assert run.returncode == 0, f"{run.stdout}\n{run.stderr}"
     finally:

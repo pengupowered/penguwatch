@@ -6,7 +6,7 @@ import { registerLoader } from "../../js/data.js";
 import { registerAction } from "../../js/dispatch.js";
 import { state } from "../../js/state.js";
 import { onTabActivated } from "../../js/tabs.js";
-import { PLACEHOLDER_POSTER, esc, householdShared, icon } from "../../js/util.js";
+import { PLACEHOLDER_POSTER, esc, householdShared, icon, sharedLabel } from "../../js/util.js";
 import "./planner.js";
 
 const TAB = "optimizer-tab";
@@ -260,7 +260,7 @@ function rankingCard(rec, plan) {
     <div class="service-metrics">
       <div class="stat"><span class="val">${rec.hours_backlog}<small>h</small></span><span class="lbl">Backlog</span></div>
       <div class="stat"><span class="val">${rec.ready_to_binge_count}</span><span class="lbl">Ready to binge</span></div>
-      ${householdShared ? `<div class="stat"><span class="val">${rec.both_want_count}</span><span class="lbl">Both want</span></div>` : ""}
+      ${householdShared ? `<div class="stat"><span class="val">${rec.shared_count}</span><span class="lbl">${sharedLabel()}</span></div>` : ""}
       <div class="stat"><span class="val">${rec.avg_imdb_rating || "—"}</span><span class="lbl">Avg IMDb</span></div>
     </div>
     <div class="service-reason">${esc(rec.recommendation_reason)}</div>

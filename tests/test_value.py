@@ -77,7 +77,7 @@ async def test_progress_delta_is_bounded():
 
 @pytest.mark.asyncio
 async def test_huge_backlog_does_not_dominate_ranking(tmp_path):
-    from penguwatch.models import Priority, HouseholdTag
+    from penguwatch.models import Priority
 
     repo = DatabaseRepository(str(tmp_path / "cap.db"))
     await repo.initialize([
@@ -90,7 +90,7 @@ async def test_huge_backlog_does_not_dominate_ranking(tmp_path):
                                 next_episode_air_date="2099-01-01"))
     await repo.upsert_show(Show(title="Limited", service_id="bingeable", status=ShowStatus.PLANTOWATCH,
                                 total_episodes=9, aired_episodes=9, watched_episodes=0, runtime_minutes=45,
-                                is_ended=True, priority=Priority.HIGH, household_tag=HouseholdTag.BOTH, imdb_rating=8.5))
+                                is_ended=True, priority=Priority.HIGH, household=["person1", "person2"], imdb_rating=8.5))
     plan = await SubscriptionOptimizer(repository=repo, config=OptimizerConfig()).calculate_plan()
     scores = {r.service_id: r.binge_score for r in plan.service_rankings}
     assert plan.service_rankings[0].service_id == "bingeable", scores

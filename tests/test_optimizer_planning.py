@@ -4,7 +4,7 @@ import pytest
 
 from penguwatch.config import OptimizerConfig
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import HouseholdTag, Priority, ServiceConfig, Show, ShowStatus
+from penguwatch.models import Priority, ServiceConfig, Show, ShowStatus
 from penguwatch.optimizer.engine import (
     PRIORITY_OR_BOTH_WEIGHT,
     STATUS_WEIGHT,
@@ -44,7 +44,7 @@ def test_weights_by_status():
 
 def test_high_priority_and_both_count_in_full():
     assert plannable_hours(_show(ShowStatus.HOLD, priority=Priority.HIGH)) == 10.0
-    assert plannable_hours(_show(ShowStatus.PLANTOWATCH, household_tag=HouseholdTag.BOTH)) == 10.0
+    assert plannable_hours(_show(ShowStatus.PLANTOWATCH, household=["person1", "person2"])) == 10.0
 
 
 @pytest.mark.asyncio

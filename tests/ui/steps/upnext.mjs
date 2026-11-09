@@ -36,4 +36,51 @@ export const steps = [
     await waitSome("#upnext-container .upnext-card", all);
     eq("All again", await count(), all);
   }],
+  ["phone (390 px): the filter chips wrap inside the window, every chip whole (default, synthwave and amber-crt)", async ({ eq, goTab, layoutSettled, page, phone, pickLook, sleep }) => {
+    await goTab("upnext");
+    for (const look of ["", "synthwave", "amber-crt"]) {
+      await pickLook(look);
+      await phone(async () => {
+        await layoutSettled();
+        await sleep(200);
+        const m = await page.$eval("#upnext-chips", (row) => {
+          const box = row.getBoundingClientRect();
+          return { scrolls: row.scrollWidth > row.clientWidth + 0.5, chips: [...row.querySelectorAll(".upnext-chip")].map((c) => { const r = c.getBoundingClientRect(); return { text: c.textContent.replace(/\s+/g, " ").trim(), out: r.left < Math.max(0, box.left) - 0.5 || r.right > Math.min(innerWidth, box.right) + 0.5 || c.scrollWidth > c.clientWidth + 0.5 }; }) };
+        });
+        eq(`${look || "default"}: the chip row scrolls sideways`, m.scrolls, false);
+        eq(`${look || "default"}: chips cut or outside the window`, m.chips.filter((c) => c.out).map((c) => c.text).join(" | "), "");
+        eq(`${look || "default"}: six chips (All, On your services, Aired today, one per person, Both want)`, m.chips.length, 6);
+      });
+    }
+    await pickLook("");
+  }],
+
+  // `household` variant (test_ui_smoke.py): the demo library with three people (scripts/demo_library.py --people 3)
+  ["three people: a chip per person (the titles they want alone) and Shared; together they count every card", async ({ click, eq, goTab, ok, page, until, waitSome }) => {
+    await goTab("upnext");
+    await waitSome("#upnext-container .upnext-card");
+    const chips = await page.$$eval("#upnext-chips .upnext-chip", (els) => els.map((e) => ({ key: e.dataset.chip, label: e.querySelector(".chip-l").textContent, n: Number(e.querySelector(".chip-count")?.textContent ?? NaN) })));
+    eq("the chips", chips.map((c) => `${c.key}:${c.label}`).join(" | "), "all:All | active:On your services | today:Aired today | m:person1:Me | m:person2:Partner | m:person3:Sam | both:Shared");
+    const n = (key) => chips.find((c) => c.key === key).n;
+    eq("each title is one person's or shared: the counts add up to All", n("m:person1") + n("m:person2") + n("m:person3") + n("both"), n("all"));
+    ok(`some titles are shared (${n("both")})`, n("both") > 0);
+    await click('#upnext-chips [data-chip="m:person3"]');
+    await until((k) => document.querySelectorAll("#upnext-container .upnext-card").length === k, n("m:person3"));
+    eq("Sam's cards say Sam", [...new Set(await page.$$eval("#upnext-container .upnext-meta", (els) => els.map((e) => e.textContent.split(" · ").pop().trim())))].join(), "Sam");
+    await click('#upnext-chips [data-chip="both"]');
+    await until((k) => document.querySelectorAll("#upnext-container .upnext-card").length === k, n("both"));
+    const who = await page.$$eval("#upnext-container .upnext-meta", (els) => els.map((e) => e.textContent.split(" · ").pop().trim()));
+    ok(`the shared cards name two people or Everyone (${who.join(" | ")})`, who.every((w) => w === "Everyone" || w.includes(", ")));
+    await click('#upnext-chips [data-chip="all"]');
+  }, { variants: ["household"] }],
+
+  ["three people at 390 px: the seven chips wrap inside the window, every chip whole, nothing sticks out", async ({ eq, goTab, layoutSettled, page, phone, sticksOut }) => {
+    await goTab("upnext");
+    await phone(async () => {
+      await layoutSettled();
+      const cut = await page.$$eval("#upnext-chips .upnext-chip", (els) => els.filter((c) => { const r = c.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth || c.scrollWidth > c.clientWidth + 0.5; }).map((c) => c.textContent.trim()));
+      eq("chips cut or outside the window", cut.join(" | "), "");
+      eq("sticks out", (await sticksOut()).join(" | "), "");
+    });
+  }, { variants: ["household"] }],
 ];

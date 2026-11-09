@@ -94,6 +94,8 @@ fi
 # ---- build and recreate ----
 if [ $NO_BUILD = 0 ]; then
     step "Building $IMAGE"
+    # a new date reruns the Debian upgrade layer, so a rebuild picks up OS security fixes
+    APT_REFRESH="$(date -u +%Y-%m-%d)"; export APT_REFRESH
     run podman-compose build || fail "build failed"
 fi
 # down sends SIGTERM, so pending SIMKL changes are flushed before the old container goes

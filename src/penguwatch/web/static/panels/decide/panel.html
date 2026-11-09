@@ -29,9 +29,10 @@
           <label for="decide-audience">Audience</label>
           <select id="decide-audience" class="input">
             {%- if household.shared %}
-            <option value="both">Both want to watch</option>
-            <option value="person1">{{ household.members[0] }}'s pick</option>
-            <option value="person2">{{ household.members[1] }}'s pick</option>
+            <option value="shared">{{ "Both want to watch" if household.members|length == 2 else "Shared" }}</option>
+            {%- for member in household.members %}
+            <option value="{{ member.id }}">{{ member.name }}'s pick</option>
+            {%- endfor %}
             {%- endif %}
             <option value="all"{% if not household.shared %} selected{% endif %}>Anyone's pick</option>
           </select>

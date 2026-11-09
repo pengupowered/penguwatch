@@ -10,6 +10,8 @@ it.
 3. The catalogue refreshes the streaming services the user never edited (penguwatch.catalog).
 4. What depends on the effective drivers: the repository's identity providers and the built-in rating sources.
 5. The clock's zone, the log level and the Grafana links from the effective values.
+6. The household's members into the repository (which of a title's stored people count); after a save that changes
+   them, the core applier "household.members" does it again.
 """
 
 from penguwatch import clock, grafana, paths, telemetry
@@ -29,7 +31,7 @@ async def register(ctx: Context) -> Component:
     repo = ctx.repository
     secrets = SecretStore(paths.secrets_path(repo.db_path))
     hub = SettingsHub(on_failure=telemetry.settings_live_failure)
-    appliers.register_core(hub, ctx.config)
+    appliers.register_core(hub, ctx.config, repo)
     config_path, raw = read_config_file(env=ctx.env)
     security = ctx.security
     manager = SettingsManager(ctx.config, repo, secrets, hub, ctx.env, config_path=config_path, file_raw=raw,
@@ -46,5 +48,6 @@ async def register(ctx: Context) -> Component:
         grafana.configure(ctx.config.display.grafana_url)
     except ValueError:  # checked by the setting's field; kept for a config built around it
         grafana.configure("")
+    repo.set_household_members(ctx.config.household.ids)
     ctx.settings, ctx.settings_manager = hub, manager
     return Component("settings")

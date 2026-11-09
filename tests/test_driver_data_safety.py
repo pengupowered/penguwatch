@@ -7,6 +7,7 @@ import httpx
 import pytest
 import respx
 
+from penguwatch.config import AppConfig
 from penguwatch.db.repository import DatabaseRepository
 from penguwatch.drivers import identity_providers
 from penguwatch.drivers.base import Episode, Title
@@ -141,7 +142,7 @@ async def test_F4_a_titles_episode_list_comes_from_the_library_drivers_catalogue
     respx.get(url__regex=rf"{SIMKL_BASE_URL}/(tv|anime)/episodes/7001").respond(json=[
         {"title": "A", "season": 1, "episode": n, "type": "episode", "date": "2020-01-01"} for n in (1, 2, 3)])
     respx.get(url__startswith=SIMKL_BASE_URL).respond(json={})
-    c = SimpleNamespace(background=set())
+    c = SimpleNamespace(background=set(), config=AppConfig())
 
     s2 = await discover_add(DiscoverAddRequest(title="Attack on Titan Season 2", ids={"simkl": 7001, "tvdb": 267440},
                                                media_type="anime"), repo, sync, c)

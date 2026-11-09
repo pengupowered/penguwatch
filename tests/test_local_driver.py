@@ -107,6 +107,7 @@ async def test_api_drivers_reports_the_local_library_and_what_waits_for_an_inact
     assert simkl_info["remote"] is True and simkl_info["connect_kind"] == "device_code"
     assert simkl_info["extras"] == ["credentials", "diagnose"]
     assert simkl_info["title_urls"]["movie"] == "https://simkl.com/movies/{id}"
+    assert simkl_info["takes_links"] is True and by_name["local"]["takes_links"] is False  # Add title's hint names SIMKL
     assert [r["id"] for r in simkl_info["rating_sources"]] == ["simkl", "imdb"]
 
     status = (await get("/api/drivers/local/status")).json()

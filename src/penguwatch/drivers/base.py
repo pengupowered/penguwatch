@@ -360,7 +360,7 @@ class CatalogProvider(Protocol):
 
     key_provider: str
 
-    async def search(self, query: str, media_types: Sequence[str], limit: int = 10) -> List[Title]: ...
+    async def search(self, query: str, media_types: Sequence[str], limit: int = 30) -> List[Title]: ...
 
     async def title(self, media_type: Optional[str], ids: Ids) -> Optional[Title]:
         """The title's details (media_type None: any type), or None when not found."""
@@ -492,6 +492,7 @@ class Driver(Protocol):
     # connect_kind: ClassVar[str]       how an account is connected ("device_code"); absent: nothing to connect
     # extras: ClassVar[Tuple[str, ...]] extra controls it offers: "credentials" (an app id form), "diagnose"
     # title_urls: ClassVar[Dict[str, str]]  media type -> a title's page on the service, "{id}" for its id
+    # takes_links: ClassVar[bool]          Add title takes a pasted link to a title on the service (its catalogue's parse_link)
     # home_url: ClassVar[str]           the service's home page: credited where its data is used
     # The Settings tab (penguwatch.settings.registry; a driver with an options_model must place every option):
     # settings: ClassVar[Tuple[DriverSetting, ...]]   the options the page shows

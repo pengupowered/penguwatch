@@ -19,7 +19,7 @@ def rec(sid, score=50.0, cost=10.0, hours=30.0, ready=1, active=False, **kw):
         episodes_backlog=10,
         shows_count=1,
         ready_to_binge_count=ready,
-        both_want_count=0,
+        shared_count=0,
         recommendation_reason="",
         action="keep_active" if active else "standby",
         plannable_hours=hours,

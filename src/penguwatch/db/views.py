@@ -7,7 +7,7 @@ from penguwatch import clock
 from penguwatch.models import Show, ShowStatus, MediaType
 from penguwatch.db.episodes import format_episode_code
 from penguwatch.db.services import EFFECTIVELY_ACTIVE_SQL
-from penguwatch.db.shows import title_ids_tx
+from penguwatch.db.shows import household_tx, title_ids_tx
 
 
 def _air_window(days_ahead: int) -> tuple:
@@ -210,9 +210,10 @@ class ViewsMixin:
         cursor = await db.execute(query, (limit,))
         rows = await cursor.fetchall()
         all_ids = await title_ids_tx(db, [r["id"] for r in rows])
+        people = await household_tx(db, [r["id"] for r in rows])
         results = []
         for r in rows:
-            show = self._row_to_show(r, all_ids.get(r["id"]))
+            show = self._row_to_show(r, all_ids.get(r["id"]), household=people.get(r["id"]))
             entry: Dict[str, Any] = show.model_dump()
             entry["service_name"] = r["service_name"]
             entry["service_active"] = bool(r["service_active"]) if r["service_active"] is not None else False
@@ -254,8 +255,7 @@ class ViewsMixin:
                    e.season as next_episode_season,
                    e.number as next_episode_number,
                    e.title as next_episode_title,
-                   s.priority as priority,
-                   s.household_tag as household_tag
+                   s.priority as priority
             FROM episodes e
             JOIN shows s ON e.show_id = s.id
             LEFT JOIN services svc ON s.service_id = svc.id
@@ -280,7 +280,7 @@ class ViewsMixin:
             SELECT s.id, s.title, s.en_title, s.poster, s.network, s.service_id, svc.name as service_name,
                    {EFFECTIVELY_ACTIVE_SQL} as is_service_active,
                    s.next_episode_air_date, s.next_episode_season, s.next_episode_number,
-                   s.next_episode_title, s.priority, s.household_tag
+                   s.next_episode_title, s.priority
             FROM shows s
             LEFT JOIN services svc ON s.service_id = svc.id
             WHERE s.next_episode_air_date IS NOT NULL
@@ -304,7 +304,9 @@ class ViewsMixin:
                 seen_show_dates.add(key)
 
         rows.sort(key=lambda r: (r["next_episode_air_date"] or ""))
+        people = await household_tx(db, {r["id"] for r in rows})
         for r in rows:
+            r["household"] = self._household_of(people.get(r["id"]))
             if r.get("en_title") is None:  # absent unless known, like Show.en_title
                 r.pop("en_title", None)
         return rows

@@ -8,7 +8,7 @@ import httpx
 from penguwatch.drivers.simkl.client import SimklClient, SIMKL_BASE_URL
 from tests.simkl_helpers import simkl_engine
 from penguwatch.db.repository import DatabaseRepository
-from penguwatch.models import ShowStatus, HouseholdTag
+from penguwatch.models import ShowStatus
 
 
 def test_simkl_client_headers():
@@ -132,4 +132,4 @@ def test_simkl_parse_anime_item():
     assert show.aired_episodes == 25
     assert show.episodes_left == 1
     assert show.imdb_rating == 7.2  # MAL rating fallback
-    assert show.household_tag == HouseholdTag.PERSON1
+    assert show.household == []  # nobody named: the repository stores the first member

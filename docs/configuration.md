@@ -82,17 +82,18 @@ a note until then). The key is the name used by Export, Import and the API.
 
 | Section | Setting | Key | Default | Range | Applies | Env override |
 |---|---|---|---|---|---|---|
-| Household | Who watches | `household.members` | `Me`, `Partner` | one or two names, 1 to 40 characters each | live (reloads the page) | |
+| Household | Who watches | `household.members` | `Me`, `Partner` | 1 to 20 people (in effect, no limit), a name each of 1 to 40 characters, no two alike | live (reloads the page) | |
 | Sync (SIMKL) | Check for changes every | `simkl.auto_sync_interval_minutes` | `30` min | 5 to 1440 | live | |
 | Sync (SIMKL) | Quiet after | `simkl.idle_after_hours` | `12` h | 1 to 168 | live | |
 | Sync (SIMKL) | Check while quiet every | `simkl.idle_sync_interval_minutes` | `180` min | 15 to 1440, not below the check above | live | |
 | Optimizer | Services kept at once | `optimizer.max_active_services` | `3` | 1 to 10 | live | |
-| Optimizer | Weight of titles both want | `optimizer.household_priority_boost` | `2.0` | 0 to 10 | live | |
+| Optimizer | Weight of shared titles | `optimizer.household_priority_boost` | `2.0` | 0 to 10, per person beyond the first | live | |
 | Optimizer | Weight of complete seasons | `optimizer.ready_to_binge_boost` | `1.5` | 0 to 10 | live | |
 | Notifications (Daily digest) | Send the digest as | `notify.kind` | `ntfy` | `ntfy` or `webhook` | live | `PENGUWATCH_NOTIFY_KIND` |
 | Notifications (Daily digest) | Check every day at | `notify.hour` | `9` | 0 to 23 (local hour) | live | `PENGUWATCH_NOTIFY_HOUR` |
 | Notifications (Daily digest) | Warn before a renewal | `notify.renewal_warning_days` | `3` days | 1 to 14 | live | |
 | Display | Theme for new browsers | `display.theme` | `default` | a theme id ([Themes](themes.md)) | live (next page load) | |
+| Display | Theme animation | `display.effects` | on | on or off | live (next page load) | |
 | Display | Time zone | `server.timezone` | empty (the server's zone: `TZ`, else UTC) | empty or an IANA name | live | `PENGUWATCH_TZ` |
 | Integrations | Allow AI assistants to read (MCP) | `mcp.enabled` | off | on or off | live | `PENGUWATCH_MCP_ENABLED` |
 | Integrations | Grafana address | `display.grafana_url` | empty (no links) | a plain `http(s)://` base URL | live (next page load) | `PENGUWATCH_GRAFANA_URL` |
@@ -122,24 +123,46 @@ Besides these, the tab holds a **list** and the **secrets**:
 
 ### What the settings mean
 
-**Household.** One or two names. With two, every title has a "who wants to watch" field (either person, or both), the
-library and Up Next can be filtered by it, Tonight's Pick can pick for one of you, and titles both of you want count
-more in the optimizer and planner. With one name those controls are hidden. The names are only shown in the page; the
-database stores neutral keys (`person1`, `person2`, `both`), so renaming someone later keeps every title's tag.
+**Household.** 1 to 20 people (20 is a guard, not a plan: in effect there is no limit). On the tab each person is a row
+with a Remove button, and **Add person** adds one. With two or more, every title says who wants to watch it (any of
+them, ticked per person), the Library and Up Next can be filtered by one person's own titles or the shared ones,
+Tonight's Pick can pick for one of you or from the shared titles, and a title counts more the more people want it (the
+optimizer, the planner, the likely-interest score and Tonight's Pick). With one person those controls are hidden.
+
+Each person has an id (`person1`, `person2`, ...) that titles store; the names are only shown in the page. Renaming
+someone keeps their id, so every title keeps its people. A new person gets the next unused id; an id is never given to
+anyone else, even after its person is removed. Removing someone takes them off their titles, and a title that was only
+theirs goes to the first person: the tab says how many before you save. In `config.yaml` (read once, see above) and in
+an exported file the setting is a list of `{id, name}`; a plain list of names, as before 0.17, still reads, as
+`person1`, `person2`, ... in order.
+
+```yaml
+household:
+  members:
+    - {id: person1, name: Ann}
+    - {id: person2, name: Bob}
+    - {id: person4, name: Cid}   # person3 was removed: its id is not used again
+```
 
 **Sync.** [Sync](sync.md#simkl) explains the intervals: while the app is in use it checks SIMKL every
 `auto_sync_interval_minutes`; after `idle_after_hours` without use it checks only every `idle_sync_interval_minutes`,
 and the next real use triggers a sync at once.
 
 **Optimizer.** `max_active_services` is how many paid services the rotation planner may keep at once; the two weights
-raise a service's score for titles both of you want and for shows with a complete season waiting. The viewing window and
+raise a service's score for shared titles (the weight counts once per person beyond the first who wants a title, so
+with two people it is exactly the "both want" weight it was) and for shows with a complete season waiting. The viewing window and
 the "not used" threshold (Advanced) decide which services count as used.
 
-**Display.** The theme every browser shows until its person picks one in the header's theme menu: `default`, `nord`,
-`dracula`, `solarized`, `e-ink`, `high-contrast` or `blueprint` (see [Themes](themes.md)). Light or dark is a separate
-choice, made in the same menu. A saved theme must be one of these. The time zone is for decisions that depend on
-"what day is it for the household" (renewal countdowns, "aired today", the hour of the daily digest, History's charts);
-[Time zone](#time-zone) gives the order of precedence. Stored timestamps are always UTC.
+**Display.** The theme every browser shows until its person picks one in the header's theme menu: `default`,
+`amber-crt`, `blueprint`, `catppuccin`, `cinema`, `dracula`, `e-ink`, `gruvbox`, `high-contrast`, `nord`, `one-dark`,
+`rose-pine`, `solarized`, `starship-console`, `synthwave`, `tokyo-night` or `video-store` (see [Themes](themes.md)).
+Light or dark is a separate choice, made in the same menu. A saved theme must be one of these. **Theme animation** is
+whether a theme's subtle background animation (Amber CRT, Cinema, Starship console, Synthwave and Video store; the
+palette themes have none) runs in a browser whose person has not turned it on or off in the header menu's "Animation"
+item; that browser's own choice wins, and nothing runs while the system asks for reduced motion ([Themes:
+Effects](themes.md#effects)). The time zone is for decisions that depend on "what day is it for the household" (renewal
+countdowns, "aired today", the hour of the daily digest, History's charts); [Time zone](#time-zone) gives the order of
+precedence. Stored timestamps are always UTC.
 
 **MCP.** Serves the read-only MCP endpoint (`POST /mcp`) that lets an AI assistant ask about your library. Off by
 default; while it is off `/mcp` answers 404. It is guarded like the API: with `PENGUWATCH_ACCESS_TOKEN` set it needs the

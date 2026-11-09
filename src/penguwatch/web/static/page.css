@@ -3,6 +3,11 @@
    tab bar on phones, the More sheet, the reconnect banner and the page area. Reads tokens only. */
 
 body { min-height: 100vh; }
+/* The layer a theme's effect draws in (js/themes.js, docs/themes.md "Effects"): fixed over the window but behind every
+   part of the page (z-index -1 in the root's stacking context: above the page's background, under everything else), and
+   never hit by the pointer, so it can never cover a poster, a chip or text. A skin may not move it (skin_problems). */
+.fx-layer { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; contain: strict; }
+.fx-layer > * { pointer-events: none; }
 .skip { position: absolute; left: -999px; top: 8px; z-index: 100; background: var(--surface-1); padding: 8px 12px; border-radius: var(--r-sm); }
 .skip:focus { left: 8px; }
 .grow { flex: 1; }

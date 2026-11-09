@@ -38,7 +38,7 @@ async def test_api_shows_crud_and_pick(setup_test_app):
             "service_id": "apple_tv",
             "status": "watching",
             "priority": "high",
-            "household_tag": "both",
+            "household": ["person1", "person2"],
             "imdb_rating": 8.8,
             "total_episodes": 34,
             "aired_episodes": 34,
@@ -65,7 +65,7 @@ async def test_api_shows_crud_and_pick(setup_test_app):
         pick_payload = {
             "only_active_services": True,
             "min_rating": 8.0,
-            "household_tag": "both",
+            "shared": True,
         }
         res_pick = await ac.post("/api/decide/pick", json=pick_payload)
         assert res_pick.status_code == 200
